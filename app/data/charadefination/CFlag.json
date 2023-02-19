@@ -1,0 +1,57 @@
+{
+	"cflag": [
+
+		"favo",
+		"trust",
+		"dom",
+		"sub",
+		"depend",
+		"desire",
+
+		"fallen",
+		"erosion",
+
+		"jobfame",
+		"publicfame",
+		"lewdfame",
+		"crimefame",
+
+		"wakeuptime",
+		"sleeptime",
+		"wokeup",
+		"lastslept",
+
+		"touchLv",
+		"getResistance",
+		"getHypnosis"
+	],
+
+	"tsv": [
+		"sleepDepth",
+		"sleepCurse",
+		"metTodayIsil",
+		"metTodayAyres",
+
+		"woohoo",
+		"oksign",
+
+		"MEx",
+		"BEx",
+		"CEx",
+		"UEx",
+		"VEx",
+		"AEx",
+		"WEX",
+
+		"getHypnosis",
+		"getecstacy",
+		"getSurrender",
+		"getPain",
+		"getFear",
+		"getHumiliated",
+		"getMortify",
+		"getResistance",
+		"loseResistance",
+		"loseHypnosis"
+	]
+}

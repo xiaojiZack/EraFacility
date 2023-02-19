@@ -1,0 +1,239 @@
+[
+	{
+		"name": ["纤弱", "Weak"],
+		"group": "physical",
+		"des": ["弱不经风", "The one who is blown down by the wind."],
+		"order": 1,
+		"sourceEffect": [["stamina", 1.2, "lose"]],
+		"rate":0.2
+	},
+	{
+		"name": ["强壮", "Strong"],
+		"group": "physical",
+		"des": ["五体康健", "Strong and muscular."],
+		"order": 0,
+		"sourceEffect": [["stamina", 0.8, "lose"]],
+		"rate":0.2
+	},
+	{
+		"name": ["耐疼", "Rough"],
+		"group": "physical",
+		"des": ["皮糙肉厚。", "The skin is thick and rough, it's hard to feel pain."],
+		"order": 0,
+		"sourceEffect": [["paAll", 0.8]],
+		"rate":0.2
+	},
+	{
+		"name": ["怕疼", "Tender"],
+		"group": "physical",
+		"des": [
+			"细皮嫩肉。",
+			"The skin is tender and sensitive, it will feel painful even a little bumps."
+		],
+		"order": 0,
+		"sourceEffect": [["paAll", 1.2]],
+		"rate":0.2
+	},
+	{
+		"name": ["早泄", "Premature"],
+		"group": "physical",
+		"des": ["手速很快，但射得更快。", "The hands is fast, but the shot is faster."],
+		"sourceEffect": [["ecstacy", 2.5]],
+		"rate":0.2
+	},
+	{
+		"name": ["晚泄", "Durable"],
+		"group": "physical",
+		"des": ["小兄弟十分勇猛，金枪百战不倒。", "The cock is very brave, he will not fail in a hundred battles."],
+		"sourceEffect": [["ecstacy", 0.25]],
+		"rate":0.2
+	},
+
+	{
+		"name": ["性冷淡", "IceCold"],
+		"group": "physical",
+		"des": ["没有世俗的欲望。", "The sex drive is colder than ice."],
+		"sourceEffect": [
+			["libido", 0.3],
+			["lust", 0.3],
+			["libido", 2, "lose"]
+		],
+		"rate":0.2
+	},
+	{
+		"name": ["性欲强", "FireHot"],
+		"group": "physical",
+		"des": ["身体很容易被刺激到。", "The sex drive is hotter than fire."],
+		"sourceEffect": [
+			["libido", 1.5],
+			["lust", 1.5],
+			["libido", 0.5, "lose"]
+		],
+		"rate":0.2
+	},
+
+	{
+		"name": ["M体质", "MasochicBody"],
+		"group": "SM",
+		"des": ["明明很痛，但莫名的有点酸爽。", "It's kind of pain, but oddly feel a little bit good."],
+		"order": 0,
+		"rate":0.1
+	},
+	{
+		"name": ["M倾向", "Masochicsm"],
+		"group": "SM",
+		"des": ["战斗时倾向往前排承受伤害。", "Enjoy taking damage at the front during combat."],
+		"order": 10,
+		"rate":0.2
+	},
+	{
+		"name": ["S倾向", "Sadicsm"],
+		"group": "SM",
+		"des": ["战斗时倾向往前排输出伤害。", "Enjoys outputting damage at the front during combat."],
+		"order": 0,
+		"rate":0.2
+	},
+
+	{
+		"name": ["A名器", "QualityAnal"],
+		"group": "quaility",
+		"des": ["这个菊穴用起来会很爽。", "Oh..!So tight.."],
+		"order": 0,
+		"rate":0.2
+	},
+
+	{
+		"name": ["V名器", "QuailityVagina"],
+		"group": "quaility",
+		"des": ["这个秘穴用起来会很爽。", "Oh..!So tight and smooth.."],
+		"order": 0,
+		"rate":0.2
+	},
+
+	{
+		"name": ["M名器", "QualityMouth"],
+		"group": "quaility",
+		"des": ["这个嘴用起来会很爽。", "Oh..!Nice mouth pussy.."],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["V敏感","MV"],
+		"group": "quaility",
+		"des": ["阴道比较敏感。"],
+		"order": 0,
+		"sourceEffect": [["esV",1.5]],
+		"rate":0.2
+	},
+	{
+		"name": ["V钝感","DV"],
+		"group": "quaility",
+		"des": ["阴道感觉迟钝。"],
+		"sourceEffect": [["esV",0.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["A敏感","MA"],
+		"group": "quaility",
+		"des": ["菊穴比较敏感。"],
+		"sourceEffect": [["esA",1.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["A钝感","DA"],
+		"group": "quaility",
+		"des": ["菊穴感觉迟钝。"],
+		"sourceEffect": [["esA",0.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["C敏感","MC"],
+		"group": "quaility",
+		"des": ["阴蒂/阴茎比较敏感。"],
+		"sourceEffect": [["esC",1.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["C钝感","DC"],
+		"group": "quaility",
+		"des": ["阴蒂/阴茎感觉迟钝。"],
+		"sourceEffect": [["esC",0.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["B敏感","MB"],
+		"group": "quaility",
+		"des": ["胸部比较敏感。"],
+		"sourceEffect": [["esB",1.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["B钝感","DB"],
+		"group": "quaility",
+		"des": ["胸部感觉迟钝。"],
+		"sourceEffect": [["esB",0.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["M敏感","MM"],
+		"group": "quaility",
+		"des": ["口腔比较敏感。"],
+		"sourceEffect": [["esM",1.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["M钝感","DM"],
+		"group": "quaility",
+		"des": ["口腔感觉迟钝。"],
+		"sourceEffect": [["esM",0.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["W敏感","MW"],
+		"group": "quaility",
+		"des": ["子宫比较敏感。"],
+		"sourceEffect": [["esW",1.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["W钝感","DW"],
+		"group": "quaility",
+		"des": ["子宫感觉迟钝。"],
+		"sourceEffect": [["esW",0.5]],
+		"order": 0,
+		"rate":0.2
+	},
+	{
+		"name": ["精爱味觉","Cumlover"],
+		"group": "quaility",
+		"des": ["觉得精液很美味"],
+		"order": 0,
+		"rate":0.05
+	},
+	{
+		"name": ["成瘾体质","EasyAddict"],
+		"group": "quaility",
+		"des": ["药物代谢有点慢"],
+		"sourceEffect": [["drug",1.5,"lose"]],
+		"order": 0,
+		"rate":0.05
+	},
+	{
+		"name": ["不易成瘾","HardAddict"],
+		"group": "quaility",
+		"des": ["药物代谢比较快"],
+		"sourceEffect": [["drug",0.5,"lose"]],
+		"order": 0,
+		"rate":0.05
+	}
+]

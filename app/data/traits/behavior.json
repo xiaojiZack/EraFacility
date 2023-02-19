@@ -1,0 +1,30 @@
+[
+	{
+		"name": ["堕落愿望","FallWish"],
+		"group": "behavior",
+		"des": "一天天幻想着被玩坏，积极地使用设施将自己改造成为堕落的的身体。",
+		"order": 10,
+		"rate": 0.01
+	},
+	{
+		"name": ["行动派","Actionful"],
+		"group": "behavior",
+		"des": "会积极地使用设施，但是还是不能接受那些有些过激的玩法。",
+		"order": 0,
+		"rate":0.1
+	},
+	{
+		"name": ["懒惰","Lazy"],
+		"group": "behavior",
+		"des": "空闲时只想赖在床上不想动。",
+		"order": -10,
+		"rate":0.1
+	},
+	{
+		"name": ["消极","Passive"],
+		"group": "behavior",
+		"des": "对于使用设施有抵触心理。",
+		"order": 0,
+		"rate":0.1
+	}
+]

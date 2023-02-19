@@ -1,0 +1,113 @@
+[
+	{
+		"name": ["理智", "Rational"],
+		"group": "mental",
+		"des": [
+			"无论什么时候都能做出理智的判断。从负面状态中更容易恢复。",
+			"Can make sensible judgments no matter what. Recover more easily from negative states."
+		],
+		"order": 5,
+		"rate":0.95
+	},
+	{
+		"name": ["不过线", "NotOverstep"],
+		"group": "mental",
+		"des": [
+			"对什么是都分得很清楚，不会轻易过线。",
+			"Know what is right and wrong, and will not overstep the line easily."
+		],
+		"order": -10,
+		"rate":0.2
+	},
+	{
+		"name": ["胆大", "Bold"],
+		"group": "mental",
+		"des": ["无法被恐惧打倒。", "Cannot be defeated by fear."],
+		"order": 5,
+		"sourceEffect": [["fear", 0.8]],
+		"rate":0.3
+	},
+	{
+		"name": ["胆小", "Cowardly"],
+		"group": "mental",
+		"des": ["容易受到惊吓。", "Easily frightened."],
+		"order": -5,
+		"sourceEffect": [["fear", 1.2]],
+		"rate":0.3
+	},
+	{
+		"name": ["脆弱", "GlassHeart"],
+		"group": "mental",
+		"des": ["呜呜呜……玻璃心……碎了。", "QAQ... My heart is broken."],
+		"order": 0,
+		"sourceEffect": [
+			["sanity", 1.5, "lose"],
+			["depress", 1.2],
+			["paALL", 1.2],
+			["fear", 1.2]
+		],
+		"rate":0.1
+	},
+	{
+		"name": ["坚韧", "Tough"],
+		"group": "mental",
+		"des": ["没有什么可以打倒我的。", "Nothing can defeat me."],
+		"order": 0,
+		"sourceEffect": [
+			["sanity", 0.6, "lose"],
+			["surrend", 0.8],
+			["paAll", 0.9],
+			["fear", 0.9],
+			["humiliate", 0.9]
+		],
+		"rate":0.1
+	},
+	{
+		"name": ["乐观", "Optimistic"],
+		"group": "mental",
+		"des": ["每天都是晴天。", "Every day is sunny."],
+		"order": 2,
+		"sourceEffect": [
+			["depress", 0.8],
+			["resist", 0.8],
+			["stress", 1.2,"lose"]
+		],
+		"rate":0.3
+	},
+	{
+		"name": ["悲观", "Pessimistic"],
+		"group": "mental",
+		"des": ["每天都是阴天。", "Every day is cloudy."],
+		"order": -2,
+		"sourceEffect": [
+			["depress", 1.2],
+			["resist", 1.2],
+			["stress", 0.8,"lose"]
+		],
+		"rate":0.3
+	},
+	{
+		"name": ["怕羞", "Shameful"],
+		"group": "mental",
+		"des": [
+			"比一般人更有羞耻感"
+		],
+		"order": 2,
+		"sourceEffect": [
+			["mortify", 1.2]
+		],
+		"rate":0.2
+	},
+	{
+		"name": ["不知耻", "Shameless"],
+		"group": "mental",
+		"des": [
+			"只要我不尴尬，尴尬的就是别人"
+		],
+		"order": 2,
+		"sourceEffect": [
+			["mortify", 0.8]
+		],
+		"rate":0.2
+	}
+]

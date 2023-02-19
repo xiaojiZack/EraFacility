@@ -1,0 +1,51 @@
+[
+	{
+		"name": ["禁欲","BanLust"],
+		"group": "attitude",
+		"des": "在性方面有着自我限制",
+		"order": -10,
+		"sourceEffect": [
+			["lust", 0.5],
+			["esAll", 1.2]
+		],
+		"rate":0.1
+	},
+	{
+		"name": ["放纵","AllowLust"],
+		"group": "attitude",
+		"des": "认为性爱是天经地义的",
+		"order": 10,
+		"sourceEffect": [
+			["lust", 1.5],
+			["esAll", 0.5]
+		],
+		"rate":0.1
+	},
+	{
+		"name": ["好色","H"],
+		"group": "mental",
+		"des": [
+			"对色情的事情充满好奇心"
+		],
+		"order": 5,
+		"sourceEffect": [
+			["lust", 1.4],
+			["eager", 1.4]
+		],
+		"rate":0.2
+	},
+	{
+		"name": ["纯情","NoH"],
+		"group": "mental",
+		"des": [
+			"对色情的事情充满抵触"
+		],
+		"order": -5,
+		"sourceEffect": [
+			["lust", 0.6],
+			["eager", 0.6],
+			["favo", 1.2]
+		],
+		"rate":0.2
+	}
+]

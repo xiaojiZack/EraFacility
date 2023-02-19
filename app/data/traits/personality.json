@@ -1,0 +1,130 @@
+[
+	{
+		"name": ["冷静","Cool"],
+		"group": "personality",
+		"des": "冷静自制的性格。",
+		"order": 0,
+		"sourceEffect": [
+			["fear", 0.8],
+			["angry", 0.8],
+			["depress", 0.8]
+		]
+	},
+	{
+		"name": ["傲娇","Tsundere"],
+		"group": "personality",
+		"des": "才不是为了你呢！",
+		"order": 0,
+		"sourceEffect": [
+			["surrend", 0.8],
+			["angry", 1.2],
+			["favo", 1.2]
+		]
+	},
+	{
+		"name": ["乖顺","Obey"],
+		"group": "personality",
+		"des": "温和顺从的性格。",
+		"order": 5,
+		"sourceEffect": [
+			["surrend", 1.4],
+			["resist", 0.6],
+			["favo", 1.2]
+		]
+	},
+	{
+		"name": ["叛逆","Revolt"],
+		"group": "personality",
+		"des": "反抗叛逆的性格。",
+		"order": -10,
+		"sourceEffect": [
+			["surrend", 0.5],
+			["resist", 1.5],
+			["favo", 0.6]
+		]
+	},
+	{
+		"name": ["高傲","Haughty"],
+		"group": "personality",
+		"des": "强硬傲慢的性格。",
+		"order": -5,
+		"sourceEffect": [
+			["surrend", 0.5],
+			["humiliate", 1.2],
+			["resist", 1.2],
+			["favo", 0.8],
+			["superior", 1.2]
+		]
+	},
+	{
+		"name": ["自卑","Inferiority"],
+		"group": "personality",
+		"des": "胆怯自贱的性格。",
+		"order": -5,
+		"sourceEffect": [
+			["surrend", 1.5],
+			["fear", 1.4],
+			["humiliate", 1.2],
+			["depress", 1.4],
+			["favo", 1.4],
+			["superior", 0.8]
+		]
+	},
+	{
+		"name": ["外向","Eextrovert"],
+		"group": "personality",
+		"des": "积极阳光的性格。",
+		"order": 0,
+		"sourceEffect": [
+			["depress", 0.8],
+			["favo", 1.2]
+		]
+	},
+	{
+		"name": ["内向","Introvert"],
+		"group": "personality",
+		"des": "不善表达内心的性格。",
+		"order": 0,
+		"sourceEffect": [
+			["depress", 1.2],
+			["favo", 0.8],
+			["superior", 0.8]
+		]
+	},
+	{
+		"name": ["小恶魔","TinyEvil"],
+		"group": "personality",
+		"des": "喜好捉弄别人的性格。",
+		"order": 0,
+		"sourceEffect": [
+			["lust", 1.2],
+			["mortify", 0.8],
+			["favo", 0.8],
+			["superior", 1.3]
+		],
+		"rate":0.3
+	},
+	{
+		"name": ["情感淡漠","Emotionless"],
+		"group": "personality",
+		"des": "对任何事情都无所谓的性格。",
+		"order": 0,
+		"sourceEffect": [
+			["lust", 0.7],
+			["surrend", 0.7],
+			["fear", 0.7],
+			["mortify", 0.7],
+			["humiliate", 0.7],
+			["depress", 0.7],
+			["resist", 0.7],
+			["favo", 0.7],
+			["uncomfort", 0.7],
+			["eager", 0.7],
+			["angry", 0.7],
+			["satisfy", 1.2],
+			["superior", 0.7],
+			["esAll", 0.9]
+		],
+		"rate":0.1
+	}
+]

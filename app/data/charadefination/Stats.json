@@ -1,0 +1,30 @@
+{
+	"stats": ["ATK", "DEF", "MTK", "MDF", "STR", "CON", "DEX", "INT", "WIL", "PSY", "ALR", "LUK"],
+
+	"basekey": [
+		"health",
+		"stamina",
+		"sanity",
+		"mana",
+		"hydration",
+		"nutrition",
+		"clean",
+		"drug",
+		"awareness",
+		"stress",
+		"libido"
+	],
+
+	"basicNeeds": {
+		"health": ["健康", "HP."],
+		"stamina": ["体力", "SP."],
+		"sanity": ["理智", "San."]
+	},
+
+	"basicPalam": {
+		"drug": ["药物", "Drg."],
+		"awareness": ["意识", "Awa."],
+		"stress": ["压力", "Str."],
+		"libido": ["性欲", "Lbd."]
+	}
+}
