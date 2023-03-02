@@ -16,14 +16,13 @@
        $('#story-header').removeClass('hidden') 
     }
 >>
-
-
+/*
 这里是header. 每个页面都会运行。<br>
-
+*/
 
 :: StoryCaption
 
-beta 0.0.1<br>
+EraFacility beta 0.0.1<br>
 <a url='https://github.com/emicoto/_scEra'>github</a><br>
 
 /* 这里显示目前操作角色的信息 */
@@ -52,8 +51,8 @@ beta 0.0.1<br>
 因为是纯代码区，这里的文字并不会显示在页面上。
 
 :: StoryHeader
-顶部的标题栏。<br>
-<<test2>>
+/*顶部的标题栏。<br>
+<<test2>>*/
 
 :: StoryFooter
-底部的菜单栏。
+/*底部的菜单栏。*/

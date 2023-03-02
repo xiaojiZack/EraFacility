@@ -6,7 +6,7 @@
 }
 
 :: StoryTitle
-一个空白模板
+EraFacility
 
 :: StoryDisplayTitle
 EraFacility
@@ -26,16 +26,18 @@ EraFacility
 >>
 
 <div id='gametitle'>
-一个游戏的标题
+EraFacility
 </div>
 <div id='gamesubtitle'>
-- 副标题 -
+- 开发中 -
 </div>
 <div id='gametitle_selection'>
 [[事件测试|DialogTest]]<br>
 [[显示测试|TestStart]]<br>
+[[进入主界面|MainLoop]]<br>
+[[开始|Welcome]]<br>
+[[自主测试|testshowChara]]<br>
 </div>
-
 <div id='footer'>
 开发者工具：
 <<link '地图编辑器' 'MapEditor'>><</link>>

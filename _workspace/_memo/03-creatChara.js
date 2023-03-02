@@ -205,21 +205,21 @@ Chara.RandomVirginity = function(chara){
     var losePenisRate = 0.2;
     var loseVaginaRate = 0.05;
     if (Math.random()<loseKissRate){
-        chara.setVirginity("kiss", "不明", "不明", "不明");
+        chara.setVirginity("kiss", "在不明情况下", "不知道是谁", "不明");
     }
     if (Math.random()<loseHandRate){
-        chara.setVirginity("handholding", "不明", "不明", "不明");
+        chara.setVirginity("handholding", "在不明情况下", "不知道是谁", "不明");
     }
     if (Math.random()<loseAnalRate){
-        chara.setVirginity("anal", "不明", "不明", "不明");
-        chara.setVirginity("analsex", "不明", "不明", "不明");
+        chara.setVirginity("anal", "在不明情况下", "不知道是谁", "不明");
+        chara.setVirginity("analsex", "在不明情况下", "不知道是谁", "不明");
     }
     if (chara.gender !== "female" && Math.random()<losePenisRate) {
-        chara.setVirginity("penis", "不明", "不明", "不明");
+        chara.setVirginity("penis", "在不明情况下", "不知道是谁", "不明");
     }
     if (chara.gender !== "male" && Math.random()<loseVaginaRate) {
-        chara.setVirginity("vagina", "不明", "不明", "不明");
-        chara.setVirginity("vaginasex", "不明", "不明", "不明");
+        chara.setVirginity("vagina", "在不明情况下", "不知道是谁", "不明");
+        chara.setVirginity("vaginasex", "在不明情况下", "不知道是谁", "不明");
     }
     console.log('finish virginity')
     return chara

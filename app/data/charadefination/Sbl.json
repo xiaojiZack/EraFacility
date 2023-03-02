@@ -1,6 +1,10 @@
 {
 	"sbl": {
-		"technique": ["性技巧", "Technique"],
+		"hskill": ["指技", "Hand Skill"],
+		"mskill": ["舌技", "Mouth Skill"],
+		"wskill": ["腰技", "Waist Skill"],
+		"Bskill": ["魔乳", "Breasts Skill"],
+		"Fskill": ["足技", "Foot Skill"],
 		"endurance": ["性耐性", "Endurance"],
 		"submissive": ["顺从", "Submissive"],
 		"refuse": ["抗拒", "Refuse"],
@@ -22,5 +26,13 @@
 		"Vcumpie": ["内射中毒", "V Cumpie"],
 		"Acumpie": ["肛射中毒", "A Cumpie"],
 		"pergaddic": ["苗床中毒", "Pergnant Addict"]
+	},
+	"canRandomget":{
+		"technique": ["性技巧", "Technique"],
+		"endurance": ["性耐性", "Endurance"],
+		"submissive": ["顺从", "Submissive"],
+		"refuse": ["抗拒", "Refuse"],
+		"desire": ["欲望", "Desire"],
+		"serve": ["侍奉", "Serve"]
 	}
 }

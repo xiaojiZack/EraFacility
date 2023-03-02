@@ -12,7 +12,7 @@ export function InitComList() {
 			Com.new(key, obj);
 		});
 	}
-	console.log(Com.data);
+	console.log('comlist init',Com.data);
 }
 
 export function InitComSystem() {

@@ -25,8 +25,9 @@ export async function TraitList() {
 			if (!trait?.conflict) {
 				trait.conflict = [];
 			}
-
-			trait.conflict = trait.conflict.concat(cf.delete(name));
+			const ccf = clone(cf);
+			ccf.delete(name)
+			trait.conflict = trait.conflict.concat(ccf);
 			//remove duplicate
 			trait.conflict = [...new Set(trait.conflict)];
 		}

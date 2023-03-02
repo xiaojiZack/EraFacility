@@ -1,0 +1,187 @@
+:: testshowChara:Before
+    
+:: testshowChara
+    <<showChara>>
+
+:: showChara[widget]
+    <<widget 'showChara'>>
+        <<ShowCharaDiv>>
+        <div id="SCbox1"  class="SCgridConter">
+            <<showCharaBase>>
+            <<ShowCharaPhoto>>
+            <<ShowCharaTrait>>
+            <<ShowCharaSbl>>
+        </div>
+        <div id="SCbox2"  class="SCgridConter">
+            <<ShowCharaExp>>
+            <<ShowCharaVirginity>>
+        </div>
+        <div id="SCbox3"  class="SCgridConter">
+            <<ShowCharaApp>>
+            <<ShowCharaEquip>>
+        </div>
+        <div id="SCbox4"  class="SCgridConter">
+            <<ShowCharaBody>>
+        </div>
+        <div id="SCbox5" class="SCgridConter">
+            <<ShowCharaMark>>
+            <<ShowCharaPalam>>
+        </div>
+    <</widget>>
+
+:: showCharaBase[widget]
+    <<widget 'showCharaBase'>>
+    <div id='SCbaseBox' class="SCBaseConter">
+        <div id="SCname">
+            _showChara.name[0]
+            <<script>>
+                if (T.showChara.gender == "female") T.gendercoin = "♀";
+                else{
+                    if (T.showChara.gender == "male") T.gendercoin = "♂";
+                    else T.gendercoin = "";}
+            <</script>>
+            &nbsp;_gendercoin
+        </div>
+        <<run F.initSCBaseBar()>>
+        <div class="SCBaseBarConter">
+            <<print T.printtext.join('')>>
+        </div>
+    </div>
+    <</widget>>
+
+:: ShowCharaPhoto[widget]
+    <<widget 'ShowCharaPhoto'>>
+        <div class="SCphoto">
+            
+        </div>
+    <</widget>>
+
+:: ShowCharaTrait[widget]
+    <<widget 'ShowCharaTrait'>>
+        <div class='SCTrait'>
+            <<run F.initSCTrait()>>
+            <<print T.printtext.join('')>>
+        </div>
+    <</widget>>
+
+:: ShowCharaBody[widget]
+    <<widget 'ShowCharaBody'>>
+        <div class='SCBody'>
+            <<run F.initSCBody()>>
+            <<print T.printtext.join('')>>
+        </div>
+    <</widget>>
+
+:: ShowCharaVirginity[widget]
+    <<widget 'ShowCharaVirginity'>>
+        <div class='SCDashline'><<dashline>></div>
+        <<run F.initSCVirginity()>>
+        <div>
+            <<print T.printtext.join('<br>')>>
+        </div>
+    <</widget>>
+
+:: ShowCharaExp[widget]
+    <<widget 'ShowCharaExp'>>
+        <div class = 'SCDashline'><<dashline>></div>
+        <<run F.initSCExp()>>
+        <div class='SCExp'>
+            <<print T.printtext.join('')>>
+        </div>
+    <</widget>>
+
+:: ShowCharaSbl[widget]
+    <<widget 'ShowCharaSbl'>>
+        <div class = 'SCDashline'><<dashline>></div>
+        <<run F.initSCSbl()>>
+        <div class='SCSbl'>
+            <<print T.printtext.join('')>>
+        </div>
+    <</widget>>
+
+:: ShowCharaApp[widget]
+    <<widget 'ShowCharaApp'>>
+        <div class='SCAppBox'>
+            <div>身高 <<=_showChara.appearance.height/10>>cm </div>
+            <div>体重 <<=_showChara.appearance.weight>>kg </div>
+            <div>胸围 <<=_showChara.appearance.bust/10>>cm</div>
+            <div>腰围 <<=_showChara.appearance.waist/10>>cm</div>
+            <div>臀围 <<=_showChara.appearance.hip/10>>cm</div>
+            <div>肤色: <<=_showChara.appearance.skincolor>> </div>
+            <div>瞳色: <<=_showChara.appearance.eyecolor>> </div>
+            <div>发色: <<=_showChara.appearance.haircolor>> </div>
+            <div>发型: <<=_showChara.appearance.hairstyle>> </div>
+        </div>    
+    <</widget>>
+
+:: ShowCharaEquip[widget]
+    <<widget 'ShowCharaEquip'>>
+        <div class='SCDashline'><<dashline>></div>
+        <<run F.initSCEquip()>>
+        <div>
+            <<print T.printtext.join('<br>')>>
+        </div>
+    <</widget>>
+
+:: ShowCharaPalam[widget]
+    <<widget 'ShowCharaPalam'>>
+        <div class='SCDashline'><<dashline>></div>
+        <div class="SCPalamBox">
+            <div class="SCPalamtype">[心理]</div>
+            <<run F.initSCPalam(D.mentalpalam)>>
+            <<print T.printtext.join('')>>
+        </div>
+        <div class="SCPalamBox">
+            <div class="SCPalamtype">[快感]</div>
+            <<run F.initSCPalam(D.ecstacypalam)>>
+            <<print T.printtext.join('')>>
+        </div>
+        <div class="SCPalamBox">
+            <div class="SCPalamtype">[痛楚]</div>
+            <<run F.initSCPalam(D.painpalam)>>
+            <<print T.printtext.join('')>>
+        </div>
+    <</widget>>
+
+:: ShowCharaLocation[widget]
+    <<widget 'ShowCharaLocation'>>
+        
+    <</widget>>
+
+:: ShowCharaWork[widget]
+    <<widget 'ShowCharaWork'>>
+        
+    <</widget>>
+
+:: ShowCharaOthers[widget]
+
+
+:: ShowCharaDiv[widget]
+    <<widget 'ShowCharaDiv'>>
+        <<script>>
+            const allpages = ['SCbox1','SCbox2','SCbox3'];
+            function SCchangeDiv(pagename){
+                var page = document.getElementById(pagename);
+                for (let i of allpages){
+                    var hidepage = document.getElementById(i);
+                    hidepage.style.display = "none";
+                }
+                page.style.display = "grid";
+            }
+        <</script>>
+        <div class="SCDivButton">
+            <button id="Divbutton1" style='color:darkmagenta'  onclick="F.SCchangeDiv('1')">基本信息</button>
+            <button id="Divbutton2"  onclick="F.SCchangeDiv('2')">经验</button>
+            <button id="Divbutton3"  onclick="F.SCchangeDiv('3')">外貌衣装</button>
+            <button id="Divbutton4"  onclick="F.SCchangeDiv('4')">肉体信息</button>
+            <button id="Divbutton5"  onclick="F.SCchangeDiv('5')">状态</button>
+        </div>
+    <</widget>>
+
+:: ShowCharaMark[widget]
+    <<widget ShowCharaMark>>
+        <<run F.initSCMark()>>
+        <div>
+            <<print T.printtext.join('')>>
+        </div>
+    <</widget>>

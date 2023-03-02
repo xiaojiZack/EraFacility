@@ -202,7 +202,6 @@ export class Chara extends MyCreature {
 			});
 		} else {
 			let layer = this.r?.options?.skinLayer || D.partSkinLayer;
-
 			for (let key in layer) {
 				let list = layer[key];
 				if (!this.body[key]) continue;
@@ -354,6 +353,10 @@ export class Chara extends MyCreature {
 		Object.keys(obj).forEach((key) => {
 			this.flag[key] = obj[key];
 		});
+		return this;
+	}
+	setVirginity(part, target, time, situation) {
+		this.virginity[part] = [target, time, situation];
 		return this;
 	}
 }

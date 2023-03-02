@@ -32,5 +32,10 @@
 		"paV": ["痛V", "pnV."],
 		"paA": ["痛A", "pnA."],
 		"paW": ["痛W", "pnW."]
-	}
+	},
+	"mentalpalam":["ecstacy","lust","surrend",
+					"fear","mortify","humiliate","pain",
+					"depress","resist","favo","uncomfort"],
+	"ecstacypalam":["esM","esB","esC","esU","esV","esA","esW"],
+	"painpalam":["paM","paB","paC","paU","paV","paA","paW"]
 }

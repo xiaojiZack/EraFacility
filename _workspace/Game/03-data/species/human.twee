@@ -7,12 +7,7 @@
 <des lan='CN'>人类是这个星球上最普遍的智慧生物。他们普通，但因为均衡的能力、强大的适应能力，让他们的子子孙孙踏遍了整片大陆。</des>
 <gender>male||female</gender>
 <lifespan>80</lifespan>
-<talent>
-	<li>
-		<name>FastAdaption</name>
-		<rate>0.4</rate>
-	</li>
-</talent>
+
 <buffs>
 	<health>1.1</health>
 	<stamina>1.1</stamina>
@@ -39,7 +34,12 @@
 
 	<torso name='torso' group='torso' pos='c'></torso>
 	<neck name='neck' group='torso' pos='t'></neck>
-	<breasts name='breasts' group='torso' pos='f' count='1'></breasts>
+	<breasts name='breasts' group='torso' pos='f' count='1'>
+		<conduct>
+			<absorb rate='0.2'></absorb>
+			<outside rate='0.6' inflateRequire='5'></outside>
+		</conduct>
+	</breasts>
 
 	<shoulders group='shoulders' count='2' pos='s' side='l/r'></shoulders>
 	<arms group='shoulders' name='arm' pos='s' count='2' side='l/r'></arms>
@@ -91,6 +91,7 @@
 		<sens default='1'></sens>
 		<!-- scale is times of height(mm), unit is ml -->
 		<capacity scale='0.1'></capacity>
+		<sizeLv>1</sizeLv>
 		<conduct>
 			<uetrus rate='0.1' inflateRequire='3'></uetrus>
 			<outside rate='0.8'></outside>

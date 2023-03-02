@@ -46,6 +46,8 @@ ready to dialog.
 <<link '测试段落' 'Test'>>
 <</link>><br>
 
+[[next|MainLoop]]
+
 
 
 :: Test
@@ -129,3 +131,13 @@ No., Name, Age, Job, Salary
       <price>39.95</price>
    </book>
 </bookstore>
+
+:: testpage::Before
+<<run console.log(1)>>
+
+:: testpage
+passage
+[[back|testpage]]
+
+:: testpage::After
+<<run console.log(2)>>

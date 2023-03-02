@@ -1,0 +1,11 @@
+{
+    "TraitGroup":{
+        "personality":"性格",
+        "fallen":"堕落",
+        "quaility":"体质",
+        "mental":"心智",
+        "SM":"SM倾向",
+        "bahavior":"行为模式",
+        "other":"其他"
+    }
+}

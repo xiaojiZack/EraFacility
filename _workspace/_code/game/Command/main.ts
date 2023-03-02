@@ -36,9 +36,9 @@ Com.showFilters = function () {
 //生成指令列表
 Com.listUp = function () {
 	const command = [];
-
 	Object.values(Com.data).forEach((com) => {
 		const { id, time } = com;
+		console.log(2, com)
 		let name = "";
 
 		if (com.alterName) name = com.alterName();
@@ -164,7 +164,7 @@ Com.next = function () {
 //check the condition of the command
 Com.Check = function (id) {
 	const com: Com = Com.data[id];
-
+	console.log('try check com', com)
 	T.comorder = 0;
 	T.reason = "";
 	T.order = "";
@@ -185,7 +185,6 @@ Com.Check = function (id) {
 	if (Story.has(`Kojo_${V.tc}_Com`)) {
 		new Wikifier("#hidden" as any, Story.get(`Kojo_${V.tc}_Com`).text);
 	}
-
 	//指令执行时暂时去掉指令栏
 	Com.hide();
 	Com.shownext();
@@ -193,13 +192,11 @@ Com.Check = function (id) {
 	if (V.system.showOrder && T.order) {
 		P.msg(`配合度检测：${T.order}＝${T.comorder}/${T.orderGoal}<br><<dashline>>`);
 	}
-
 	//执行before事件。这些都是纯文本。只能有选项相关操作。
 	//先执行通用的 before事件。基本用在场景变化中。
 	P.msg(
 		`${Story.get("Command::Before").text}<<run Com.next()>><<if _noMsg>><<unset _noMsg>><<else>><<dashline>><</if>>`
 	);
-
 	//指令专属的before事件
 	let type = "Com",
 		dif = "Before";
@@ -208,7 +205,6 @@ Com.Check = function (id) {
 		P.msg(txt);
 		c = 1;
 	}
-
 	//执行口上侧Before事件。
 	if (Kojo.has(V.tc, { type, id, dif })) {
 		txt = Kojo.put(V.tc, { type, id, dif });

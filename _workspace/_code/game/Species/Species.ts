@@ -124,6 +124,7 @@ export class Species {
 
 		if (cycle) this.cycleInfo = cycle;
 		if (threesize) this.threeSizeScale = threesize;
+		else this.threeSizeScale={};
 
 		const ignore = Object.keys(this);
 		ignore.push("bodygroup", "bodysize", "threesize", "cycle", "gender", "talent", "buffs", "trait", "skill");
@@ -276,7 +277,7 @@ export class Species {
 
 		let result = cupsize + standard * (this.threeSizeScale.bust || 1);
 
-		return result.fixed(2);
+		return Math.round(result);
 	}
 	GenerateWaist(height: number, gender: genderFull) {
 		const r = gender == "male" ? 0.4 : 0.42;
@@ -284,7 +285,7 @@ export class Species {
 
 		let result = standard * (this.threeSizeScale.waist || 1);
 
-		return result.fixed(2);
+		return Math.round(result);
 	}
 	GenerateHip(height: number, gender: genderFull) {
 		const r = gender == "male" ? 0.51 : 0.54;
@@ -292,7 +293,7 @@ export class Species {
 
 		let result = standard * (this.threeSizeScale.hip || 1);
 
-		return result.fixed(2);
+		return Math.round(result);
 	}
 }
 

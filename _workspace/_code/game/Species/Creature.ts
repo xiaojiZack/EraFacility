@@ -165,6 +165,7 @@ export class Creature {
 				penis: {sizeLv: this.gender === "female" ? 0 : random(7)},
 			};
 			this.initSpecies(adj);
+			this.RandomInitApp();
 		}
 	}
 
@@ -237,17 +238,17 @@ export class Creature {
 		const app = this.appearance;
 		const breast: Organs = this.body.breasts as Organs;
 		if (this.r || obj.bust) app.bust = obj.bust || this.r.GenerateBust(app.height, this.gender, breast.sizeLv);
-		else app.bust = Math.floor(app.height * 0.52) + random(-10, 10);
+		else app.bust = Math.floor((app.height * 0.52) + random(-10, 10));
 	}
 	initWaist(obj) {
 		const app = this.appearance;
 		if (this.r || obj.waist) app.waist = obj.waist || this.r.GenerateWaist(app.height, this.gender);
-		else app.waist = Math.floor(app.height * 0.37) + random(-10, 10);
+		else app.waist = Math.floor((app.height * 0.37) + random(-10, 10));
 	}
 	initHip(obj) {
 		const app = this.appearance;
 		if (this.r || obj.hip) app.hip = obj.hip || this.r.GenerateHip(app.height, this.gender);
-		else app.hip = Math.floor(app.height * 0.54) + random(-10, 10);
+		else app.hip = Math.floor((app.height * 0.54) + random(-10, 10));
 	}
 	init3Size(obj = {} as any) {
 		this.initBust(obj);
@@ -323,7 +324,7 @@ export class Creature {
 	}
 	randomSituAbility() {
 		Object.keys(D.sbl).forEach((key) => {
-			this.sbl[key] = random(0, 6);
+			this.sbl[key] = random(0,1);
 		});
 	}
 	RandomInitBody() {
@@ -349,7 +350,6 @@ export class Creature {
 		};
 		const app = this.appearance;
 		this.appearance.weight = GenerateWeight(app.height);
-		this.init3Size();
 	}
 	End() {
 		delete this.r;

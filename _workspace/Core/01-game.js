@@ -1060,7 +1060,9 @@
 	  }
 	  initConflict(conflict) {
 	    conflict.forEach((traitname, index) => {
-	      conflict[index] = Trait$1.get("trait", traitname).id;
+	      const trait = Trait$1.get("trait", traitname);
+	      if (trait)
+	        conflict[index] = Trait$1.get("trait", traitname).id;
 	    });
 	    this.conflict = conflict;
 	  }
@@ -1139,7 +1141,9 @@
 	        if (!(trait == null ? void 0 : trait.conflict)) {
 	          trait.conflict = [];
 	        }
-	        trait.conflict = trait.conflict.concat(cf.delete(name));
+	        const ccf = clone(cf);
+	        ccf.delete(name);
+	        trait.conflict = trait.conflict.concat(ccf);
 	        trait.conflict = [...new Set(trait.conflict)];
 	      }
 	    }
@@ -1286,11 +1290,8 @@
 	    this.tags = [];
 	    this.price = 0;
 	    this.color = [];
-	    this.cover = [];
-	    this.expose = 3;
-	    this.open = 3;
+	    this.cover = {};
 	    this.allure = 0;
-	    this.defence = 0;
 	  }
 	  UID() {
 	    this.uid = random(1e5, 999999).toString();
@@ -1622,6 +1623,7 @@
 	  [2050, 2200]
 	];
 	const existency = ["natural", "ionic", "slime", "artifact", "hideable", "none", "invisible"];
+	const sexorgan = ["mouth", "vagina", "uetrus", "anus", "clitoris", "penis", "breasts", "intestine", "stomach", "testicles"];
 
 	const species = {
 	  human: ["\u4EBA\u7C7B", "Human"],
@@ -1839,10 +1841,10 @@
 	      this.capacity = [0, 0];
 	    }
 	    if (config.default) {
-	      this.capacity[1] = config.default;
+	      this.capacity[1] = Math.floor(config.default);
 	    }
 	    if (config.scale) {
-	      this.capacity[1] = size * config.scale;
+	      this.capacity[1] = Math.floor(size * config.scale);
 	    }
 	    return this;
 	  }
@@ -2023,6 +2025,8 @@
 	      this.cycleInfo = cycle;
 	    if (threesize)
 	      this.threeSizeScale = threesize;
+	    else
+	      this.threeSizeScale = {};
 	    const ignore = Object.keys(this);
 	    ignore.push("bodygroup", "bodysize", "threesize", "cycle", "gender", "talent", "buffs", "trait", "skill");
 	    this.options = {};
@@ -2149,19 +2153,19 @@
 	    const standard = height * r + random(-5, 5);
 	    const cupsize = standard / 12 * cup;
 	    let result = cupsize + standard * (this.threeSizeScale.bust || 1);
-	    return result.fixed(2);
+	    return Math.round(result);
 	  }
 	  GenerateWaist(height, gender) {
 	    const r = gender == "male" ? 0.4 : 0.42;
 	    const standard = height * r + random(-5, 5);
 	    let result = standard * (this.threeSizeScale.waist || 1);
-	    return result.fixed(2);
+	    return Math.round(result);
 	  }
 	  GenerateHip(height, gender) {
 	    const r = gender == "male" ? 0.51 : 0.54;
 	    const standard = height * r + random(-5, 5);
 	    let result = standard * (this.threeSizeScale.hip || 1);
-	    return result.fixed(2);
+	    return Math.round(result);
 	  }
 	}
 	Species.data = {};
@@ -2415,8 +2419,29 @@
 	  }
 	}
 
-	const VesselAbleOrgans = ["stomach", "bladder", "testicles", "testicle", "vagina", "uetrus", "intestine", "breast"];
+	const VesselAbleOrgans = ["stomach", "bladder", "testicles", "testicle", "vagina", "uetrus", "intestine", "breasts"];
 	class MyOrgans extends Organs {
+	  init(obj) {
+	    const { side, count, size, sens, shape, trait, sizeLv } = obj;
+	    if (side)
+	      this.side = side;
+	    if (count)
+	      this.count = count;
+	    if (size)
+	      this.sizeLv = size.default;
+	    if (sizeLv)
+	      this.sizeLv = sizeLv;
+	    if (sens)
+	      this.sens = sens.default;
+	    if (typeof shape === "string")
+	      this.shape = shape;
+	    if (trait)
+	      this.initTrait(trait);
+	    const { adj } = obj;
+	    if (adj) {
+	      this.initStats(adj);
+	    }
+	  }
 	  initUrethral(gender, config, height) {
 	    const option = this.group;
 	    if (typeof option === "object" && option[gender]) {
@@ -2433,6 +2458,9 @@
 	  initTesticles(config) {
 	    this.capacity = [0, Math.floor(config.capacity.default * random(0.8, 1.2))];
 	    return this;
+	  }
+	  initBreasts(config) {
+	    this.capacity = [0, Math.floor((this.sizeLv * 200 + 100) * random(0.8, 1.2))];
 	  }
 	  static UetrusDiameter(height, sizeLv) {
 	    const max = this.strechLevelSize(height) * 0.6;
@@ -2528,6 +2556,8 @@
 	          break;
 	        case "testicles":
 	          body[key].initTesticles(part);
+	        case "breasts":
+	          body[key].initBreasts(part);
 	      }
 	      if (part.capacity && !body[key].capacity) {
 	        body[key].initCapacity(part.capacity, height);
@@ -2542,9 +2572,18 @@
 	}
 	MySpecies.data = {};
 
+	function RandomBodysize() {
+	  return parseInt(maybe([["0", 5], ["1", 10], ["2", 68], ["3", 10], ["4", 5], ["5", 2]]));
+	}
+	function RandomBreastssize() {
+	  return random(10);
+	}
+	function RandomPenissize() {
+	  return random(7);
+	}
 	function GenerateHeight(size, scale = 1) {
 	  if (typeof size !== "number") {
-	    size = random(5);
+	    size = RandomBodysize();
 	  }
 	  const r = D.bodysize[size];
 	  const height = random(r[0], r[1]) + random(30);
@@ -2724,6 +2763,7 @@
 	        penis: { sizeLv: this.gender === "female" ? 0 : random(7) }
 	      };
 	      this.initSpecies(adj);
+	      this.RandomInitApp();
 	    }
 	  }
 	  initSpecies(obj = {}) {
@@ -2799,21 +2839,21 @@
 	    if (this.r || obj.bust)
 	      app.bust = obj.bust || this.r.GenerateBust(app.height, this.gender, breast.sizeLv);
 	    else
-	      app.bust = Math.floor(app.height * 0.52) + random(-10, 10);
+	      app.bust = Math.floor(app.height * 0.52 + random(-10, 10));
 	  }
 	  initWaist(obj) {
 	    const app = this.appearance;
 	    if (this.r || obj.waist)
 	      app.waist = obj.waist || this.r.GenerateWaist(app.height, this.gender);
 	    else
-	      app.waist = Math.floor(app.height * 0.37) + random(-10, 10);
+	      app.waist = Math.floor(app.height * 0.37 + random(-10, 10));
 	  }
 	  initHip(obj) {
 	    const app = this.appearance;
 	    if (this.r || obj.hip)
 	      app.hip = obj.hip || this.r.GenerateHip(app.height, this.gender);
 	    else
-	      app.hip = Math.floor(app.height * 0.54) + random(-10, 10);
+	      app.hip = Math.floor(app.height * 0.54 + random(-10, 10));
 	  }
 	  init3Size(obj = {}) {
 	    this.initBust(obj);
@@ -2890,7 +2930,7 @@
 	  }
 	  randomSituAbility() {
 	    Object.keys(D.sbl).forEach((key) => {
-	      this.sbl[key] = random(0, 6);
+	      this.sbl[key] = random(0, 1);
 	    });
 	  }
 	  RandomInitBody() {
@@ -2915,7 +2955,6 @@
 	    };
 	    const app = this.appearance;
 	    this.appearance.weight = GenerateWeight(app.height);
-	    this.init3Size();
 	  }
 	  End() {
 	    delete this.r;
@@ -2925,6 +2964,65 @@
 	  }
 	}
 	Creature.data = {};
+
+	const getScar = function(chara, { times = 1, type, part, count = "never" } = {}) {
+	  const skin = chara.skin;
+	  for (let i = 0; i < times; i++) {
+	    skin[part].push([type, count]);
+	  }
+	  return "";
+	};
+	const skinCounter = function(chara, t) {
+	  const dolayer = function(layer, t2) {
+	    for (let i = 0; i < layer.length; i++) {
+	      let k = layer[i];
+	      if (typeof k[1] == "number") {
+	        k[1] -= t2;
+	        if (k[1] <= 0 && k[0] !== "wound") {
+	          layer.splice(i, 1);
+	          i--;
+	        } else if (k[1] <= 0) {
+	          k[0] = "scar";
+	          k[1] = "never";
+	        }
+	      }
+	    }
+	  };
+	  const total = {};
+	  const collect = (skin) => {
+	    for (let i in skin) {
+	      if (i == "total" || i == "detail")
+	        continue;
+	      let layer = skin[i];
+	      dolayer(layer, t);
+	      total[i] = {};
+	      D.scarType.forEach((type) => {
+	        total[i][type] = countArray(layer, type);
+	      });
+	    }
+	    return total;
+	  };
+	  const count = () => {
+	    const result = {};
+	    D.scarType.forEach((type) => {
+	      result[type] = [0, []];
+	    });
+	    for (let i in total) {
+	      for (let k in total[i]) {
+	        if (total[i][k] > 0) {
+	          result[k][0] += total[i][k];
+	          const detail = [i, total[i][k]];
+	          result[k][1].push(detail);
+	        }
+	      }
+	    }
+	    return result;
+	  };
+	  const skinlayer = chara.skin;
+	  collect(skinlayer);
+	  chara.skin.total = count();
+	  return total;
+	};
 
 	class MyCreature extends Creature {
 	  static newId(species) {
@@ -2985,19 +3083,46 @@
 	  RandomInitDefault() {
 	    this.randomStats();
 	    this.randomAbility();
-	    this.randomSituAbility();
 	    if (!this.r) {
 	      this.RandomInitBody();
 	      this.RandomInitApp();
 	    } else {
 	      let adj = {
-	        bodysize: random(5),
-	        breasts: { sizeLv: this.gender === "male" ? 0 : random(10) },
-	        penis: { sizeLv: this.gender === "female" ? 0 : random(7) }
+	        bodysize: RandomBodysize(),
+	        breasts: { size: this.gender === "male" ? 0 : RandomBreastssize() },
+	        penis: { size: this.gender === "female" ? 0 : RandomPenissize() }
 	      };
 	      this.initSpecies(adj);
 	      this.randomTrait();
 	    }
+	    this.randomSituAbility();
+	  }
+	  initSpecies(obj = {}) {
+	    this.bodysize = obj.bodysize || random(5);
+	    this.initApp(obj);
+	    this.body = this.r.configureBody(this.gender, this.appearance.height, obj);
+	    this.init3Size();
+	    this.initTalent(obj);
+	    this.initTraits(obj);
+	    this.initSkill(obj);
+	    if (this.r.temper)
+	      this.temper = this.r.temper;
+	  }
+	  initApp(obj = {}) {
+	    const app = this.appearance;
+	    app.height = obj.height || GenerateHeight(this.bodysize);
+	    app.weight = obj.weight || GenerateWeight(app.height);
+	    app.beauty = 1e3;
+	    const list = ["haircolor", "eyecolor", "skincolor", "hairstyle"];
+	    list.forEach((key) => {
+	      var _a;
+	      if (obj[key])
+	        app[key] = obj[key];
+	      else if ((_a = this.r) == null ? void 0 : _a.avatar[key])
+	        app[key] = draw(this.r.avatar[key]);
+	      else
+	        app[key] = draw(D[key + "Pool"]);
+	    });
 	  }
 	  randomTrait() {
 	    let tryTrait = [];
@@ -3029,11 +3154,11 @@
 	  }
 	  findTraitConflict(arr) {
 	    let conflicT = [];
-	    arr.forEach((T) => {
-	      let con = T.conflict ? T.conflict : [];
-	      arr.forEach((T2) => {
-	        if (con.includes(T2.name[0]) && !conflicT.includes(T2) && !T2 == T)
-	          conflicT.push(T2);
+	    arr.forEach((trait1) => {
+	      let con = trait1.conflict ? trait1.conflict : [];
+	      arr.forEach((trait2) => {
+	        if (con.includes(trait2.name[1]) && !conflicT.includes(trait2) && trait2 !== trait1)
+	          conflicT.push(trait2);
 	      });
 	    });
 	    return conflicT;
@@ -3047,6 +3172,21 @@
 	      conflictsPool = this.findTraitConflict(arr);
 	    }
 	    return arr;
+	  }
+	  randomSituAbility() {
+	    Object.keys(D.sbl).forEach((key) => {
+	      this.sbl[key] = 0;
+	    });
+	    if (this.traits.includes("H"))
+	      this.sbl["desire"] = 1;
+	    if (this.traits.includes("Obey"))
+	      this.sbl["serve"] = 1;
+	    if (this.traits.includes("Haughty"))
+	      this.sbl["refuse"] = 1;
+	    if (this.traits.includes("TinyEvil"))
+	      this.sbl["technique"] = 1;
+	    if (this.traits.includes("Revolt"))
+	      this.sbl["refuse"] = 2;
 	  }
 	}
 	MyCreature.data = {};
@@ -3288,67 +3428,58 @@
 	    });
 	    return this;
 	  }
+	  setVirginity(part, target, time, situation) {
+	    this.virginity[part] = [target, time, situation];
+	    return this;
+	  }
 	}
 	Chara.data = {};
 
-	const getScar = function(chara, { times = 1, type, part, count = "never" } = {}) {
-	  const skin = chara.skin;
-	  for (let i = 0; i < times; i++) {
-	    skin[part].push([type, count]);
+	class MyChara extends Chara {
+	  static new(CharaId, obj) {
+	    let chara = new MyChara(CharaId, obj).Init(obj).initChara(obj);
+	    this.data[CharaId] = chara;
+	    return chara;
 	  }
-	  return "";
-	};
-	const skinCounter = function(chara, t) {
-	  const dolayer = function(layer, t2) {
-	    for (let i = 0; i < layer.length; i++) {
-	      let k = layer[i];
-	      if (typeof k[1] == "number") {
-	        k[1] -= t2;
-	        if (k[1] <= 0 && k[0] !== "wound") {
-	          layer.splice(i, 1);
-	          i--;
-	        } else if (k[1] <= 0) {
-	          k[0] = "scar";
-	          k[1] = "never";
-	        }
-	      }
+	  initChara(obj) {
+	    this.initMark();
+	    this.initExp();
+	    this.initSkin();
+	    this.initLiquid();
+	    this.initReveals();
+	    this.initVirginity();
+	    this.initDaily();
+	    this.initFlag();
+	    this.initLiquid();
+	    this.initSituAbility();
+	    if (obj.stats) {
+	      this.Stats(obj.stats);
 	    }
-	  };
-	  const total = {};
-	  const collect = (skin) => {
-	    for (let i in skin) {
-	      if (i == "total" || i == "detail")
-	        continue;
-	      let layer = skin[i];
-	      dolayer(layer, t);
-	      total[i] = {};
-	      D.scarType.forEach((type) => {
-	        total[i][type] = countArray(layer, type);
-	      });
+	    if (obj.abl) {
+	      this.Ability(obj.abl);
 	    }
-	    return total;
-	  };
-	  const count = () => {
-	    const result = {};
-	    D.scarType.forEach((type) => {
-	      result[type] = [0, []];
+	    if (obj.sbl) {
+	      this.SituAbility(obj.sbl);
+	    }
+	    if (obj.exp) {
+	      this.Exp(obj.exp);
+	    }
+	    if (obj.flag) {
+	      this.Flag(obj.flag);
+	    }
+	    if (obj.virginity) {
+	      this.Virginity(obj.virginity);
+	    }
+	    $(document).trigger(":initCharacter", [this, obj]);
+	    return this;
+	  }
+	  initSituAbility() {
+	    Object.keys(D.sbl).forEach((key) => {
+	      this.sbl[key] = 0;
 	    });
-	    for (let i in total) {
-	      for (let k in total[i]) {
-	        if (total[i][k] > 0) {
-	          result[k][0] += total[i][k];
-	          const detail = [i, total[i][k]];
-	          result[k][1].push(detail);
-	        }
-	      }
-	    }
-	    return result;
-	  };
-	  const skinlayer = chara.skin;
-	  collect(skinlayer);
-	  chara.skin.total = count();
-	  return total;
-	};
+	    return this;
+	  }
+	}
 
 	const module$2 = {
 	  name: "Creatures",
@@ -3360,18 +3491,19 @@
 	    bodyGroup,
 	    Psize,
 	    existency,
-	    bodysize
+	    bodysize,
+	    sexorgan
 	  },
 	  database: {
 	    Species: MySpecies.data,
 	    Creature: MyCreature.data,
-	    Chara: Chara.data
+	    Chara: MyChara.data
 	  },
 	  classObj: {
 	    MyOrgans,
 	    MySpecies,
 	    MyCreature,
-	    Chara
+	    MyChara
 	  },
 	  func: {
 	    GenerateHeight,
@@ -3817,6 +3949,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  const command = [];
 	  Object.values(Com.data).forEach((com) => {
 	    const { id, time } = com;
+	    console.log(2, com);
 	    let name = "";
 	    if (com.alterName)
 	      name = com.alterName();
@@ -3894,6 +4027,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	};
 	Com.Check = function(id) {
 	  const com = Com.data[id];
+	  console.log("try check com", com);
 	  T.comorder = 0;
 	  T.reason = "";
 	  T.order = "";
@@ -4010,7 +4144,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	      Com.new(key, obj);
 	    });
 	  }
-	  console.log(Com.data);
+	  console.log("comlist init", Com.data);
 	}
 	function InitComSystem() {
 	  const html = `

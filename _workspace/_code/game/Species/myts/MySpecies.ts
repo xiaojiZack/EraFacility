@@ -6,7 +6,7 @@ import { Species } from "../Species";
 import { MyOrgans } from "./MyOrgans";
 
 export interface MySpecies extends Species{
-
+	heightprob?:[number,number];
 }
 
 export class MySpecies extends Species{
@@ -14,7 +14,7 @@ export class MySpecies extends Species{
     configureBody(gender: genderFull, height: number, adj?: any) {
 		//configure the organs
 		const body: Dict<MyOrgans> = {};
-
+		
 		const set = clone(this.bodyConfig.settings);
 		//add produce to bodyparts
 		for (const key in this.produce) {
@@ -31,7 +31,6 @@ export class MySpecies extends Species{
 				}
 			}
 		}
-
 		for (const key in set) {
 			const part: any = set[key];
 
@@ -73,6 +72,8 @@ export class MySpecies extends Species{
                     break;
 				case "testicles":
 					body[key].initTesticles(part);
+				case "breasts":
+					body[key].initBreasts(part);
 			}
 			if (part.capacity && !body[key].capacity) {
 				body[key].initCapacity(part.capacity, height);

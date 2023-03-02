@@ -134,10 +134,10 @@ export class Organs {
 			this.capacity = [0, 0];
 		}
 		if (config.default) {
-			this.capacity[1] = config.default;
+			this.capacity[1] = Math.floor(config.default);
 		}
 		if (config.scale) {
-			this.capacity[1] = size * config.scale;
+			this.capacity[1] = Math.floor(size * config.scale);
 		}
 		return this;
 	}

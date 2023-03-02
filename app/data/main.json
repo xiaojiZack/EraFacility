@@ -11,5 +11,8 @@
 	"charadefination/Sbl.json",
 	"charadefination/Skill.json",
 	"charadefination/State.json",
-	"charadefination/Stats.json"
+	"charadefination/Stats.json",
+	"charadefination/Trait.json",
+	"charadefination/Virginity.json",
+	"charadefination/Size.json"
 ]

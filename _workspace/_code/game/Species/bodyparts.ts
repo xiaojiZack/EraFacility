@@ -210,3 +210,5 @@ export const bodysize = [
 //size: 0=tiny 137~147, 1=small 147~164, 2=normal 164~174, 3=tall 174~184, 4=verytall 184~200, 5=huge 200~220, 6=giant 220+
 
 export const existency = ["natural", "ionic", "slime", "artifact", "hideable", "none", "invisible"];
+
+export const sexorgan = ["mouth","vagina","uetrus","anus","clitoris","penis","breasts","intestine","stomach","testicles"]

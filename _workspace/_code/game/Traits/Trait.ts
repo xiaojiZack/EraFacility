@@ -135,7 +135,8 @@ export class Trait extends Talent {
 	initConflict(conflict) {
 		//let traitname in conflict to be trait id
 		conflict.forEach((traitname, index) => {
-			conflict[index] = Trait.get("trait", traitname).id;
+			const trait = Trait.get("trait", traitname)
+			if (trait) conflict[index] = Trait.get("trait", traitname).id;
 		});
 		this.conflict = conflict;
 	}

@@ -1,1 +1,4 @@
-["items/01.json"]
+[
+    "items/01.json",
+    "items/clothes/testcloth.json"
+]

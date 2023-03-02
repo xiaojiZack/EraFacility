@@ -12,6 +12,10 @@
   font-family: "新综艺";
   src: url("./font/FZXinZYHJW_M.otf");
 }
+@font-face {
+  font-family: "VL-Pgothic";
+  src: url("./font/VL-PGothic-Regular.ttf");
+}
 
 @font-face {
   font-family: "NotoSansL";

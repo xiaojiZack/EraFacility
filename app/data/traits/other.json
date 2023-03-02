@@ -47,5 +47,14 @@
 			["favo", 1.2]
 		],
 		"rate":0.2
+	},
+	{
+		"name": ["魅惑","Sedure"],
+		"group": "other",
+		"des": [
+			"他人对你言听计从"
+		],
+		"order": 10,
+		"rate":0
 	}
 ]

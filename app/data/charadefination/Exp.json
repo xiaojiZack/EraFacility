@@ -1,13 +1,13 @@
 {
 	"expGroup": {
 		"basic": {
-			"M": ["M经验", "Exp M."],
-			"B": ["B经验", "Exp B."],
-			"C": ["C经验", "Exp C."],
-			"U": ["U经验", "Exp U."],
-			"V": ["V经验", "Exp V."],
-			"A": ["A经验", "Exp A."],
-			"W": ["W经验", "Exp W."]
+			"M": ["M", "Exp M."],
+			"B": ["B", "Exp B."],
+			"C": ["C", "Exp C."],
+			"U": ["U", "Exp U."],
+			"V": ["V", "Exp V."],
+			"A": ["A", "Exp A."],
+			"W": ["W", "Exp W."]
 		},
 		"orgasm": {
 			"orgasm": ["高潮", "Orgasm"],
@@ -28,6 +28,7 @@
 			"milk": ["喷乳", "Milk"],
 			"pee": ["放尿", "Pee"],
 			"swallow": ["饮精", "Swallowed"],
+			"semen": ["精液", "Semen"],
 
 			"analsex": ["肛交", "Anal Sex"],
 			"vagisex": ["性交", "Vagina Sex"],
@@ -42,6 +43,11 @@
 			"devU": ["尿道开发", "Urethral Trained"],
 			"devV": ["阴道开发", "Vagina Trainded"],
 			"devW": ["子宫开发", "Uterus Trainded"],
+			"expB": ["乳穴扩张", "Tits expand"],
+			"expA": ["后穴扩张", "Anal expand"],
+			"expU": ["尿道扩张", "Urethral expand"],
+			"expV": ["阴道扩张", "Vagina expand"],
+			"expW": ["子宫扩张", "Uterus expand"],
 
 			"tentacles": ["触手", "Tentacles"],
 			"insertion": ["插入", "Insertion"],
@@ -50,14 +56,17 @@
 		},
 		"extra": {
 			"mascho": ["受虐", "Get Pain"],
+			"maschoHappy": ["受虐快乐", "Pain Happy"],
 			"expose": ["露出", "Exposed"],
+			"exposeHappy": ["露出快乐", "Exposed Happy"],
 			"pregnant": ["怀孕", "Pregnant"],
 			"spawn": ["产卵", "Spawned"],
+			"pregnantHappy": ["生产快乐", "pregnant Happy"],
 			"gangbang": ["轮奸", "Gangbang"],
 			"bestial": ["兽奸", "Bestial"],
-
+			"parasitism": ["寄生", "parasitism"],
 			"sleepsex": ["眠奸", "Sleep Sex"],
-			"raped": ["强奸", "Be Raped"],
+			"raped": ["被强奸", "Be Raped"],
 			"TS": ["性转", "Trans Sex"],
 			"homo": ["同性", "Homo Sex"],
 			"love": ["爱情", "Be Loved"],
@@ -70,6 +79,13 @@
 			"sadic": ["施虐", "Pain Given"],
 			
 			"harlot": ["卖春", "Harlot"]
+		},
+		"skill":{
+			"BSkill": ["魔乳", "Breasts skill"],
+			"WSkill": ["腰技", "Waist skill"],
+			"HSkill": ["指技", "Hands skill"],
+			"MSkill": ["舌技", "Mouth skill"],
+			"FSkill": ["足技", "Foot skill"]
 		}
 	}
 }

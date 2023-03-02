@@ -1,0 +1,25 @@
+[
+    {
+		"name": ["测试服装-连衣裙","testcloth-dress"],
+		"des": [
+			"物品说明"
+		],
+		"group": "clothes",
+		"category": "innerCv",
+		"tags": [],
+        "price": 100,
+        "color": [],
+        "cover":{
+            "shoulders":[0,0],
+            "topB":[3,3],
+            "nipple":[1,0],
+            "buttonB":[0,0],
+            "belly":[0,0],
+            "public":[0,0],
+            "croth":[0,0],
+            "thighs":[1,0]
+        },
+        "allure":0.05
+		
+	}
+]

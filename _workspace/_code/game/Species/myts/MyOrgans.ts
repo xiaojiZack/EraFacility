@@ -2,7 +2,7 @@ import { genderFull } from "_code/game/types/charatypes";
 import { Organs } from "../Organs";
 import { OrganVessel } from "./Vessel";
 
-export const VesselAbleOrgans = ['stomach','bladder','testicles','testicle','vagina','uetrus','intestine','breast']
+export const VesselAbleOrgans = ['stomach','bladder','testicles','testicle','vagina','uetrus','intestine','breasts']
 
 export interface MyOrgans extends Organs{
     vessel?:OrganVessel;
@@ -10,6 +10,24 @@ export interface MyOrgans extends Organs{
 }
 
 export class MyOrgans extends Organs{
+	init(obj) {
+		const { side, count, size, sens, shape, trait, sizeLv } = obj;
+		if (side) this.side = side;
+		if (count) this.count = count;
+
+		if (size) this.sizeLv = size.default;
+		if (sizeLv) this.sizeLv = sizeLv
+
+		if (sens) this.sens = sens.default;
+		if (typeof shape === "string") this.shape = shape;
+
+		if (trait) this.initTrait(trait);
+
+		const { adj } = obj;
+		if (adj) {
+			this.initStats(adj);
+		}
+	}
     initUrethral(gender: genderFull, config, height) {
 		const option: any = this.group;
 
@@ -30,6 +48,9 @@ export class MyOrgans extends Organs{
 	initTesticles(config){
 		this.capacity = [0,Math.floor(config.capacity.default*random(0.8,1.2))]
 		return this;
+	}
+	initBreasts(config){
+		this.capacity = [0,Math.floor((this.sizeLv*200+100)*random(0.8,1.2))]
 	}
     public static UetrusDiameter(height: number, sizeLv: number){
         const max = this.strechLevelSize(height) * 0.6;

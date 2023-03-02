@@ -6,6 +6,7 @@ import { Species } from "./Species";
 
 declare function lan(arg, ...args): string;
 declare function draw(arr: any[]): any;
+declare function maybe(arr: Array<[string, number]>):string;
 declare var D: typeof window.D;
 
 //---------------------------------------------------------------------//
@@ -14,9 +15,21 @@ declare var D: typeof window.D;
 //
 //---------------------------------------------------------------------//
 
+export function RandomBodysize(){
+	return parseInt(maybe([['0',5],['1',10],['2',68],['3',10],['4',5],['5',2]]))
+}
+
+export function RandomBreastssize(){
+	return random(10)
+}
+
+export function RandomPenissize(){
+	return random(7)
+}
+
 export function GenerateHeight(size: number, scale: number = 1) {
 	if (typeof size !== "number") {
-		size = random(5);
+		size = RandomBodysize()
 	}
 	const r = D.bodysize[size];
 	const height = random(r[0], r[1]) + random(30);

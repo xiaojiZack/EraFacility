@@ -1,0 +1,179 @@
+#SCbox{
+    width: 95%;
+    /* border: 1px solid black; */
+    padding: 0px;
+    margin: 0px;
+}
+#SCbaseBox{
+    width: 100%;
+    /* border: 1px solid black; */
+    padding: 2px;
+    margin: 0px;
+    }
+
+#SCname{
+    font-size: normal;
+    text-align: center;
+    grid-column: 1/2;
+}
+
+.SCgridConter{
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+}
+
+.SCBaseConter{
+    display: grid;
+    text-align: center;
+    grid-template-rows: auto auto;
+    grid-template-columns: auto auto auto;
+    grid-column: 1/ span 2;
+    grid-row: 1;
+    
+}
+
+.SCBaseBarConter{
+    display: grid;
+    text-align: left;
+    grid-template-rows: auto;
+    grid-template-columns: auto auto;
+    grid-column: 1/ span 2;
+    grid-gap:5px
+}
+.SCBaseBar{
+    border: 1px solid white;
+    padding: 0px;
+    font-size: 18px;
+    padding: 5px;
+}
+
+.SCphoto{
+    text-align: center;
+    grid-column: 3/ span 2;
+    grid-row: 1;
+}
+
+.SCTrait{
+    display: grid;
+    grid-template-rows: auto auto auto auto;
+    text-align: left;
+}
+
+.SCExp{
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    text-align: left;
+    grid-column: 1/span 4;
+}
+
+.SCSbl{
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    text-align: left;
+    grid-column: 1/span 4;
+}
+
+.SCBody{
+    display: grid;
+    grid-template-columns: auto auto;
+    text-align: left;
+    grid-column: 1/span 4;
+    border: 0px solid rgba(255,255,0,0.6);
+    width: 90%;
+}
+
+.SCOrgan{
+    display: grid;
+    grid-template-columns: 80px auto;
+    grid-template-rows: 40px 40px;
+    text-align: left;
+    border: 1px solid white;
+    padding: 5px;
+    margin:5px;
+}
+
+.SCOrganName{
+    grid-column: 1/span 4;
+    text-align: center;
+    border-bottom: 1px solid white;
+}
+.SCOption{
+    grid-column: auto;
+    font-size: small;
+    text-align: center;
+    border: 0px solid white;
+}
+.SCOrganVessel{
+    grid-column: 1/span 4;
+    text-align: center;
+    font-size: small;
+    border: 0px solid white;
+}
+
+.SCAppBox{
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    padding: 5px;
+    margin:0px;
+}
+
+.SCPalamBox{
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+    padding: 5px;
+    gap: 5px;
+    grid-column: span 4;
+}
+
+.SCPalamBar{
+    display: grid;
+    grid-template-columns: auto auto auto ;
+    padding: 5px;
+    font-size: 15px;
+}
+
+.SCPalamtype{
+    grid-column: span 4;
+    color: yellow;
+}
+
+.SCDashline{
+    grid-column: 1/ span 4;
+}
+
+.SCDivButton{
+    display: inline-block;
+    padding: 5px;
+    margin: 0;
+    text-decoration: none;
+    border: 0px solid white;
+}
+
+.SCDivButton button{
+    color: white;
+    border-radius: 10%;
+    margin: 0;
+    padding: auto;
+    font-family: "新综艺";
+    font-size: 20px;
+}
+
+#SCbox1{
+    display: grid;
+}
+
+#SCbox2{
+    display: none;
+}
+
+#SCbox3{
+    display: none;
+}
+
+#SCbox4{
+    display: none;
+}
+
+#SCbox5{
+    display: none;
+}

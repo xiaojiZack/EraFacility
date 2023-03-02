@@ -3,11 +3,14 @@ declare function slog(type: "log" | "warn" | "error", ...args): void;
 declare function draw(arr: any[]): any;
 declare var D: typeof window.D;
 declare function maybe(arr: Array<[string, number]>):string;
-declare class Trait{static data: Dict<{name:any,group:any,rate:number}>;};
+declare class Trait{
+	static get(arg0: string, arg1:string)
+	static data: Dict<{name:any,group:any,rate:number}>;
+};
 
 import { Dict } from "_code/game/types/base";
 import { bodypartInfo, genderFull } from "_code/game/types/charatypes";
-import { RandomSpeciesName } from "../CommonFunc";
+import { GenerateHeight, GenerateWeight, RandomBodysize, RandomBreastssize, RandomPenissize, RandomSpeciesName } from "../CommonFunc";
 import { Creature } from "../Creature";
 import { MyOrgans } from "./MyOrgans";
 import { MySpecies } from "./MySpecies";
@@ -23,6 +26,7 @@ export class MyCreature extends Creature{
 		const len = Object.keys(MyCreature.data).length;
 		return `${species}_${len}`;
 	}
+	
     constructor(obj = {} as MyCreature) {
         super();
 		const { type = "charatemplate", species = "human" } = obj;
@@ -84,19 +88,44 @@ export class MyCreature extends Creature{
 	RandomInitDefault() {
 		this.randomStats();
 		this.randomAbility();
-		this.randomSituAbility();
 		if (!this.r) {
 			this.RandomInitBody();
 			this.RandomInitApp();
 		} else {
 			let adj = {
-				bodysize: random(5),
-				breasts: {sizeLv: this.gender === "male" ? 0 : random(10),},
-				penis: {sizeLv: this.gender === "female" ? 0 : random(7)},
+				bodysize: RandomBodysize(),
+				breasts: {size: this.gender === "male" ? 0 : RandomBreastssize(),},
+				penis: {size: this.gender === "female" ? 0 : RandomPenissize()},
 			};
 			this.initSpecies(adj);
 			this.randomTrait();
 		}
+		this.randomSituAbility();
+	}
+	initSpecies(obj = {} as any) {
+		this.bodysize = obj.bodysize || random(5);
+		this.initApp(obj);
+		this.body = this.r.configureBody(this.gender, this.appearance.height, obj);
+		this.init3Size();
+		this.initTalent(obj);
+		this.initTraits(obj);
+		this.initSkill(obj);
+
+		if (this.r.temper) this.temper = this.r.temper;
+	}
+	initApp(obj = {} as any) {
+		const app = this.appearance;
+
+		app.height = obj.height || GenerateHeight(this.bodysize);
+		app.weight = obj.weight || GenerateWeight(app.height);
+		app.beauty = 1000;
+
+		const list = ["haircolor", "eyecolor", "skincolor", "hairstyle"];
+		list.forEach((key) => {
+			if (obj[key]) app[key] = obj[key];
+			else if (this.r?.avatar[key]) app[key] = draw(this.r.avatar[key]);
+			else app[key] = draw(D[key + "Pool"]);
+		});
 	}
 	randomTrait(){
 		let tryTrait = [];
@@ -109,7 +138,7 @@ export class MyCreature extends Creature{
 			else if (T.group == 'fallen') null;
 			else pool.push(T);
 		})
-		let personality = Tl[maybe(temp)];//按概率抽取一个人格后取中文名
+		let personality = Tl[maybe(temp)];//按概率抽取一个人格
 		tryTrait.push(personality);
 		pool.forEach((T)=>{if (random(100)<100*T.rate) tryTrait.push(T);})
 		tryTrait = this.sloveTraitConflict(tryTrait);
@@ -122,10 +151,10 @@ export class MyCreature extends Creature{
 	}
 	findTraitConflict(arr:[any]){
 		let conflicT = [];
-		arr.forEach((T)=>{
-			let con = T.conflict?T.conflict:[];
-			arr.forEach((T2)=>{
-				if (con.includes(T2.name[0]) && !conflicT.includes(T2) && !T2==T ) conflicT.push(T2);
+		arr.forEach((trait1)=>{
+			let con = trait1.conflict?trait1.conflict:[];
+			arr.forEach((trait2)=>{
+				if (con.includes(trait2.name[1]) && !conflicT.includes(trait2) && trait2!==trait1 ) conflicT.push(trait2);
 			})
 		})
 		return conflicT;
@@ -138,6 +167,16 @@ export class MyCreature extends Creature{
 			conflictsPool = this.findTraitConflict(arr);
 		}
 		return arr;
+	}
+	randomSituAbility() {
+		Object.keys(D.sbl).forEach((key) => {
+			this.sbl[key] = 0;
+		});
+		if (this.traits.includes('H')) this.sbl['desire'] = 1;
+		if (this.traits.includes('Obey')) this.sbl['serve'] = 1;
+		if (this.traits.includes('Haughty')) this.sbl['refuse'] = 1;
+		if (this.traits.includes('TinyEvil')) this.sbl['technique'] = 1;
+		if (this.traits.includes('Revolt')) this.sbl['refuse'] = 2;
 	}
 }
 

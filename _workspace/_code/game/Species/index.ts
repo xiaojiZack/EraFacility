@@ -13,7 +13,7 @@ import { Species } from "./Species";
 import { Creature } from "./Creature";
 import { Chara } from "./Characters";
 import { species } from "./BasicData";
-import { bodyDict, bodyGroup, Psize, existency, bodysize } from "./bodyparts";
+import { bodyDict, bodyGroup, Psize, existency, bodysize, sexorgan } from "./bodyparts";
 import {
 	GenerateHeight,
 	GenerateWeight,
@@ -42,17 +42,18 @@ const module = {
 		Psize,
 		existency,
 		bodysize,
+		sexorgan,
 	},
 	database: {
 		Species: MySpecies.data,
 		Creature: MyCreature.data,
-		Chara: Chara.data,
+		Chara: MyChara.data,
 	},
 	classObj: {
 		MyOrgans,
 		MySpecies,
 		MyCreature,
-		Chara,
+		MyChara,
 	},
 	func: {
 		GenerateHeight,
