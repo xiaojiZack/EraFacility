@@ -1,0 +1,38 @@
+[
+    {
+		"name": ["四角内裤","boxer briefs"],
+		"des": [
+			"物品说明"
+		],
+		"group": "clothes",
+		"category": "innerBt",
+        "gender":"m",
+		"tags": ["pangci"],
+        "price": 0,
+        "color": [],
+        "cover":{
+            "private":[0,0],
+            "genital":[0,0],
+            "butts":[0,0]
+        },
+        "allure":0.05
+	},
+    {
+        "name": ["三角内裤","triangle pants"],
+		"des": [
+			"物品说明"
+		],
+		"group": "clothes",
+		"category": "innerBt",
+        "gender":"h",
+		"tags": ["pangci"],
+        "price": 0,
+        "color": [],
+        "cover":{
+            "private":[0,0],
+            "genital":[0,0],
+            "butts":[0,0]
+        },
+        "allure":0.05
+    }
+]

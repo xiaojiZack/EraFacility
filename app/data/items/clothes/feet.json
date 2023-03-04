@@ -1,0 +1,17 @@
+[
+    {
+		"name": ["运动鞋","sneakers"],
+		"des": [
+			"物品说明"
+		],
+		"group": "clothes",
+		"category": "feet",
+        "gender":"h",
+		"tags": ["normal"],
+        "price": 0,
+        "color": [],
+        "cover":{
+        },
+        "allure":0
+	}
+]

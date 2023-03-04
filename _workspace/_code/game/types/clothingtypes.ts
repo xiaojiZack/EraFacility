@@ -21,7 +21,6 @@ export type wearlayers =
 	| "cover"
 	| "outfitUp"
 	| "outfitBt"
-	| "innerCv"
 	| "innerUp"
 	| "innerBt"
 	| "hands"
@@ -40,7 +39,6 @@ export type equipslot =
 	| "cover"
 	| "outfitUp"
 	| "outfitBt"
-	| "innerCv"
 	| "innerUp"
 	| "innerBt"
 	| "hands"
@@ -133,3 +131,4 @@ export type coverparts =
 	*/
 
 export type diff = 0 | 1 | 2 | 3;
+

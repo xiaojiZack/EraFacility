@@ -127,6 +127,16 @@ export class MyCreature extends Creature{
 			else app[key] = draw(D[key + "Pool"]);
 		});
 	}
+	initEquipment() {
+		this.equip = {};
+		Object.keys(D.equipSlot).forEach((key) => {
+			this.equip[key] = {};
+		});
+		//特殊处理
+		this.equip["bottom"] = [];
+		this.equip.tags = [];
+		return this;
+	}
 	randomTrait(){
 		let tryTrait = [];
 		let pool = [];

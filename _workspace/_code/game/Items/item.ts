@@ -40,6 +40,7 @@ export interface Items {
 	stats?: ItemStats; //物品对个属性的影响
 	source?: ItemPalam; //物品对各个状态条的影响
 	method?: itemEffectType; //影响方法
+	func?: Function //影响发挥时的伴随方法
 }
 
 export class Items {
@@ -107,6 +108,10 @@ export class Items {
 	}
 	Method(method: itemEffectType) {
 		this.method = method;
+		return this;
+	}
+	Func(func){
+		this.method = func;
 		return this;
 	}
 }

@@ -145,11 +145,16 @@ F.initSCEquip = function(){
     const equip = T.showChara.equip;
     for (let equipStyle in D.equipSlot){
         let text = D.equipSlot[equipStyle]+":"
-        for (let e in equip[equipStyle]){
-            //TODO
+        if (equipStyle == "bottom"){ //插件额外处理 TODO
+
         }
-        if (Object.getOwnPropertyNames(equip[equipStyle]).length == 0){
-            text = text+"无";
+        else{
+            if (Object.keys(equip[equipStyle]).length == 0){
+                text = text+"无";
+            }
+            else{
+                text = text + `${equip[equipStyle].name[0]}`;
+            }
         }
         T.printtext.push(text)
     }

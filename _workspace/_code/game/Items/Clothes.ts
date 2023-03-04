@@ -26,6 +26,11 @@ export interface Clothes extends Items {
 	cursed?: 0 | 1; //是否诅咒物品。如果是则无法脱下
 
 	img?: string[]; //图片路径。如果有多个图片，第一个为默认图片，后面的为变化差分
+	checkputon?:any; //部分服装有穿上后的判断处理
+	checkstrip?:any;//部分服装有脱下的判断处理
+	puton?:any;//穿上的额外处理
+	strip?:any;//脱下的额外处理
+	
 }
 
 export class Clothes extends Items {

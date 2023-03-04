@@ -23,8 +23,19 @@ F.CPRandomPlayer = function(){
     player.birthday[2] = design.BirthdayD?design.BirthdayD:1;
     CPRandomVirginity(player,design.SexExp);
     CPGetBouns(player, design.Bouns);
+    CPGetClothes(player);
     console.log(player);
     return player;
+}
+
+const CPGetClothes = function(chara){
+    let clothset = {
+        "male":["衬衫","长裤","四角内裤","运动鞋"],
+        "female":["连衣裙","三角内裤","普通胸罩","运动鞋"]
+    }
+    clothset[chara.gender].forEach((equip)=>{
+        chara.getOnEquip(equip);
+    })
 }
 
 const CPRandomVirginity = function(chara, sexexp){

@@ -1,4 +1,16 @@
 [
     "items/01.json",
-    "items/clothes/testcloth.json"
+    "items/clothes/testcloth.json",
+    "items/clothes/outfitUp.json",
+    "items/clothes/outfitBt.json",
+    "items/clothes/bottom.json",
+    "items/clothes/chest.json",
+    "items/clothes/cover.json",
+    "items/clothes/face.json",
+    "items/clothes/feet.json",
+    "items/clothes/hands.json",
+    "items/clothes/innerBt.json",
+    "items/clothes/innerUp.json",
+    "items/clothes/legs.json",
+    "items/clothes/neck.json"
 ]

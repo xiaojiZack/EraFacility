@@ -5,7 +5,8 @@
 			"物品说明"
 		],
 		"group": "clothes",
-		"category": "innerCv",
+		"category": "innerUp",
+        "gender":"f",
 		"tags": [],
         "price": 100,
         "color": [],

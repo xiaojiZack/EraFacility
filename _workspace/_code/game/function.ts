@@ -29,3 +29,4 @@ Object.defineProperties(window, {
 	percent: { value: percent },
 	lan: { value: lan },
 });
+

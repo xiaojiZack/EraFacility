@@ -120,6 +120,8 @@
         <<run F.initSCEquip()>>
         <div>
             <<print T.printtext.join('<br>')>>
+            <br>
+            暴露值:<<=T.showChara.reveals.reveal>>
         </div>
     <</widget>>
 

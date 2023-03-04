@@ -1,0 +1,22 @@
+[
+    {
+		"name": ["长裤","trousers"],
+		"des": [
+			"物品说明"
+		],
+		"group": "clothes",
+		"category": "outfitBt",
+        "gender":"h",
+		"tags": ["basic","normal"],
+        "price": 0,
+        "color": [],
+        "cover":{
+            "private":[0,1],
+            "genital":[0,1],
+            "butts":[0,0],
+            "anus":[0,0],
+            "thighs":[0,0]
+        },
+        "allure":0.05
+	}
+]

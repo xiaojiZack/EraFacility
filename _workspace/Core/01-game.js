@@ -1217,7 +1217,7 @@
 	};
 	addModule(modules$3);
 
-	class Items {
+	class Items$1 {
 	  static newId(group, name, cate) {
 	    if (cate) {
 	      return `${cate}_${name[1].replace(/\s/g, "") || name[0]}`;
@@ -1239,7 +1239,7 @@
 	  }
 	  constructor(obj = {}) {
 	    const { group, category } = obj;
-	    this.id = Items.newId(group, category);
+	    this.id = Items$1.newId(group, category);
 	    for (let key in obj) {
 	      if (key == "sourceMethod" || key == "source") {
 	        continue;
@@ -1279,10 +1279,14 @@
 	    this.method = method;
 	    return this;
 	  }
+	  Func(func) {
+	    this.method = func;
+	    return this;
+	  }
 	}
-	Items.data = [];
+	Items$1.data = [];
 
-	class Clothes extends Items {
+	class Clothes extends Items$1 {
 	  constructor(category, name, des, gender2 = "n") {
 	    super({ name, des, group: "clothes", category });
 	    this.gender = gender2;
@@ -1316,11 +1320,11 @@
 	    Db.Items["recipies"].set(id, new Recipies(obj));
 	  }
 	  static getByName(itemname) {
-	    const itemId = Items.getByName("items", itemname).id;
+	    const itemId = Items$1.getByName("items", itemname).id;
 	    return Array.from(Db.Items["Recipies"]).find((recipie) => recipie.resultItemId === itemId);
 	  }
 	  static getBySrcName(itemname) {
-	    const itemId = Items.getByName("items", itemname).id;
+	    const itemId = Items$1.getByName("items", itemname).id;
 	    return Array.from(Db.Items["Recipies"]).find((recipie) => recipie.require.includes(itemId));
 	  }
 	  constructor(obj = {}) {
@@ -1336,7 +1340,7 @@
 	    return this;
 	  }
 	}
-	class Potion extends Items {
+	class Potion extends Items$1 {
 	  constructor(obj = {}) {
 	    const { name, des, type } = obj;
 	    super({ name, des, group: "items", category: "potion" });
@@ -1359,7 +1363,7 @@
 	    return this;
 	  }
 	}
-	class SexToy extends Items {
+	class SexToy extends Items$1 {
 	  constructor(obj = {}) {
 	    const { name, des } = obj;
 	    super({ name, des, group: "accessory", category: "sextoy" });
@@ -1396,7 +1400,7 @@
 	};
 	const itemGroup = ["weapon", "shield", "armor", "clothes", "accessory", "items", "material", "recipies", "books"];
 	itemGroup.forEach((group) => {
-	  Items.data[group] = /* @__PURE__ */ new Map();
+	  Items$1.data[group] = /* @__PURE__ */ new Map();
 	});
 	function loadItems() {
 	  return __async(this, null, function* () {
@@ -1409,8 +1413,8 @@
 	        dlog("log", "Loading items from:", filename);
 	        filedata.forEach((data) => {
 	          const { name, group, category, source, sourceMethod } = data;
-	          const id = Items.newId(group, name, category);
-	          Db.Items[group].set(id, new Items(data));
+	          const id = Items$1.newId(group, name, category);
+	          Db.Items[group].set(id, new Items$1(data));
 	          const idata = Db.Items[group].get(id);
 	          idata.source = {};
 	          if (source) {
@@ -1435,9 +1439,9 @@
 	  data: {
 	    itemGroup
 	  },
-	  database: Items.data,
+	  database: Items$1.data,
 	  classObj: {
-	    Items,
+	    Items: Items$1,
 	    Clothes,
 	    Potion,
 	    SexToy,
@@ -3124,6 +3128,15 @@
 	        app[key] = draw(D[key + "Pool"]);
 	    });
 	  }
+	  initEquipment() {
+	    this.equip = {};
+	    Object.keys(D.equipSlot).forEach((key) => {
+	      this.equip[key] = {};
+	    });
+	    this.equip["bottom"] = [];
+	    this.equip.tags = [];
+	    return this;
+	  }
 	  randomTrait() {
 	    let tryTrait = [];
 	    let pool = [];
@@ -3470,6 +3483,11 @@
 	    if (obj.virginity) {
 	      this.Virginity(obj.virginity);
 	    }
+	    if (obj.equip) {
+	      obj.equip.forEach((e) => {
+	        this.getOnEquip(e);
+	      });
+	    }
 	    $(document).trigger(":initCharacter", [this, obj]);
 	    return this;
 	  }
@@ -3479,7 +3497,166 @@
 	    });
 	    return this;
 	  }
+	  initReveals() {
+	    this.reveals = {};
+	    const ignore = ["vagina", "penis", "buttL", "buttR"];
+	    this.reveals.expose = 3;
+	    this.reveals.reveal = 1500;
+	    this.reveals.detail = {};
+	    this.reveals.cloth = {};
+	    D.skinlayer.forEach((k) => {
+	      if (ignore.includes(k) === false)
+	        this.reveals.detail[k] = { expose: 3, block: 3 };
+	      this.reveals.cloth[k] = [];
+	    });
+	    this.reveals.detail.genital = { expose: 3, block: 3 };
+	    this.reveals.detail.butts = { expose: 3, block: 3 };
+	    this.reveals.parts = Object.keys(this.reveals.detail);
+	    this.reveals.tags = {};
+	    this.reveals.cloth = {};
+	    this.reveals.parts.forEach((k) => {
+	      this.reveals.cloth[k] = {};
+	      Object.keys(D.equipSlot).forEach((layer) => {
+	        let equip = this.equip[layer];
+	        if (Object.keys(equip).length > 0) {
+	          if (equip.cover[k])
+	            this.reveals.cloth[k][equip.category] = { expose: 3, block: 3 };
+	        }
+	      });
+	    });
+	    return this;
+	  }
+	  getOnEquip(equip) {
+	    if (typeof equip !== "object")
+	      equip = Items.getByName("clothes", equip)[1];
+	    let category = equip.category;
+	    let canequip = equip.checkputon ? equip.checkputon() : true;
+	    if (canequip) {
+	      let trystrip = category == "bottom" ? [] : [this.equip[category]];
+	      if (equip.tags.includes("outfit")) {
+	        if (category == "innerUp")
+	          trystrip.push(this.equip["innerBt"]);
+	        if (category == "outfitUp")
+	          trystrip.push(this.equip["outfitBt"]);
+	      }
+	      let canstrip = true;
+	      trystrip.forEach((k) => {
+	        if (Object.keys(k).length > 0)
+	          canstrip = canstrip && k.checkstrip ? k.checkstrip() : true;
+	      });
+	      if (canstrip) {
+	        trystrip.forEach((removeCloth) => {
+	          if (removeCloth.strip) {
+	            removeCloth.strip(this);
+	            this.equip.tags = this.equip.tags.filter(
+	              (x) => !removeCloth.tags.some((y) => y === x)
+	            );
+	          }
+	          this.equip[removeCloth.category] = {};
+	        });
+	        this.equip[category] = equip;
+	        if (equip.puton)
+	          equip.puton(this);
+	        this.equip.tags = this.equip.tags.concat(equip.tags);
+	        this.UpdateReveals();
+	        return true;
+	      }
+	    }
+	    return false;
+	  }
+	  getOffEquip(equip) {
+	    let canstrip = equip.checkstrip ? equip.checkstrip() : true;
+	    if (canstrip) {
+	      this.equip[equip.category] = {};
+	      if (equip.strip)
+	        equip.strip();
+	    }
+	    return this;
+	  }
+	  UpdateReveals() {
+	    this.initReveals();
+	    this.reveals.parts.forEach((k) => {
+	      this.CalvisibleAndTouchable(k, clothcover, { expose: 3, block: 3 });
+	    });
+	    this.CalRevealsLevel();
+	  }
+	  CalvisibleAndTouchable(skin, forest, VT) {
+	    let newVt = VT;
+	    for (let layer of forest) {
+	      if (Object.keys(this.reveals.cloth[skin]).includes(layer)) {
+	        this.reveals.cloth[skin][layer] = VT;
+	        newVt = { expose: this.equip[layer].cover[skin][0], block: this.equip[layer].cover[skin][1] };
+	        if (VT.expose == 1 && newVt.expose == 1)
+	          newVt.expose = 0;
+	        VT = newVt;
+	      }
+	    }
+	    this.reveals.detail[skin] = VT;
+	  }
+	  CalRevealsLevel() {
+	    let tags = this.reveals.tags;
+	    for (let part of ["genital", "anus", "breasts", "private", "butts", "thighs", "abdomen"])
+	      tags[part] = this.reveals.detail[part].expose;
+	    if (this.reveals.detail["genital"].expose == 0 && !this.equip.tags.includes("pangci"))
+	      tags["no pangci"] = 3;
+	    else
+	      tags["no pangci"] = 0;
+	    if (this.reveals.detail["breasts"].expose == 0 && !this.equip.tags.includes("bra"))
+	      tags["no bra"] = 3;
+	    else
+	      tags["no bra"] = 0;
+	    tags["see pangci"] = this.equip.tags.includes["pangci"] ? this.reveals.cloth["genital"]["innerBt"].expose : 0;
+	    tags["see bra"] = this.equip.tags.includes["bra"] ? this.reveals.cloth["breasts"]["innerBt"].expose : 0;
+	    if (this.gender == "male") {
+	      tags["see bra"] = 0;
+	      tags["no bra"] = 0;
+	    }
+	    this.reveals.reveal = 0;
+	    for (let key in tags) {
+	      this.reveals.reveal += Math.floor(revealsPoints[key] * (tags[key] / 3));
+	    }
+	    this.reveals.expose = 0;
+	    for (let level in exposeLevel) {
+	      this.reveals.expose = this.reveals.reveal > exposeLevel[level] ? parseInt(level) : this.reveals.expose;
+	    }
+	  }
 	}
+	const clothcover = [
+	  "cover",
+	  "head",
+	  "face",
+	  "ears",
+	  "hands",
+	  "neck",
+	  "outfitUp",
+	  "outfitBt",
+	  "feet",
+	  "innerUp",
+	  "legs",
+	  "innerBt",
+	  "chest",
+	  "bottom"
+	];
+	const revealsPoints = {
+	  "genital": 1e3,
+	  "anus": 300,
+	  "breasts": 400,
+	  "private": 100,
+	  "butts": 100,
+	  "thighs": 50,
+	  "abdomen": 50,
+	  "no pangci": 50,
+	  "no bra": 20,
+	  "see pangci": 100,
+	  "see bra": 50
+	};
+	const exposeLevel = {
+	  "1": 50,
+	  "2": 100,
+	  "3": 400,
+	  "4": 800,
+	  "5": 1400
+	};
 
 	const module$2 = {
 	  name: "Creatures",
