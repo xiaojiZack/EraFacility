@@ -2230,8 +2230,9 @@ window.parseXml = function (xml, arrayTags) {
 	    time: S.date[3]
 	  };
 	  V.location = {
-	    name: "",
+	    spotname: "",
 	    mapId: "",
+	    coord: [0, 0],
 	    printname: "",
 	    chara: []
 	  };
@@ -2319,7 +2320,7 @@ window.parseXml = function (xml, arrayTags) {
 	    Wikifier: { value: scEra.wikifier },
 	    V: { get: () => scEra.state.variables },
 	    T: { get: () => scEra.state.temporary },
-	    C: { get: () => scEra.state.variables.chara },
+	    C: { get: () => M.Creatures.classObj.MyChara.data },
 	    Flag: {
 	      get: () => scEra.state.variables.flag
 	    }
@@ -2475,7 +2476,7 @@ window.parseXml = function (xml, arrayTags) {
 	  lan: { value: lan$1 }
 	});
 
-	const moveableTile = ["road", "glass", "field", "passable", "area"];
+	const moveableTile = ["road", "glass", "field", "passable", "area", "restroom"];
 	const directions = [
 	  [-1, 0],
 	  [1, 0],
@@ -2642,6 +2643,7 @@ window.parseXml = function (xml, arrayTags) {
 	}
 	function isConnected(pos1, pos2, map) {
 	  const x1 = pos1.x, y1 = pos1.y, x2 = pos2.x, y2 = pos2.y;
+	  console.log(x1, x2, y1, y2, map);
 	  if (x1 === x2 && y1 === y2)
 	    return true;
 	  if (x1 === x2) {
@@ -2776,6 +2778,26 @@ window.parseXml = function (xml, arrayTags) {
 	  return null;
 	}
 
+	var __async$4 = (__this, __arguments, generator) => {
+	  return new Promise((resolve, reject) => {
+	    var fulfilled = (value) => {
+	      try {
+	        step(generator.next(value));
+	      } catch (e) {
+	        reject(e);
+	      }
+	    };
+	    var rejected = (value) => {
+	      try {
+	        step(generator.throw(value));
+	      } catch (e) {
+	        reject(e);
+	      }
+	    };
+	    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+	    step((generator = generator.apply(__this, __arguments)).next());
+	  });
+	};
 	class GameMap {
 	  constructor([boardId, id, name]) {
 	    this.boardId = boardId;
@@ -2838,13 +2860,18 @@ window.parseXml = function (xml, arrayTags) {
 	      console.log("Try to get Mapdata:", mapId);
 	    let path = mapId.split(".");
 	    let map = worldMap;
-	    for (let i = 0; i < path.length; i++) {
-	      try {
+	    try {
+	      for (let i = 0; i < path.length; i++) {
 	        map = map[path[i]];
-	      } catch (err) {
-	        console.log("Catch an error on get Mapdata:", mapId, path, err);
-	        return null;
 	      }
+	      if (!map) {
+	        let maybeMap = worldMap[path[path.length - 1]];
+	        if (maybeMap.id == mapId)
+	          map = maybeMap;
+	      }
+	    } catch (err) {
+	      console.log("Catch an error on get Mapdata:", mapId, path, err);
+	      return null;
 	    }
 	    return map;
 	  }
@@ -2975,6 +3002,8 @@ window.parseXml = function (xml, arrayTags) {
 	    } else {
 	      if (Config.debug)
 	        console.log("Creating new mapdata:", mapdId, boardId, type, name, entry, main, xy);
+	      if (!xy)
+	        xy = [13, 13];
 	      if (!xy[0])
 	        xy[0] = 13;
 	      if (!xy[1])
@@ -3040,6 +3069,9 @@ window.parseXml = function (xml, arrayTags) {
 	  }
 	  console() {
 	    printMapFromData(this);
+	  }
+	  findspot(x, y) {
+	    return Boards.getBoard(this.id)[x][y];
 	  }
 	}
 	const typeTags = {
@@ -3304,6 +3336,101 @@ window.parseXml = function (xml, arrayTags) {
 	  const mapdata = mapdataToBoard(map, map.mapsize.x, map.mapsize.y);
 	  printMap(mapdata);
 	}
+	function MapList() {
+	  return __async$4(this, null, function* () {
+	    let board = [];
+	    D.maps = { board: [], spot: [] };
+	    let spot = [];
+	    let loadjson = yield getMapJson();
+	    slog("log", `Get file list from json`, loadjson);
+	    if (loadjson) {
+	      board = board.concat(loadjson.board);
+	      spot = spot.concat(loadjson.spot);
+	    }
+	    D.maps.board = D.maps.board.concat(board);
+	    D.maps.spot = D.maps.spot.concat(spot);
+	    slog("log", "all map file be loaded, begin realize object", D.maps);
+	    D.maps.board.forEach((board2) => __async$4(this, null, function* () {
+	      loadboard(board2);
+	    }));
+	    D.maps.spot.forEach((spot2) => {
+	      loadspot(spot2);
+	    });
+	    setTimeout(() => {
+	      delete D.maps;
+	    }, 2e3);
+	  });
+	}
+	function getMapJson() {
+	  return __async$4(this, null, function* () {
+	    let board = [];
+	    let spot = [];
+	    console.log("getjson");
+	    const filesData = yield getJson("./data/maps.json").then((res) => {
+	      slog("log", "Get file from maps.json:", res);
+	      return res;
+	    });
+	    if (filesData) {
+	      filesData.forEach(([filename, map]) => {
+	        dlog("log", "Get maps from " + filename, map);
+	        if (filename.includes("spots")) {
+	          if (Array.isArray(map)) {
+	            if (map.length === 0) {
+	              slog("warn", "Error: format error, skip this file. spot file must be array and not empty:", map);
+	            } else if (map[0].spotId && map[0].boardId) {
+	              spot = spot.concat(map);
+	            } else {
+	              slog("warn", "Error: format error, skip this file:", map);
+	            }
+	          }
+	        } else {
+	          if (Array.isArray(map)) {
+	            if (map.length === 0) {
+	              slog("warn", "Error: format error, skip this file. board file must be array and not empty:", map);
+	            } else if (map[0].mapid && map[0].obj) {
+	              board = board.concat(map);
+	            } else {
+	              slog("warn", "Error: format error, skip this file:", map);
+	            }
+	          }
+	        }
+	      });
+	      slog("log", "Get all the map done:", board, spot);
+	    }
+	    return { board, spot };
+	  });
+	}
+	function loadJson(path) {
+	  return __async$4(this, null, function* () {
+	    const response = yield fetch(path);
+	    const json = yield response.json();
+	    return json;
+	  });
+	}
+	function loadspot(data) {
+	  addSpot([data.boardId, data.spotId, data.name, data.spotType]);
+	  let spot = worldMap[data.boardId][data.spotId];
+	  if (data.placement)
+	    spot.Placement(data.placement);
+	  if (data.spotType == "house")
+	    spot.isHome();
+	  if (data.openhour)
+	    spot.OpenHour(data.openhour.weekday, data.openhour.open.data.openhour.close);
+	}
+	function loadboard(data) {
+	  return __async$4(this, null, function* () {
+	    addBoard(data.mapid, data.group, data.obj);
+	    if (data.mapdata) {
+	      worldMap[data.mapid].mapdata = yield loadJson("./data/Map/" + data.mapdata).then((res) => {
+	        slog("log", "Get mapdata from ", res);
+	        return res;
+	      });
+	    }
+	    let board = worldMap[data.mapid];
+	    if (data.movetime)
+	      board.movetime = data.movetime;
+	  });
+	}
 
 	var __async$3 = (__this, __arguments, generator) => {
 	  return new Promise((resolve, reject) => {
@@ -3338,16 +3465,16 @@ window.parseXml = function (xml, arrayTags) {
 	    });
 	  });
 	}
-	function addBoard(name, group, obj) {
-	  worldMap$1.Boards[name] = new Boards(name, group, obj);
-	  Object.defineProperty(worldMap$1, name, {
-	    get: () => worldMap$1[name]
+	function addBoard$1(name, group, obj) {
+	  worldMap$1[name] = new Boards(name, group, obj);
+	  Object.defineProperty(worldMap$1.Boards, name, {
+	    get: () => worldMap$1.Boards[name]
 	  });
 	  return worldMap$1[name];
 	}
-	function addSpot([boardId, spotId, name, spotType2]) {
+	function addSpot$1([boardId, spotId, name, spotType2]) {
 	  worldMap$1[boardId][spotId] = new Spots([boardId, spotId, name, spotType2]);
-	  Object.defineProperty(worldMap$1.Spots, spotId, {
+	  Object.defineProperty(worldMap$1.Spots, boardId + "." + spotId, {
 	    get: () => worldMap$1[boardId][spotId]
 	  });
 	  return worldMap$1[boardId][spotId];
@@ -3375,23 +3502,25 @@ window.parseXml = function (xml, arrayTags) {
 	    AutoFillRoads,
 	    GenerateMap,
 	    Distance,
+	    isConnected,
 	    findPath,
 	    printPath,
 	    createPath,
 	    Init: {
-	      initWorldMap
+	      initWorldMap,
+	      MapList
 	    }
 	  },
 	  config: {
 	    globalFunc: {
-	      addBoard,
-	      addSpot
+	      addBoard: addBoard$1,
+	      addSpot: addSpot$1
 	    }
 	  },
 	  setup: {
 	    setTagByBoardType
 	  },
-	  Init: ["initWorldMap"]
+	  Init: ["initWorldMap", "MapList"]
 	};
 	addModule(modules$4);
 
@@ -5901,7 +6030,7 @@ window.parseXml = function (xml, arrayTags) {
 	class MyChara extends Chara {
 	  static new(CharaId, obj) {
 	    let chara = new MyChara(CharaId, obj).Init(obj).initChara(obj);
-	    this.data[CharaId] = chara;
+	    MyChara.data[CharaId] = chara;
 	    return chara;
 	  }
 	  initChara(obj) {
@@ -6576,7 +6705,6 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  const command = [];
 	  Object.values(Com.data).forEach((com) => {
 	    const { id, time } = com;
-	    console.log(2, com);
 	    let name = "";
 	    if (com.alterName)
 	      name = com.alterName();
@@ -6656,10 +6784,11 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  const com = Com.data[id];
 	  console.log("try check com", com);
 	  T.comorder = 0;
-	  T.reason = "";
+	  T.reason = T.reason ? T.reason : "";
 	  T.order = "";
 	  T.orderGoal = Com.globalOrder(id) + com.order();
 	  T.comAble = Com.globalCheck(id) && com.check();
+	  console.log("reason", T.reason);
 	  T.msgId = 0;
 	  T.comPhase = "before";
 	  let txt = "";
@@ -6694,9 +6823,8 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  } else if (c) {
 	    Com.shownext();
 	    Com.next();
-	  } else {
-	    Com.Event(id);
 	  }
+	  Com.Event(id);
 	};
 	Com.Event = function(id, next) {
 	  const com = Com.data[id];
@@ -6707,6 +6835,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  T.comPhase = "event";
 	  T.lastCom = T.selectCom;
 	  T.selectCom = id;
+	  console.log(T.comAble, T.comCancel);
 	  $("#contentMsg a").remove();
 	  if (T.comCancel) {
 	    P.msg(resetHtml);
@@ -7627,7 +7756,7 @@ D.coverlistB = Object.keys(D.covergroupB);</script>
 		<div id="init-lacking"><p>Browser lacks capabilities required to play.</p><p>Upgrade or switch to another browser.</p></div>
 		<div id="init-loading"><div>Loading&hellip;</div></div>
 	</div>
-	<!-- UUID://B0C16C95-EDFE-48A2-9746-BEADC30CE67C// --><tw-storydata name="EraFacility" startnode="35" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="B0C16C95-EDFE-48A2-9746-BEADC30CE67C" zoom="1" format="SugarCube" format-version="2.36.1" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css"></style><script role="script" id="twine-user-script" type="text/twine-javascript">/* twine-user-script #1: "00-loadfirst.js" */
+	<!-- UUID://B0C16C95-EDFE-48A2-9746-BEADC30CE67C// --><tw-storydata name="EraFacility" startnode="38" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="B0C16C95-EDFE-48A2-9746-BEADC30CE67C" zoom="1" format="SugarCube" format-version="2.36.1" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css"></style><script role="script" id="twine-user-script" type="text/twine-javascript">/* twine-user-script #1: "00-loadfirst.js" */
 //---------------------------------------------------------------------------
 //
 //  setup path
@@ -9439,6 +9568,7 @@ Fix.reveals = function (reveal, equip) {
 	return reveal;
 };
 /* twine-user-script #18: "defineGameProperty.js" */
+Config.debug = false
 //--------------------------------------------------------------
 //
 // define game property and defalut value here
@@ -9454,6 +9584,8 @@ S.gameConfig = {
 	//eraCom setting
 	showAllCommand: 0,
 	showOrder: 0,
+	showSideBarMap: false,
+	showSideBarTitle: true,
 };
 
 //game flags.
@@ -9475,7 +9607,7 @@ S.gameVars = {
 		total: 0,
 		now: 0,
 	},
-	chara: {},
+	chara: M.Creatures.classObj.MyChara.data,
 	player: {
 		name: "",
 	},
@@ -9483,7 +9615,7 @@ S.gameVars = {
 	master: "",
 
 	//player character id
-	pc: "",
+	pc: "player",
 	//target character id
 	tc: "",
 };
@@ -9776,7 +9908,28 @@ if (window.Action) {
 		return "";
 	};
 }
-/* twine-user-script #22: "ComEvent.js" */
+/* twine-user-script #22: "Time.js" */
+//执行对应代办事项
+F.charaAction = function(chara, cid){
+    HasHappen = V.timeEventList.getHasHappend(V.timeEventList.event.length)
+    HasHappen.forEach(record => {
+        if (record[0] == cid){
+            exectionRecord(chara, eventid, args);
+            V.timeEventList.delete(record);
+        }
+    });
+}
+
+function exectionRecord(chara, eventid, args){
+    switch(eventid){
+        case("move"):break;
+        case("beginWork"):break;
+        case("endWork"):break;
+        case("setState"):break;
+        case("changeEquip"):break;
+    }
+}
+/* twine-user-script #23: "ComEvent.js" */
 if (window.Com) {
 	//update the scene
 	Com.updateScene = function () {
@@ -9879,7 +10032,7 @@ if (window.Com) {
 		return "";
 	};
 }
-/* twine-user-script #23: "ComFilter.js" */
+/* twine-user-script #24: "ComFilter.js" */
 if (window.Com) {
 	//-------------------------------------------------------------------
 	//
@@ -9900,7 +10053,108 @@ if (window.Com) {
 		return 1;
 	};
 }
-/* twine-user-script #24: "sourceTrack.js" */
+/* twine-user-script #25: "com.js" */
+//指令的初始化
+
+Com.new("system",{
+    id:"debug",
+    name:"com测试",
+    tags:["debug"],
+    time:5,
+}).Filter(
+    function(){
+        if (V.currentFilter == "常规") return true;
+        return false
+    })
+    .Effect(
+        function(){
+            if (V.system.debug) setMsg()
+        }
+    )
+    .Check(
+        function(){
+            return true;
+        }
+    )
+    .Order(function(){
+        return 0;
+    });
+
+//移动类指令统一生成
+createMoveComs();
+
+/* twine-user-script #26: "comutils.js" */
+function createMoveComs(){
+    let cn_dict = {'N':"北","S":"南","E":"东","W":"西"};
+    for (let dir of ['N','E','S','W']){
+        let newCom = Com.new("system",{
+            id:"0-move-"+dir,
+            name:`向${cn_dict[dir]}移动`,
+            tags:[],
+            time:5,
+        });
+        newCom.Set(
+            "dir",dir
+        );
+        newCom.Effect(()=>{
+            return moveComEffect(newCom.dir);
+        }).Check(()=>{
+            return moveComCheck(newCom.dir);
+        }).Filter(()=>{
+            if (V.currentFilter == "常规" || V.currentFilter == "all") return true;
+            return false
+        })
+    }
+    
+}
+
+function moveComCheck(dir){
+    let newlocation = clone(V.location.coord);
+    switch(dir){
+        case("N"):newlocation[0] = newlocation[0]-1;break;
+        case("E"):newlocation[1] = newlocation[1]+1;break;
+        case("S"):newlocation[0] = newlocation[0]+1;break;
+        case("W"):newlocation[1] = newlocation[1]-1;break;
+    }
+    
+    let map = worldMap[V.location.mapId];
+    console.log(newlocation,map.mapsize);
+    if (newlocation[0]<0 || newlocation[0]>=map.mapsize.x
+        || newlocation[1]<0 || newlocation[1]>=map.mapsize.y){
+        T.reason = "到达地图边界"; return false; 
+    }
+    let loc1 = {x:V.location.coord[0],y:V.location.coord[1]};
+    let loc2 = {x:newlocation[0],y:newlocation[1]};
+    if(F.isConnected(loc1, loc2,Boards.getBoard(V.location.mapId)) == false)
+        {T.reason = "无法到达"; return false;}
+    return true;
+}
+
+function moveComEffect(dir){
+    switch(dir){
+        case("N"):V.location.coord[0] = V.location.coord[0]-1;break;
+        case("E"):V.location.coord[1] = V.location.coord[1]+1;break;
+        case("S"):V.location.coord[0] = V.location.coord[0]+1;break;
+        case("W"):V.location.coord[1] = V.location.coord[1]-1;break;
+    }
+    updateLocation();
+    Com.updateMovement();
+}
+
+function updateLocation(){
+    let map = worldMap[V.location.mapId], coord = V.location.coord;
+    let board = Boards.getBoard(V.location.mapId);
+    V.location.spotid = board[coord[0]][coord[1]];
+    V.location.printname = worldMap[V.location.mapId][V.location.spotid].name;
+    refrashSideBarMap();
+}
+
+function refrashSideBarMap(){
+    if (document.getElementById("sidebarMap"))
+        new Wikifier(null, `<<replace #sidebarMap>> <<sidebarMap>><</replace>>`);
+    //$("#siderbarMap").remove();
+}
+/* twine-user-script #27: "sourceTrack.js" */
 F.sourceCheck = function (chara, cid) {
 	//source的处理。根据条件对source的获得值进行加减。
 
@@ -9998,7 +10252,7 @@ F.trackCheck = function (chara, cid) {
 
    */
 };
-/* twine-user-script #25: "timeSystem.js" */
+/* twine-user-script #28: "timeSystem.js" */
 F.timeProcess = function (t) {
 	const date = V.date;
 
@@ -10049,7 +10303,8 @@ F.timeEffects = function (t, mode) {
 	let charas = V.location.chara;
 	charas.forEach((cid) => {
 		const chara = C[cid];
-
+		//角色自主行动
+		F.charaAction(chara, cid);
 		//衣服穿着和持续行动带来的source变动
 		F.trackCheck(chara, cid);
 		F.sourceCheck(chara, cid);
@@ -10059,8 +10314,67 @@ F.timeEffects = function (t, mode) {
 	//对不在场的角色进行时间经过处理。
 	//charas = F.getNoActiveChara()
 };
-/* twine-user-script #26: "condition.js" */
-/* twine-user-script #27: "hover.js" */
+
+
+class TimeEventList{
+    constructor(){
+        this.event = [];
+        return this;
+    }
+    append(charaid, eventid, time, args=[]){
+        this.event.append([charaid,eventid,time,args]);
+        this.sort();
+        return this;
+    }
+    delete(record){
+        this.event.delete(record);
+        this.sort();
+    }
+    sort(){
+        this.event.sort(function(x,y){
+            return x[3]-y[3];
+        })
+        return this;
+    }
+    update(passTime){
+        this.event.forEach((record)=>{
+            record[3] -= passTime;
+        })
+    }
+    getHasHappend(getNumber = 1){
+        let records = [];
+        this.event.forEach((record)=>{
+            if (record[3]<0 && records.length<getNumber)
+                records.push(record)
+        })
+        return records;
+    }
+    getBycharaId(charaId, checklist = []){
+        let records = [];
+        let events = checklist?checklist:this.event; //如果没有指定范围，则查找所有时间戳.
+
+        events.forEach((record)=>{
+            if (record[0]==charaId){
+                records.append(record);
+            }
+        })
+        return records;
+    }
+    getByeventId(eventId, checklist = []){
+        let records = [];
+        let events = checklist?checklist:this.event; //如果没有指定范围，则查找所有时间戳.
+        events.forEach((record)=>{
+            if (record[1]==eventId){
+                records.append(record);
+            }
+        })
+        return records;
+    }
+}
+
+V.timeEventList = new TimeEventList();
+/* twine-user-script #29: "condition.js" */
+/* twine-user-script #30: "hover.js" */
 /* HoverTxt - Start */
 var HTIntervalID = 0;
 $(document).on(":passagerender", function (ev) {
@@ -10111,9 +10425,9 @@ function UpdateHoverTxt(Container) {
 	}
 }
 /* HoverTxt - End */
-/* twine-user-script #28: "loading-bar.min.js" */
+/* twine-user-script #31: "loading-bar.min.js" */
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){var presets,simpleStr,wrap,slice$=[].slice,toString$={}.toString;presets=require("./presets").presets;simpleStr=function(arr){return arr.join("")};wrap=function(content){return"data:image/svg+xml;base64,"+btoa(content)};(function(){var make,handler,ldBar;make={head:function(viewBox){return'<?xml version="1.0" encoding="utf-8"?>\n        <svg xmlns="http://www.w3.org/2000/svg" viewBox="'+viewBox+'">'},gradient:function(dir,dur){var colors,ret,len,gx,gy,x,y,i$,i,idx;dir==null&&(dir=45);dur==null&&(dur=1);colors=slice$.call(arguments,2);ret=[this.head("0 0 100 100")];len=colors.length*4+1;dir=dir*Math.PI/180;gx=Math.pow(Math.cos(dir),2);gy=Math.sqrt(gx-Math.pow(gx,2));if(dir>Math.PI*.25){gy=Math.pow(Math.sin(dir),2);gx=Math.sqrt(gy-Math.pow(gy,2))}x=gx*100;y=gy*100;ret.push('<defs><linearGradient id="gradient" x1="0" x2="'+gx+'" y1="0" y2="'+gy+'">');for(i$=0;i$<len;++i$){i=i$;idx=i*100/(len-1);ret.push('<stop offset="'+idx+'%" stop-color="'+colors[i%colors.length]+'"/>')}ret.push('</linearGradient></defs>\n<rect x="0" y="0" width="400" height="400" fill="url(#gradient)">\n<animateTransform attributeName="transform" type="translate" from="-'+x+",-"+y+'"\nto="0,0" dur="'+dur+'s" repeatCount="indefinite"/></rect></svg>');return wrap(ret.join(""))},stripe:function(c1,c2,dur){var ret,i;c1==null&&(c1="#b4b4b4");c2==null&&(c2="#e6e6e6");dur==null&&(dur=1);ret=[this.head("0 0 100 100")];ret=ret.concat(['<rect fill="'+c2+'" width="100" height="100"/>',"<g><g>",function(){var i$,results$=[];for(i$=0;i$<13;++i$){i=i$;results$.push('<polygon fill="'+c1+'" '+('points="'+(-90+i*20)+",100 "+(-100+i*20)+",")+("100 "+(-60+i*20)+",0 "+(-50+i*20)+',0 "/>'))}return results$}().join(""),'</g><animateTransform attributeName="transform" type="translate" ','from="0,0" to="20,0" dur="'+dur+'s" repeatCount="indefinite"/></g></svg>'].join(""));return wrap(ret)},bubble:function(c1,c2,count,dur,size,sw){var ret,i$,i,idx,x,r,d;c1==null&&(c1="#39d");c2==null&&(c2="#9cf");count==null&&(count=15);dur==null&&(dur=1);size==null&&(size=6);sw==null&&(sw=1);ret=[this.head("0 0 200 200"),'<rect x="0" y="0" width="200" height="200" fill="'+c1+'"/>'];for(i$=0;i$<count;++i$){i=i$;idx=-(i/count)*dur;x=Math.random()*184+8;r=(Math.random()*.7+.3)*size;d=dur*(1+Math.random()*.5);ret.push(['<circle cx="'+x+'" cy="0" r="'+r+'" fill="none" stroke="'+c2+'" stroke-width="'+sw+'">','<animate attributeName="cy" values="190;-10" times="0;1" ','dur="'+d+'s" begin="'+idx+'s" repeatCount="indefinite"/>',"</circle>",'<circle cx="'+x+'" cy="0" r="'+r+'" fill="none" stroke="'+c2+'" stroke-width="'+sw+'">','<animate attributeName="cy" values="390;190" times="0;1" ','dur="'+d+'s" begin="'+idx+'s" repeatCount="indefinite"/>',"</circle>"].join(""))}return wrap(ret.join("")+"</svg>")}};handler={queue:{},running:false,main:function(timestamp){var keepon,removed,k,ref$,func,ret,this$=this;keepon=false;removed=[];for(k in ref$=this.queue){func=ref$[k];ret=func(timestamp);if(!ret){removed.push(func)}keepon=keepon||ret}for(k in ref$=this.queue){func=ref$[k];if(removed.indexOf(func)>=0){delete this.queue[k]}}if(keepon){return requestAnimationFrame(function(it){return this$.main(it)})}else{return this.running=false}},add:function(key,f){var this$=this;if(!this.queue[key]){this.queue[key]=f}if(!this.running){this.running=true;return requestAnimationFrame(function(it){return this$.main(it)})}}};window.ldBar=ldBar=function(selector,option){var xmlns,root,cls,idPrefix,id,domTree,newNode,x$,config,attr,that,isStroke,parseRes,dom,svg,text,group,length,path0,path1,patimg,img,ret,size,this$=this;option==null&&(option={});xmlns={xlink:"http://www.w3.org/1999/xlink"};root=toString$.call(selector).slice(8,-1)==="String"?document.querySelector(selector):selector;if(!root.ldBar){root.ldBar=this}else{return root.ldBar}cls=root.getAttribute("class")||"";if(!~cls.indexOf("ldBar")){root.setAttribute("class",cls+" ldBar")}idPrefix="ldBar-"+Math.random().toString(16).substring(2);id={key:idPrefix,clip:idPrefix+"-clip",filter:idPrefix+"-filter",pattern:idPrefix+"-pattern",mask:idPrefix+"-mask",maskPath:idPrefix+"-mask-path"};domTree=function(n,o){var k,v;n=newNode(n);for(k in o){v=o[k];if(k!=="attr"){n.appendChild(domTree(k,v||{}))}}n.attrs(o.attr||{});return n};newNode=function(n){return document.createElementNS("http://www.w3.org/2000/svg",n)};x$=document.body.__proto__.__proto__.__proto__;x$.text=function(t){return this.appendChild(document.createTextNode(t))};x$.attrs=function(o){var k,v,ret,results$=[];for(k in o){v=o[k];ret=/([^:]+):([^:]+)/.exec(k);if(!ret||!xmlns[ret[1]]){results$.push(this.setAttribute(k,v))}else{results$.push(this.setAttributeNS(xmlns[ret[1]],k,v))}}return results$};x$.styles=function(o){var k,v,results$=[];for(k in o){v=o[k];results$.push(this.style[k]=v)}return results$};x$.append=function(n){var r;return this.appendChild(r=document.createElementNS("http://www.w3.og/2000/svg",n))};x$.attr=function(n,v){if(v!=null){return this.setAttribute(n,v)}else{return this.getAttribute(n)}};config={type:"stroke",img:"",path:"M10 10L90 10M90 8M90 12","fill-dir":"btt",fill:"#25b","fill-background":"#ddd","fill-background-extrude":3,"pattern-size":null,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,duration:1,easing:"linear",value:0,"img-size":null,bbox:null,"set-dim":true,"aspect-ratio":"xMidYMid","transition-in":false,min:0,max:100,precision:0,padding:undefined};config["preset"]=root.attr("data-preset")||option["preset"];if(config.preset!=null){import$(config,presets[config.preset])}for(attr in config){if(that=that=root.attr("data-"+attr)){config[attr]=that}}import$(config,option);if(config.img){config.path=null}isStroke=config.type==="stroke";parseRes=function(v){var parser,ret;parser=/data:ldbar\/res,([^()]+)\(([^)]+)\)/;ret=parser.exec(v);if(!ret){return v}return ret=make[ret[1]].apply(make,ret[2].split(","))};config.fill=parseRes(config.fill);config.stroke=parseRes(config.stroke);if(config["set-dim"]==="false"){config["set-dim"]=false}dom={attr:{"xmlns:xlink":"http://www.w3.org/1999/xlink",preserveAspectRatio:config["aspect-ratio"],width:"100%",height:"100%"},defs:{filter:{attr:{id:id.filter,x:-1,y:-1,width:3,height:3},feMorphology:{attr:{operator:+config["fill-background-extrude"]>=0?"dilate":"erode",radius:Math.abs(+config["fill-background-extrude"])}},feColorMatrix:{attr:{values:"0 0 0 0 1    0 0 0 0 1    0 0 0 0 1    0 0 0 1 0",result:"cm"}}},mask:{attr:{id:id.mask},image:{attr:{"xlink:href":config.img,filter:"url(#"+id.filter+")",x:0,y:0,width:100,height:100,preserveAspectRatio:config["aspect-ratio"]}}},g:{mask:{attr:{id:id.maskPath},path:{attr:{d:config.path||"",fill:"#fff",stroke:"#fff",filter:"url(#"+id.filter+")"}}}},clipPath:{attr:{id:id.clip},rect:{attr:{class:"mask",fill:"#000"}}},pattern:{attr:{id:id.pattern,patternUnits:"userSpaceOnUse",x:0,y:0,width:300,height:300},image:{attr:{x:0,y:0,width:300,height:300}}}}};svg=domTree("svg",dom);text=document.createElement("div");text.setAttribute("class","ldBar-label");root.appendChild(svg);root.appendChild(text);group=[0,0];length=0;this.fit=function(){var that,box,d,rect;if(that=config["bbox"]){box=that.split(" ").map(function(it){return+it.trim()});box={x:box[0],y:box[1],width:box[2],height:box[3]}}else{box=group[1].getBBox()}if(!box||box.width===0||box.height===0){box={x:0,y:0,width:100,height:100}}d=Math.max.apply(null,["stroke-width","stroke-trail-width","fill-background-extrude"].map(function(it){return config[it]}))*1.5;if(config["padding"]!=null){d=+config["padding"]}svg.attrs({viewBox:[box.x-d,box.y-d,box.width+d*2,box.height+d*2].join(" ")});if(config["set-dim"]){["width","height"].map(function(it){if(!root.style[it]||this$.fit[it]){root.style[it]=box[it]+d*2+"px";return this$.fit[it]=true}})}rect=group[0].querySelector("rect");if(rect){return rect.attrs({x:box.x-d,y:box.y-d,width:box.width+d*2,height:box.height+d*2})}};if(config.path){if(isStroke){group[0]=domTree("g",{path:{attr:{d:config.path,fill:"none",class:"baseline"}}})}else{group[0]=domTree("g",{rect:{attr:{x:0,y:0,width:100,height:100,mask:"url(#"+id.maskPath+")",fill:config["fill-background"],class:"frame"}}})}svg.appendChild(group[0]);group[1]=domTree("g",{path:{attr:{d:config.path,class:isStroke?"mainline":"solid","clip-path":config.type==="fill"?"url(#"+id.clip+")":""}}});svg.appendChild(group[1]);path0=group[0].querySelector(isStroke?"path":"rect");path1=group[1].querySelector("path");if(isStroke){path1.attrs({fill:"none"})}patimg=svg.querySelector("pattern image");img=new Image;img.addEventListener("load",function(){var box,that;box=(that=config["pattern-size"])?{width:+that,height:+that}:img.width&&img.height?{width:img.width,height:img.height}:{width:300,height:300};svg.querySelector("pattern").attrs({width:box.width,height:box.height});return patimg.attrs({width:box.width,height:box.height})});if(/.+\..+|^data:/.exec(!isStroke?config.fill:config.stroke)){img.src=!isStroke?config.fill:config.stroke;patimg.attrs({"xlink:href":img.src})}if(isStroke){path0.attrs({stroke:config["stroke-trail"],"stroke-width":config["stroke-trail-width"]});path1.attrs({"stroke-width":config["stroke-width"],stroke:/.+\..+|^data:/.exec(config.stroke)?"url(#"+id.pattern+")":config.stroke})}if(config.fill&&!isStroke){path1.attrs({fill:/.+\..+|^data:/.exec(config.fill)?"url(#"+id.pattern+")":config.fill})}length=path1.getTotalLength();this.fit();this.inited=true}else if(config.img){if(config["img-size"]){ret=config["img-size"].split(",");size={width:+ret[0],height:+ret[1]}}else{size={width:100,height:100}}group[0]=domTree("g",{rect:{attr:{x:0,y:0,width:100,height:100,mask:"url(#"+id.mask+")",fill:config["fill-background"]}}});svg.querySelector("mask image").attrs({width:size.width,height:size.height});group[1]=domTree("g",{image:{attr:{width:size.width,height:size.height,x:0,y:0,preserveAspectRatio:config["aspect-ratio"],"clip-path":config.type==="fill"?"url(#"+id.clip+")":"","xlink:href":config.img,class:"solid"}}});img=new Image;img.addEventListener("load",function(){var ret,size,v;if(config["img-size"]){ret=config["img-size"].split(",");size={width:+ret[0],height:+ret[1]}}else if(img.width&&img.height){size={width:img.width,height:img.height}}else{size={width:100,height:100}}svg.querySelector("mask image").attrs({width:size.width,height:size.height});group[1].querySelector("image").attrs({width:size.width,height:size.height});this$.fit();v=this$.value;this$.value=undefined;this$.set(v,true);return this$.inited=true});img.src=config.img;svg.appendChild(group[0]);svg.appendChild(group[1])}svg.attrs({width:"100%",height:"100%"});this.transition={value:{src:0,des:0},time:{},ease:function(t,b,c,d){t=t/(d*.5);if(t<1){return c*.5*t*t+b}t=t-1;return-c*.5*(t*(t-2)-1)+b},handler:function(time,doTransition){var ref$,min,max,prec,dv,dt,dur,v,p,node,style,box,dir;doTransition==null&&(doTransition=true);if(this.time.src==null){this.time.src=time}ref$=[config["min"],config["max"],1/config["precision"]],min=ref$[0],max=ref$[1],prec=ref$[2];ref$=[this.value.des-this.value.src,(time-this.time.src)*.001,+config["duration"]||1],dv=ref$[0],dt=ref$[1],dur=ref$[2];v=doTransition?this.ease(dt,this.value.src,dv,dur):this.value.des;if(config.precision){v=Math.round(v*prec)/prec}else if(doTransition){v=Math.round(v)}v>=min||(v=min);v<=max||(v=max);text.textContent=v;p=100*(v-min)/(max-min);if(isStroke){node=path1;style={"stroke-dasharray":config["stroke-dir"]==="reverse"?"0 "+length*(100-p)*.01+" "+length*p*.01+" 0":p*.01*length+" "+((100-p)*.01*length+1)}}else{box=group[1].getBBox();dir=config["fill-dir"];style=dir==="btt"||!dir?{y:box.y+box.height*(100-p)*.01,height:box.height*p*.01,x:box.x,width:box.width}:dir==="ttb"?{y:box.y,height:box.height*p*.01,x:box.x,width:box.width}:dir==="ltr"?{y:box.y,height:box.height,x:box.x,width:box.width*p*.01}:dir==="rtl"?{y:box.y,height:box.height,x:box.x+box.width*(100-p)*.01,width:box.width*p*.01}:void 8;node=svg.querySelector("rect")}node.attrs(style);if(dt>=dur){delete this.time.src;return false}return true},start:function(src,des,doTransition){var ref$,this$=this;ref$=this.value;ref$.src=src;ref$.des=des;!!(root.offsetWidth||root.offsetHeight||root.getClientRects().length);if(!doTransition||!(root.offsetWidth||root.offsetHeight||root.getClientRects().length)){this.time.src=0;this.handler(1e3,false);return}return handler.add(id.key,function(time){return this$.handler(time)})}};this.set=function(v,doTransition){var src,des;doTransition==null&&(doTransition=true);src=this.value||0;if(v!=null){this.value=v}else{v=this.value}des=this.value;return this.transition.start(src,des,doTransition)};this.set(+config.value||0,config["transition-in"])||false;return this};return window.addEventListener("load",function(){var i$,ref$,len$,node,results$=[];for(i$=0,len$=(ref$=document.querySelectorAll(".ldBar")).length;i$<len$;++i$){node=ref$[i$];if(!node.ldBar){results$.push(node.ldBar=new ldBar(node))}}return results$},false)})();module.exports=ldBar;function import$(obj,src){var own={}.hasOwnProperty;for(var key in src)if(own.call(src,key))obj[key]=src[key];return obj}},{"./presets":2}],2:[function(require,module,exports){var presets,out$=typeof exports!="undefined"&&exports||this;out$.presets=presets={rainbow:{type:"stroke",path:"M10 10L90 10",stroke:"data:ldbar/res,gradient(0,1,#a551df,#fd51ad,#ff7f82,#ffb874,#ffeb90)",bbox:"10 10 80 10"},energy:{type:"fill",path:"M15 5L85 5A5 5 0 0 1 85 15L15 15A5 5 0 0 1 15 5",stroke:"#f00",fill:"data:ldbar/res,gradient(45,2,#4e9,#8fb,#4e9)","fill-dir":"ltr","fill-background":"#444","fill-background-extrude":1,bbox:"10 5 80 10"},stripe:{type:"fill",path:"M15 5L85 5A5 5 0 0 1 85 15L15 15A5 5 0 0 1 15 5",stroke:"#f00",fill:"data:ldbar/res,stripe(#25b,#58e,1)","fill-dir":"ltr","fill-background":"#ddd","fill-background-extrude":1,bbox:"10 5 80 10"},text:{type:"fill",img:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="70" height="20" viewBox="0 0 70 20"><text x="35" y="10" text-anchor="middle" dominant-baseline="central" font-family="arial">LOADING</text></svg>',"fill-background-extrude":1.3,"pattern-size":100,"fill-dir":"ltr","img-size":"70,20",bbox:"0 0 70 20"},line:{type:"stroke",path:"M10 10L90 10",stroke:"#25b","stroke-width":3,"stroke-trail":"#ddd","stroke-trail-width":1,bbox:"10 10 80 10"},fan:{type:"stroke",path:"M10 90A40 40 0 0 1 90 90","fill-dir":"btt",fill:"#25b","fill-background":"#ddd","fill-background-extrude":3,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,bbox:"10 50 80 40"},circle:{type:"stroke",path:"M50 10A40 40 0 0 1 50 90A40 40 0 0 1 50 10","fill-dir":"btt",fill:"#25b","fill-background":"#ddd","fill-background-extrude":3,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,bbox:"10 10 80 80"},bubble:{type:"fill",path:"M50 10A40 40 0 0 1 50 90A40 40 0 0 1 50 10","fill-dir":"btt",fill:"data:ldbar/res,bubble(#39d,#cef)","pattern-size":"150","fill-background":"#ddd","fill-background-extrude":2,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,bbox:"10 10 80 80"}}},{}]},{},[1]);
-/* twine-user-script #29: "mapeditor.js" */
+/* twine-user-script #32: "mapeditor.js" */
 F.confirmNewmap = function () {
 	T.mapsizeX = parseInt(T.mapsizeX);
 	T.mapsizeY = parseInt(T.mapsizeY);
@@ -10295,7 +10609,7 @@ F.showPathMap = function () {
 		}, i * 150);
 	});
 };
-/* twine-user-script #30: "showChara.js" */
+/* twine-user-script #33: "showChara.js" */
 F.initSCTrait = function(){
     const TransTrait = [];
     for (let i in T.showChara.traits){
@@ -10492,7 +10806,34 @@ F.initSCMark = function(){
         `)
     }
 }
-/* twine-user-script #31: "inputTool.js" */
+/* twine-user-script #34: "sidebarMap.js" */
+F.sidebarMap = function() {
+    let mapId = V.location.mapId;
+    let board = Boards.getBoard(mapId);
+    let coord = V.location.coord;
+    let showSize = 2;
+    let top = Math.max(0,coord[0]-showSize);
+    let left = Math.max(0,coord[1]-showSize);
+    let right = Math.min(board[1].length-1, coord[1]+showSize);
+    let bottom = Math.min(board.length-1, coord[0]+showSize);
+    T.printText = [];
+    for (let x = top;x<=bottom;x++){
+        for (let y=left;y<=right;y++){
+            let ctx = ".";
+            if (board[x][y] !== '.' && board[x][y] !== ''){
+                let spot = worldMap[mapId][board[x][y]];
+                ctx = spot.name;
+            }
+            let cellclass = ctx !== "." ? " fillcell" : "";
+            if (coord[0] == x && coord[1] == y) cellclass = " localcell"
+            T.printText.push(
+				`<div class='sidebarmapcell${cellclass}' data-row='${x}' data-col='${y}'>${ctx}</div>`
+			);
+        }
+        T.printText.push("<br>");
+    } 
+}
+/* twine-user-script #35: "inputTool.js" */
 F.Textbox = function(args){
     const { id, minlen, maxlen, size, on, value, inp } = args
     const txt = `type='text' `
@@ -10553,7 +10894,7 @@ F.Range = function(args){
 
     return `<<print "${txt}" >>`
 }
-/* twine-user-script #32: "others.js" */
+/* twine-user-script #36: "others.js" */
 F.RGBdec2hex = function(red,bule,green){
     let text = "#";
     const RGB = [red,bule,green]
@@ -10591,7 +10932,7 @@ F.Progressbar = function(args){
     
     return `<<print "${text}" >>`
 }
-/* twine-user-script #33: "createplayer.js" */
+/* twine-user-script #37: "createplayer.js" */
 
 F.DPset = function(key,value){
     V.playerdesign[key] = value;
@@ -10624,8 +10965,8 @@ F.CPRandomPlayer = function(){
 
 const CPGetClothes = function(chara){
     let clothset = {
-        "male":["衬衫","长裤","四角内裤"],
-        "female":["连衣裙","三角内裤","普通胸罩"]
+        "male":["衬衫","长裤","四角内裤","运动鞋"],
+        "female":["连衣裙","三角内裤","普通胸罩","运动鞋"]
     }
     clothset[chara.gender].forEach((equip)=>{
         chara.getOnEquip(equip);
@@ -10687,14 +11028,23 @@ F.InitNewGame = function(){
     V.money = 1000;
     V.facilityLevel = 0;
     V.facilityFame = {};
-
-
 }
 
 F.CPdetermine = function(){
     delete V.playerdesign;
+    V.pc = "player";
+    // 初始化位置
+    V.location.coord = [4,4];
+    V.location.mapId = "dorm";
+    V.location.spotid = Boards.get(V.location.mapId).findspot(V.location.coord[0],V.location.coord[1]);
+    V.location.printname = worldMap[V.location.mapId][V.location.spotid].name;
+    V.location.chara = [];
+    
+    V.system.showSideBarMap = true;
+    V.system.showSideBarTitle = false;
 }
-/* twine-user-script #34: "Selection.js" */
+/* twine-user-script #38: "move.js" */
+/* twine-user-script #39: "Selection.js" */
 //------------------------------------------------------------
 //
 //  add selection macro
@@ -10834,7 +11184,7 @@ Ui.removelink = function () {
 	$("#contentMsg a").remove();
 };
 DefineMacros("removelink", Ui.removelink);
-/* twine-user-script #35: "startconfig.js" */
+/* twine-user-script #40: "startconfig.js" */
 game.version = "0.0.1";
 l10nStrings.errorTitle = game.version + " Error";
 console.log("Game Version:", game.version);
@@ -11074,33 +11424,7 @@ sleep       ,睡觉       ,Sleep
 resetAct    ,清除动作
 resetAll    ,全部
 stopTouch   ,住手
-resetMode   ,走开</tw-passagedata><tw-passagedata pid="4" name="ComList" tags="table" position="475,100" size="100,100">/* 常规指令 */
-@常规
-#id      ,name    ,tags    ,time
-G0       ,移动    ,交流    ,1
-G1       ,放松    ,休息    ,15
-G2       ,聊天    ,交流    ,0
-
-/* 挑逗、前戏  */
-@挑逗
-#id      ,name    ,tags
-T0       ,抚摸    ,常规
-T1       ,摸胸
-T2       ,玩乳头
-T3       ,吸乳头
-T4       ,撸阴茎
-T5       ,指交
-T99      ,推倒    ,常规
-
-/* 触手专用，触手都可持续。同时进行数看部位是否被占用以及触手数量。
-/* 或许修改成 部位 对 部位 使用 什么 进行 动作的方式？ */
-@触手
-#id      ,name
-X1       ,玩乳头(触)
-X2       ,吸乳头(触)
-X3       ,撸阴茎(触)
-X4       ,玩后穴(触)
-X5       ,玩私穴(触)</tw-passagedata><tw-passagedata pid="5" name="Species_Deamon" tags="xml" position="600,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
+resetMode   ,走开</tw-passagedata><tw-passagedata pid="4" name="ComList" tags="table" position="475,100" size="100,100"></tw-passagedata><tw-passagedata pid="5" name="Species_Deamon" tags="xml" position="600,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
 &lt;race type=&#39;chara&#39; id=&#39;deamon&#39;&gt;
 &lt;name lan=&#39;CN&#39;&gt;魔人&lt;/name&gt;
 &lt;name lan=&#39;EN&#39;&gt;Half Deamon&lt;/name&gt;
@@ -11687,13 +12011,20 @@ X5       ,玩私穴(触)</tw-passagedata><tw-passagedata pid="5" name="Species_D
         &lt;div&gt;
             &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="26" name="Welcome" tags="" position="725,350" size="100,100">&lt;&lt;set _seeBegin = true&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="26" name="sidebarMap" tags="widget" position="725,350" size="100,100">&lt;&lt;widget &#39;sidebarMap&#39;&gt;&gt;
+        &lt;&lt;if $system.showSideBarMap&gt;&gt;
+            &lt;div id=&quot;sidebarMap&quot;&gt;
+                &lt;&lt;run F.sidebarMap()&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
+            &lt;/div&gt;
+        &lt;&lt;/if&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="27" name="Welcome" tags="" position="850,350" size="100,100">&lt;&lt;set _seeBegin = true&gt;&gt;
 &lt;div id=&#39;select_see_or_not&#39;&gt;
 想看序章吗？&lt;br&gt;
 &lt;&lt;choice [[是|Foreword]]&gt;&gt;&lt;br&gt;
 &lt;&lt;choice [[否|DesignPlayer]]&gt;&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="27" name="Foreword" tags="" position="850,350" size="100,100">[[创建人物|DesignPlayer]]</tw-passagedata><tw-passagedata pid="28" name="DesignPlayer:Before" tags="" position="975,350" size="100,100">&lt;&lt;set $playerdesign={name:&quot;我&quot;,gender:&quot;male&quot;,species:&quot;human&quot;,BirthdayM:9,BirthdayD:1,Bouns:&quot;魅惑&quot;,SexExp:&quot;no&quot;}&gt;&gt;
-&lt;&lt;run F.InitNewGame()&gt;&gt;</tw-passagedata><tw-passagedata pid="29" name="DesignPlayer" tags="" position="1100,350" size="100,100">称呼:&lt;&lt;textbox &quot;$playerdesign.name&quot; &quot;我&quot; &gt;&gt;&lt;br&gt;
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="28" name="Foreword" tags="" position="975,350" size="100,100">[[创建人物|DesignPlayer]]</tw-passagedata><tw-passagedata pid="29" name="DesignPlayer:Before" tags="" position="1100,350" size="100,100">&lt;&lt;set $playerdesign={name:&quot;我&quot;,gender:&quot;male&quot;,species:&quot;human&quot;,BirthdayM:9,BirthdayD:1,Bouns:&quot;魅惑&quot;,SexExp:&quot;no&quot;}&gt;&gt;
+&lt;&lt;run F.InitNewGame()&gt;&gt;</tw-passagedata><tw-passagedata pid="30" name="DesignPlayer" tags="" position="1225,350" size="100,100">称呼:&lt;&lt;textbox &quot;$playerdesign.name&quot; &quot;我&quot; &gt;&gt;&lt;br&gt;
 性别:&lt;&lt;radiobutton &quot;$playerdesign.gender&quot; &quot;male&quot; autocheck&gt;&gt;男性 &lt;&lt;radiobutton &quot;$playerdesign.gender&quot; &quot;female&quot; autocheck&gt;&gt;女性&lt;br&gt;
 生日:
 &lt;&lt;=F.Listbox({id:&quot;BirthdayM&quot;,opt:Array.from(Array(12).keys(),n=&gt;n+1), def:9, on:&#39;F.DPset(this.id,parseInt(this.value))&#39;})&gt;&gt;月
@@ -11706,17 +12037,19 @@ X5       ,玩私穴(触)</tw-passagedata><tw-passagedata pid="5" name="Species_D
 说明:
 &lt;&lt;=D.StartBouns[$playerdesign.Bouns]&gt;&gt;
 &lt;/div&gt;&lt;br&gt;
-[[决定|DesignPlayerShow]]</tw-passagedata><tw-passagedata pid="30" name="DesignPlayerShow:Before" tags="" position="1225,350" size="100,100">&lt;&lt;run F.CPRandomPlayer()&gt;&gt;
-&lt;&lt;run T.showChara = MyChara.data[&#39;player&#39;]&gt;&gt;</tw-passagedata><tw-passagedata pid="31" name="DesignPlayerShow" tags="" position="100,475" size="100,100">&lt;&lt;showChara&gt;&gt;
+[[决定|DesignPlayerShow]]</tw-passagedata><tw-passagedata pid="31" name="DesignPlayerShow:Before" tags="" position="100,475" size="100,100">&lt;&lt;run F.CPRandomPlayer()&gt;&gt;
+&lt;&lt;run T.showChara = MyChara.data[&#39;player&#39;]&gt;&gt;</tw-passagedata><tw-passagedata pid="32" name="DesignPlayerShow" tags="" position="225,475" size="100,100">&lt;&lt;showChara&gt;&gt;
 &lt;&lt;dashline&gt;&gt;
 [[返回|DesignPlayer]]
 [[重摇|DesignPlayerShow]]
-&lt;&lt;link [[决定|DesignPlayerDetermine]]&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="32" name="SystemOption" tags="system" position="225,475" size="100,100">&lt;&lt;link &#39;Back&#39; &#39;Start&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="33" name="StoryDisplayTitle" tags="" position="350,475" size="100,100">EraFacility</tw-passagedata><tw-passagedata pid="34" name="StoryInit" tags="" position="475,475" size="100,100">&lt;&lt;run
+&lt;&lt;link [[决定|MainLoop]]&gt;&gt;&lt;&lt;run F.CPdetermine()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="33" name="DesignPlayerDetermine" tags="" position="350,475" size="100,100"></tw-passagedata><tw-passagedata pid="34" name="mapmove" tags="" position="475,475" size="100,100">&lt;&lt;return &quot;返回&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="35" name="SystemOption" tags="system" position="600,475" size="100,100">&lt;&lt;link &#39;Back&#39; &#39;Start&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="36" name="StoryDisplayTitle" tags="" position="725,475" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
+   EraFacility
+&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="37" name="StoryInit" tags="" position="850,475" size="100,100">&lt;&lt;run
    game.InitStory()
 
    console.log(&#39;scEra version: &#39; + scEra.version)
    slog(&#39;log&#39;,&#39;This is the end of StoryInit...&#39;)
-&gt;&gt;</tw-passagedata><tw-passagedata pid="35" name="Start" tags="nosave" position="600,475" size="100,100">&lt;&lt;run
+&gt;&gt;</tw-passagedata><tw-passagedata pid="38" name="Start" tags="nosave" position="975,475" size="100,100">&lt;&lt;run
    slog(&#39;log&#39;,&#39;Loading Titlescreen...&#39;);
 &gt;&gt;
 
@@ -11740,7 +12073,7 @@ EraFacility
 &lt;&lt;link &#39;开发者模式&#39;&gt;&gt;&lt;&lt;run Config.debug = true;  DebugBar.init(); DebugBar.start() &gt;&gt;&lt;&lt;/link&gt;&gt;
 　
 &lt;&lt;link &#39;快速重启&#39;&gt;&gt;&lt;&lt;run Engine.restart()&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="36" name="MapEditor" tags="nobar" position="725,475" size="100,100">&lt;&lt;set _mapsizeX = 12&gt;&gt;
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="39" name="MapEditor" tags="nobar" position="1100,475" size="100,100">&lt;&lt;set _mapsizeX = 12&gt;&gt;
 &lt;&lt;set _mapsizeY = 32&gt;&gt;
 &lt;&lt;set _placemode = 0&gt;&gt;
 &lt;&lt;set _destroymode = 0&gt;&gt;
@@ -11836,7 +12169,7 @@ EraFacility
     &lt;&lt;run
         let mapdata = GameMap.convertData(T.mapdata)
         delete mapdata[&#39;.&#39;] // remove empty space
-        download(JSON.stringify(mapdata), T.selectMap, &#39;txt&#39;)
+        download(JSON.stringify(mapdata), T.selectMap, &#39;json&#39;)
     &gt;&gt;
     &lt;&lt;/button&gt;&gt;
 
@@ -11876,7 +12209,7 @@ $(&#39;#checkbox--placemode&#39;).on(&#39;change&#39;,()=&gt;{
 
 
 &lt;&lt;/script&gt;&gt;
-&lt;&lt;/done&gt;&gt;</tw-passagedata><tw-passagedata pid="37" name="PassageHeader" tags="" position="850,475" size="100,100">&lt;&lt;run
+&lt;&lt;/done&gt;&gt;</tw-passagedata><tw-passagedata pid="40" name="PassageHeader" tags="" position="1225,475" size="100,100">&lt;&lt;run
     $passage = passage(); $tags = tags($passage);
     if($tags.has(&#39;title&#39;,&#39;nobar&#39;)){
         UIBar.stow();
@@ -11895,24 +12228,25 @@ $(&#39;#checkbox--placemode&#39;).on(&#39;change&#39;,()=&gt;{
 &gt;&gt;
 /*
 这里是header. 每个页面都会运行。&lt;br&gt;
-*/</tw-passagedata><tw-passagedata pid="38" name="StoryCaption" tags="" position="975,475" size="100,100">EraFacility beta 0.0.1&lt;br&gt;
+*/</tw-passagedata><tw-passagedata pid="41" name="StoryCaption" tags="" position="100,600" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
+EraFacility beta 0.0.1&lt;br&gt;
 &lt;a url=&#39;https://github.com/emicoto/_scEra&#39;&gt;github&lt;/a&gt;&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
 
 /* 这里显示目前操作角色的信息 */
-
-
+&lt;&lt;sidebarMap&gt;&gt;
 &lt;div id=&#39;random_tips&#39;&gt;
 &lt;/div&gt;
 &lt;div id=&#39;update_note&#39;&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="39" name="PassageFooter" tags="" position="1100,475" size="100,100">/*这里是footer。每个页面都会运行。&lt;br&gt;*/</tw-passagedata><tw-passagedata pid="40" name="PassageReady" tags="" position="1225,475" size="100,100">&lt;&lt;run
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="42" name="PassageFooter" tags="" position="225,600" size="100,100">/*这里是footer。每个页面都会运行。&lt;br&gt;*/</tw-passagedata><tw-passagedata pid="43" name="PassageReady" tags="" position="350,600" size="100,100">&lt;&lt;run
     _passageready = true;
     if($lastsession !== $passage)
       $lastsession = $passage;
 &gt;&gt;
 这里会在读取文本前执行。
-因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="41" name="PassageDone" tags="" position="100,600" size="100,100">这里是会在渲染结束时执行。
-因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="42" name="StoryHeader" tags="" position="225,600" size="100,100">/*顶部的标题栏。&lt;br&gt;
-&lt;&lt;test2&gt;&gt;*/</tw-passagedata><tw-passagedata pid="43" name="StoryFooter" tags="" position="350,600" size="100,100">/*底部的菜单栏。*/</tw-passagedata><tw-passagedata pid="44" name="DialogTest" tags="" position="475,600" size="100,100">&lt;&lt;set _count to 0&gt;&gt;
+因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="44" name="PassageDone" tags="" position="475,600" size="100,100">这里是会在渲染结束时执行。
+因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="45" name="StoryHeader" tags="" position="600,600" size="100,100">/*顶部的标题栏。&lt;br&gt;
+&lt;&lt;test2&gt;&gt;*/</tw-passagedata><tw-passagedata pid="46" name="StoryFooter" tags="" position="725,600" size="100,100">/*底部的菜单栏。*/</tw-passagedata><tw-passagedata pid="47" name="DialogTest" tags="" position="850,600" size="100,100">&lt;&lt;set _count to 0&gt;&gt;
 ready to dialog.
 &lt;span id=&#39;counter&#39;&gt;_count&lt;/span&gt;
 
@@ -11923,7 +12257,7 @@ ready to dialog.
       &lt;&lt;run Dialogs.set({tp:&#39;Test&#39;,nm:&#39;Chapter&#39;})&gt;&gt;
       &lt;&lt;stop&gt;&gt;
    &lt;&lt;/if&gt;&gt;
-&lt;&lt;/repeat&gt;&gt;</tw-passagedata><tw-passagedata pid="45" name="TestStart" tags="" position="600,600" size="100,100">&lt;div id=&#39;test&#39;&gt;&lt;/div&gt;
+&lt;&lt;/repeat&gt;&gt;</tw-passagedata><tw-passagedata pid="48" name="TestStart" tags="" position="975,600" size="100,100">&lt;div id=&#39;test&#39;&gt;&lt;/div&gt;
 &lt;&lt;if $mode is &#39;normal&#39;&gt;&gt;
 多了些什么东西吗？&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
@@ -11955,7 +12289,7 @@ ready to dialog.
 &lt;&lt;link &#39;测试段落&#39; &#39;Test&#39;&gt;&gt;
 &lt;&lt;/link&gt;&gt;&lt;br&gt;
 
-[[next|MainLoop]]</tw-passagedata><tw-passagedata pid="46" name="Test" tags="" position="725,600" size="100,100">一个测试用段落。&lt;br&gt;
+[[next|MainLoop]]</tw-passagedata><tw-passagedata pid="49" name="Test" tags="" position="1100,600" size="100,100">一个测试用段落。&lt;br&gt;
 看看能不能正常显示。&lt;br&gt;
 
 &lt;&lt;if $mode is &quot;event&quot;&gt;&gt;
@@ -11967,7 +12301,7 @@ ready to dialog.
 &lt;&lt;link &#39;back&#39; &#39;Start&#39;&gt;&gt;
 &lt;&lt;/link&gt;&gt;
 &lt;&lt;link &#39;switch&#39; $passage&gt;&gt;
-&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="47" name="Test:EN" tags="" position="850,600" size="100,100">a test passage.&lt;br&gt;
+&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="50" name="Test:EN" tags="" position="1225,600" size="100,100">a test passage.&lt;br&gt;
 see if it can be displayed normally.&lt;br&gt;
 
 &lt;&lt;if $mode is &quot;event&quot;&gt;&gt;
@@ -11977,11 +12311,11 @@ see if it can be displayed normally.&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
 
 &lt;&lt;link &#39;back&#39; &#39;Start&#39;&gt;&gt;
-&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="48" name="Test:Before" tags="" position="975,600" size="100,100">&lt;&lt;run 
+&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="51" name="Test:Before" tags="" position="100,725" size="100,100">&lt;&lt;run 
    console.log(&#39;Test:Before is running.&#39;)
 &gt;&gt;
 &lt;&lt;=lan(&#39;测试前置&#39;,&#39;test before&#39;)&gt;&gt;&lt;br&gt;
-&lt;&lt;test &gt;&gt;</tw-passagedata><tw-passagedata pid="49" name="Widget" tags="widget" position="1100,600" size="100,100">&lt;&lt;widget &quot;test&quot;&gt;&gt;
+&lt;&lt;test &gt;&gt;</tw-passagedata><tw-passagedata pid="52" name="Widget" tags="widget" position="225,725" size="100,100">&lt;&lt;widget &quot;test&quot;&gt;&gt;
    &lt;&lt;if $mode is &quot;event&quot;&gt;&gt;
       &lt;&lt;set $test to &quot;event&quot;&gt;&gt;
       &lt;&lt;script&gt;&gt;slog(&#39;log&#39;, &#39;test in event&#39;, V.test, T.runningTitle)&lt;&lt;/script&gt;&gt;
@@ -11994,18 +12328,18 @@ see if it can be displayed normally.&lt;br&gt;
 &lt;&lt;widget &quot;test2&quot;&gt;&gt;
    a general widget.&lt;br&gt;
    ???
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="50" name="A CSV" tags="csv" position="1225,600" size="100,100">No., Name, Age, Job, Salary
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="53" name="A CSV" tags="csv" position="350,725" size="100,100">No., Name, Age, Job, Salary
 1, John, 24, Engineer, 10000
 2, Mary, 23, Designer, 15000
 3, Bob, 25, Engineer, 20000
 4, Alice, 26, Engineer, 25000
-5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="51" name="A Table" tags="table" position="100,725" size="100,100">@Salary
+5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="54" name="A Table" tags="table" position="475,725" size="100,100">@Salary
 #No., Name, Age, Job, Salary
 1, John, 24, Engineer, 10000
 2, Mary, 23, Designer, 15000
 3, Bob, 25, Engineer, 20000
 4, Alice, 26, Engineer, 25000
-5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="52" name="A Xml" tags="xml" position="225,725" size="100,100">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="55" name="A Xml" tags="xml" position="600,725" size="100,100">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;bookstore&gt;
    &lt;book&gt;
       &lt;title lang=&quot;en&quot;&gt;Harry Potter&lt;/title&gt;
@@ -12015,10 +12349,10 @@ see if it can be displayed normally.&lt;br&gt;
       &lt;title lang=&quot;en&quot;&gt;Learning XML&lt;/title&gt;
       &lt;price&gt;39.95&lt;/price&gt;
    &lt;/book&gt;
-&lt;/bookstore&gt;</tw-passagedata><tw-passagedata pid="53" name="testpage::Before" tags="" position="350,725" size="100,100">&lt;&lt;run console.log(1)&gt;&gt;</tw-passagedata><tw-passagedata pid="54" name="testpage" tags="" position="475,725" size="100,100">passage
-[[back|testpage]]</tw-passagedata><tw-passagedata pid="55" name="testpage::After" tags="" position="600,725" size="100,100">&lt;&lt;run console.log(2)&gt;&gt;</tw-passagedata><tw-passagedata pid="56" name="Test_Chapter::Before" tags="" position="725,725" size="100,100">&lt;&lt;set $event.exit to &#39;Start&#39;&gt;&gt;
+&lt;/bookstore&gt;</tw-passagedata><tw-passagedata pid="56" name="testpage::Before" tags="" position="725,725" size="100,100">&lt;&lt;run console.log(1)&gt;&gt;</tw-passagedata><tw-passagedata pid="57" name="testpage" tags="" position="850,725" size="100,100">passage
+[[back|testpage]]</tw-passagedata><tw-passagedata pid="58" name="testpage::After" tags="" position="975,725" size="100,100">&lt;&lt;run console.log(2)&gt;&gt;</tw-passagedata><tw-passagedata pid="59" name="Test_Chapter::Before" tags="" position="1100,725" size="100,100">&lt;&lt;set $event.exit to &#39;Start&#39;&gt;&gt;
 &lt;&lt;set $test to &#39;abc&#39;&gt;&gt;
-&lt;&lt;run console.log(&#39;a test before:&#39;, $event, $test)&gt;&gt;</tw-passagedata><tw-passagedata pid="57" name="Test_Chapter" tags="" position="850,725" size="100,100">下课后，科林被教导主任叫到会客室。
+&lt;&lt;run console.log(&#39;a test before:&#39;, $event, $test)&gt;&gt;</tw-passagedata><tw-passagedata pid="60" name="Test_Chapter" tags="" position="1225,725" size="100,100">下课后，科林被教导主任叫到会客室。
 然后一进去就看到里面坐着的是父亲威尔·埃德瑞，以及埃里克的父亲洛伦斯·霍尔森，
 本区教会的巢司长与礼司长、唯一的主母供仪与圣女队的领头供仪，
 世界银行的银行长，以及格伦特一等学院的院长，大学部的校长。
@@ -12045,7 +12379,7 @@ see if it can be displayed normally.&lt;br&gt;
 
 银行长望向了教会，教会巢司长便说：“教会愿意帮你们抵消5亿债务，但科林，你必须成为供仪为教会与信众们服务，至少12年。”
 “而我花了一亿买下了你的监管权，”霍尔森公爵说道，“以后我就是你的教夫，亦是你的直属债权人，你身上依然有一亿的债务。哦，对了，我的儿子埃里克也共有这份权利。”
-#:{ &quot;type&quot;:&quot;endPhase&quot;}</tw-passagedata><tw-passagedata pid="58" name="Test_Chapter_ep1" tags="" position="975,725" size="100,100">这是一个新的章节。
+#:{ &quot;type&quot;:&quot;endPhase&quot;}</tw-passagedata><tw-passagedata pid="61" name="Test_Chapter_ep1" tags="" position="100,850" size="100,100">这是一个新的章节。
 看看内容。
 做点选项看看。
 
@@ -12054,9 +12388,9 @@ see if it can be displayed normally.&lt;br&gt;
 &lt;&lt;select &#39;B Choice&#39;&gt;&gt;
 &lt;&lt;/selection&gt;&gt;
 
-#:{ &quot;type&quot;:&quot;selectEnd&quot;}</tw-passagedata><tw-passagedata pid="59" name="Test_Chapter_ep1:sp1" tags="" position="1100,725" size="100,100">选择了A， 准备返回上一个选择节点。
-#:{ &quot;type&quot;:&quot;return&quot;}</tw-passagedata><tw-passagedata pid="60" name="Test_Chapter_ep1:sp2" tags="" position="1225,725" size="100,100">选择了B，准备跳转到另一个地方。
-#:{ &quot;type&quot;:&quot;jump&quot;, &quot;target&quot;:&quot;Test_Chapter&quot;, &quot;phase&quot;:1}</tw-passagedata><tw-passagedata pid="61" name="Test_Chapter:sp1" tags="" position="100,850" size="100,100">&lt;&lt;run Dialogs.clear(2)&gt;&gt;
+#:{ &quot;type&quot;:&quot;selectEnd&quot;}</tw-passagedata><tw-passagedata pid="62" name="Test_Chapter_ep1:sp1" tags="" position="225,850" size="100,100">选择了A， 准备返回上一个选择节点。
+#:{ &quot;type&quot;:&quot;return&quot;}</tw-passagedata><tw-passagedata pid="63" name="Test_Chapter_ep1:sp2" tags="" position="350,850" size="100,100">选择了B，准备跳转到另一个地方。
+#:{ &quot;type&quot;:&quot;jump&quot;, &quot;target&quot;:&quot;Test_Chapter&quot;, &quot;phase&quot;:1}</tw-passagedata><tw-passagedata pid="64" name="Test_Chapter:sp1" tags="" position="475,850" size="100,100">&lt;&lt;run Dialogs.clear(2)&gt;&gt;
 &lt;fr&gt;
 这是一个途中跳转过来的新分支。
 将会清除最后两个step的内容。

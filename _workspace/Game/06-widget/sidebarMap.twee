@@ -1,0 +1,9 @@
+:: sidebarMap[widget]
+    <<widget 'sidebarMap'>>
+        <<if $system.showSideBarMap>>
+            <div id="sidebarMap">
+                <<run F.sidebarMap()>>
+                <<print T.printText.join('')>>
+            </div>
+        <</if>>
+    <</widget>>

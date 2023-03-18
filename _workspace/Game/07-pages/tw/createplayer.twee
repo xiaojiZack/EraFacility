@@ -38,6 +38,7 @@
 <<dashline>>
 [[返回|DesignPlayer]]
 [[重摇|DesignPlayerShow]]
-<<link [[决定|DesignPlayerDetermine]]>><</link>>
+<<link [[决定|MainLoop]]>><<run F.CPdetermine()>><</link>>
 
 :: DesignPlayerDetermine
+

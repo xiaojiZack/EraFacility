@@ -114,7 +114,6 @@ game.InitStory = function () {
 	for (const [key, value] of Object.entries(S.gameVars)) {
 		V[key] = value;
 	}
-
 	V.date = {
 		year: S.date[0],
 		month: S.date[1],
@@ -123,8 +122,9 @@ game.InitStory = function () {
 	};
 
 	V.location = {
-		name: "",
+		spotname: "",
 		mapId: "",
+		coord:[0,0],
 		printname: "",
 		chara: [],
 	};

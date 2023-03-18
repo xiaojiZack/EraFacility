@@ -9,6 +9,19 @@ declare var Config: typeof window.Config;
 declare var S: typeof window.S;
 declare var D: typeof window.D;
 
+declare function getJson(path: string): Promise<any>;
+declare function slog(type: "log" | "warn" | "error", ...args: any[]): void;
+declare function dlog(type: "log" | "warn" | "error", ...args: any[]): void;
+
+declare function addBoard(
+	name: string,group: string,
+	obj: {
+		type: boardtype;
+		name: string[];
+		entry: string[];
+		xy?: [number, number?];})
+declare function addSpot([boardId, spotId, name, spotType]: [string, string, string[], spotType]);
+
 //-----------------------------------------------------
 //  Class Interface
 //-----------------------------------------------------
@@ -51,6 +64,8 @@ export interface Boards extends GameMap {
 	spots?: Map<string, iSpotsInfo>; //各个地点信息
 	mapsize?: iPos; //地图大小
 	mapdata?: any; //地图数据
+
+	movetime?: any; //每一格移动耗时,秒
 }
 
 export interface FieldMap extends Boards {
@@ -169,17 +184,21 @@ export class GameMap {
 	//通过路径获取地图数据
 	public static get(mapId: string) {
 		if (Config.debug) console.log("Try to get Mapdata:", mapId);
-
 		let path = mapId.split(".");
 		let map = worldMap;
-		for (let i = 0; i < path.length; i++) {
-			try {
+		try {
+			for (let i = 0; i < path.length; i++) {
 				map = map[path[i]];
-			} catch (err) {
-				console.log("Catch an error on get Mapdata:", mapId, path, err);
-				return null;
 			}
+			if (!map){ 	//逐层寻找错误，直接查找mapid
+				let maybeMap = worldMap[path[path.length-1]];
+				if (maybeMap.id == mapId) map = maybeMap;
+			} 
+		} catch (err) {
+			console.log("Catch an error on get Mapdata:", mapId, path, err);
+			return null;
 		}
+		
 		return map as unknown as Boards | Spots | DungeonRooms | FieldMap;
 	}
 
@@ -352,6 +371,7 @@ export class Boards extends GameMap {
 			if (Config.debug) console.log("Creating new mapdata:", mapdId, boardId, type, name, entry, main, xy);
 
 			// create new mapdata
+			if (!xy) xy = [13,13];
 			if (!xy[0]) xy[0] = 13;
 			if (!xy[1]) xy[1] = xy[0];
 
@@ -430,6 +450,11 @@ export class Boards extends GameMap {
 	//在控制台打印地图数据
 	console() {
 		printMapFromData(this);
+	}
+
+	//根据坐标找到本地图该坐标的对应spotid
+	public findspot(x: number,y: number){
+		return Boards.getBoard(this.id)[x][y];
 	}
 }
 
@@ -742,4 +767,108 @@ export function printMap(map: string[][]) {
 function printMapFromData(map) {
 	const mapdata = mapdataToBoard(map, map.mapsize.x, map.mapsize.y);
 	printMap(mapdata);
+}
+
+
+////从json文件初始化map系统
+export async function MapList() {
+	let board = [];
+    D.maps = {board:[],spot:[]};
+	let spot = [];
+
+	let loadjson = await getMapJson();
+	slog("log", `Get file list from json`, loadjson);
+	if (loadjson) {
+		board = board.concat(loadjson.board);
+		spot = spot.concat(loadjson.spot);
+	}
+
+	D.maps.board = D.maps.board.concat(board);
+	D.maps.spot = D.maps.spot.concat(spot);
+	slog("log","all map file be loaded, begin realize object",D.maps)
+	D.maps.board.forEach(async (board)=>{
+		loadboard(board);
+	})
+	D.maps.spot.forEach((spot)=>{
+		loadspot(spot);
+	})
+
+	setTimeout(() => {
+		delete D.maps;
+	}, 2000);
+}
+
+//
+export async function getMapJson() {
+	let board= [];
+	let spot= [];
+    console.log("getjson")
+	const filesData = await getJson("./data/maps.json").then((res) => {
+		slog("log", "Get file from maps.json:", res);
+		return res;
+	});
+
+	if (filesData) {
+		filesData.forEach(([filename, map]) => {
+			dlog("log", "Get maps from " + filename, map);
+            if (filename.includes("spots")){
+                if (Array.isArray(map)) {
+                    if (map.length === 0) {
+                        slog("warn", "Error: format error, skip this file. spot file must be array and not empty:", map);
+                    }
+                    //ensure the format is correct
+                    else if (map[0].spotId && map[0].boardId) {
+                        spot = spot.concat(map);
+                    } else {
+                        slog("warn", "Error: format error, skip this file:", map);
+                    }
+                }
+            }
+            else{
+                //if is board file
+                if (Array.isArray(map)) {
+                    if (map.length === 0) {
+                        slog("warn", "Error: format error, skip this file. board file must be array and not empty:", map);
+                    }
+                    //ensure the format is correct
+                    else if (map[0].mapid && map[0].obj) {
+                        board = board.concat(map);
+                    } else {
+                        slog("warn", "Error: format error, skip this file:", map);
+                    }
+                }
+            }
+			
+		});
+		slog("log", "Get all the map done:", board, spot);
+	}
+	return { board, spot };
+}
+
+export async function loadJson(path) {
+	const response = await fetch(path);
+	const json = await response.json();
+	return json;
+}
+
+export function loadspot(data){
+	addSpot([data.boardId, data.spotId, data.name, data.spotType]);
+	let spot = worldMap[data.boardId][data.spotId];
+	if(data.placement) spot.Placement(data.placement);
+	if(data.spotType == "house") spot.isHome();
+	if(data.openhour) spot.OpenHour(data.openhour.weekday,data.openhour.open.data.openhour.close);
+
+}
+
+export async function loadboard(data){
+	addBoard(data.mapid, data.group, data.obj)
+	if (data.mapdata){
+		worldMap[data.mapid].mapdata = await loadJson("./data/Map/"+data.mapdata).then((res) => {
+			slog("log", "Get mapdata from ", res);
+			return res;
+		});
+	}
+	let board = worldMap[data.mapid];
+	if (data.movetime) board.movetime = data.movetime;
+
 }

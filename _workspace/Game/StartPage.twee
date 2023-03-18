@@ -9,7 +9,9 @@
 EraFacility
 
 :: StoryDisplayTitle
-EraFacility
+<<if $system.showSideBarTitle>>
+   EraFacility
+<</if>>
 
 :: StoryInit
 <<run

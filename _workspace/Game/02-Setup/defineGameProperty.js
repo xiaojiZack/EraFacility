@@ -1,3 +1,4 @@
+Config.debug = false
 //--------------------------------------------------------------
 //
 // define game property and defalut value here
@@ -13,6 +14,8 @@ S.gameConfig = {
 	//eraCom setting
 	showAllCommand: 0,
 	showOrder: 0,
+	showSideBarMap: false,
+	showSideBarTitle: true,
 };
 
 //game flags.
@@ -34,7 +37,7 @@ S.gameVars = {
 		total: 0,
 		now: 0,
 	},
-	chara: {},
+	chara: M.Creatures.classObj.MyChara.data,
 	player: {
 		name: "",
 	},
@@ -42,7 +45,7 @@ S.gameVars = {
 	master: "",
 
 	//player character id
-	pc: "",
+	pc: "player",
 	//target character id
 	tc: "",
 };

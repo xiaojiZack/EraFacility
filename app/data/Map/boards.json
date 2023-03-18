@@ -1,0 +1,34 @@
+[
+    {
+        "mapid":"test",
+        "group":"",
+        "obj":{
+            "type":"debug",
+            "xy":[13,13]
+        },
+        "mapdata":"测试路线图.json"
+    },
+
+    {
+        "mapid":"academyLevel",
+        "group":"",
+        "obj":{
+            "type":"academy",
+            "xy":[13,13],
+            "name":["学院层"]
+        },
+        "mapdata":"测试路线图.json",
+        "movetime": 300
+    },
+    {
+        "mapid":"dorm",
+        "group":"academyLevel",
+        "obj":{
+            "type":"academy",
+            "xy":[7,7],
+            "name":["宿舍"]
+        },
+        "mapdata":"宿舍.json",
+        "movetime": 20
+    }
+]

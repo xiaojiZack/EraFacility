@@ -9,6 +9,7 @@ import "./Action";
 import "./Command";
 import "./Dialog";
 import "./Kojo";
+import "./Action"
 
 declare global {
 	interface Window {

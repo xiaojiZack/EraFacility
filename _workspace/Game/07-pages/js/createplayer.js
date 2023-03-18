@@ -93,10 +93,18 @@ F.InitNewGame = function(){
     V.money = 1000;
     V.facilityLevel = 0;
     V.facilityFame = {};
-
-
 }
 
 F.CPdetermine = function(){
     delete V.playerdesign;
+    V.pc = "player";
+    // 初始化位置
+    V.location.coord = [4,4];
+    V.location.mapId = "dorm";
+    V.location.spotid = Boards.get(V.location.mapId).findspot(V.location.coord[0],V.location.coord[1]);
+    V.location.printname = worldMap[V.location.mapId][V.location.spotid].name;
+    V.location.chara = [];
+    
+    V.system.showSideBarMap = true;
+    V.system.showSideBarTitle = false;
 }

@@ -2,7 +2,7 @@ import { iPos } from "../types";
 import { printMap } from "./Map";
 
 declare function groupmatch(arg, ...args): boolean;
-export const moveableTile = ["road", "glass", "field", "passable", "area"];
+export const moveableTile = ["road", "glass", "field", "passable", "area", "restroom"];
 const directions = [
 	[-1, 0], //north
 	[1, 0], //south
@@ -206,11 +206,12 @@ function clearUnconnectRoad(map: string[][]) {
 }
 
 //检查两点之间是否有道路或可移动点相连
-function isConnected(pos1: iPos, pos2: iPos, map: string[][]) {
+export function isConnected(pos1: iPos, pos2: iPos, map: string[][]) {
 	const x1 = pos1.x,
 		y1 = pos1.y,
 		x2 = pos2.x,
 		y2 = pos2.y;
+		console.log(x1,x2,y1,y2,map);
 	if (x1 === x2 && y1 === y2) return true;
 	if (x1 === x2) {
 		if (y1 > y2) {

@@ -21,13 +21,13 @@
 */
 
 :: StoryCaption
-
+<<if $system.showSideBarTitle>>
 EraFacility beta 0.0.1<br>
 <a url='https://github.com/emicoto/_scEra'>github</a><br>
+<</if>>
 
 /* 这里显示目前操作角色的信息 */
-
-
+<<sidebarMap>>
 <div id='random_tips'>
 </div>
 <div id='update_note'>

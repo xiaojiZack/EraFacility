@@ -25,7 +25,7 @@
 	  lan: { value: lan$1 }
 	});
 
-	const moveableTile = ["road", "glass", "field", "passable", "area"];
+	const moveableTile = ["road", "glass", "field", "passable", "area", "restroom"];
 	const directions = [
 	  [-1, 0],
 	  [1, 0],
@@ -192,6 +192,7 @@
 	}
 	function isConnected(pos1, pos2, map) {
 	  const x1 = pos1.x, y1 = pos1.y, x2 = pos2.x, y2 = pos2.y;
+	  console.log(x1, x2, y1, y2, map);
 	  if (x1 === x2 && y1 === y2)
 	    return true;
 	  if (x1 === x2) {
@@ -326,6 +327,26 @@
 	  return null;
 	}
 
+	var __async$4 = (__this, __arguments, generator) => {
+	  return new Promise((resolve, reject) => {
+	    var fulfilled = (value) => {
+	      try {
+	        step(generator.next(value));
+	      } catch (e) {
+	        reject(e);
+	      }
+	    };
+	    var rejected = (value) => {
+	      try {
+	        step(generator.throw(value));
+	      } catch (e) {
+	        reject(e);
+	      }
+	    };
+	    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+	    step((generator = generator.apply(__this, __arguments)).next());
+	  });
+	};
 	class GameMap {
 	  constructor([boardId, id, name]) {
 	    this.boardId = boardId;
@@ -388,13 +409,18 @@
 	      console.log("Try to get Mapdata:", mapId);
 	    let path = mapId.split(".");
 	    let map = worldMap;
-	    for (let i = 0; i < path.length; i++) {
-	      try {
+	    try {
+	      for (let i = 0; i < path.length; i++) {
 	        map = map[path[i]];
-	      } catch (err) {
-	        console.log("Catch an error on get Mapdata:", mapId, path, err);
-	        return null;
 	      }
+	      if (!map) {
+	        let maybeMap = worldMap[path[path.length - 1]];
+	        if (maybeMap.id == mapId)
+	          map = maybeMap;
+	      }
+	    } catch (err) {
+	      console.log("Catch an error on get Mapdata:", mapId, path, err);
+	      return null;
 	    }
 	    return map;
 	  }
@@ -525,6 +551,8 @@
 	    } else {
 	      if (Config.debug)
 	        console.log("Creating new mapdata:", mapdId, boardId, type, name, entry, main, xy);
+	      if (!xy)
+	        xy = [13, 13];
 	      if (!xy[0])
 	        xy[0] = 13;
 	      if (!xy[1])
@@ -590,6 +618,9 @@
 	  }
 	  console() {
 	    printMapFromData(this);
+	  }
+	  findspot(x, y) {
+	    return Boards.getBoard(this.id)[x][y];
 	  }
 	}
 	const typeTags = {
@@ -854,6 +885,101 @@
 	  const mapdata = mapdataToBoard(map, map.mapsize.x, map.mapsize.y);
 	  printMap(mapdata);
 	}
+	function MapList() {
+	  return __async$4(this, null, function* () {
+	    let board = [];
+	    D.maps = { board: [], spot: [] };
+	    let spot = [];
+	    let loadjson = yield getMapJson();
+	    slog("log", `Get file list from json`, loadjson);
+	    if (loadjson) {
+	      board = board.concat(loadjson.board);
+	      spot = spot.concat(loadjson.spot);
+	    }
+	    D.maps.board = D.maps.board.concat(board);
+	    D.maps.spot = D.maps.spot.concat(spot);
+	    slog("log", "all map file be loaded, begin realize object", D.maps);
+	    D.maps.board.forEach((board2) => __async$4(this, null, function* () {
+	      loadboard(board2);
+	    }));
+	    D.maps.spot.forEach((spot2) => {
+	      loadspot(spot2);
+	    });
+	    setTimeout(() => {
+	      delete D.maps;
+	    }, 2e3);
+	  });
+	}
+	function getMapJson() {
+	  return __async$4(this, null, function* () {
+	    let board = [];
+	    let spot = [];
+	    console.log("getjson");
+	    const filesData = yield getJson("./data/maps.json").then((res) => {
+	      slog("log", "Get file from maps.json:", res);
+	      return res;
+	    });
+	    if (filesData) {
+	      filesData.forEach(([filename, map]) => {
+	        dlog("log", "Get maps from " + filename, map);
+	        if (filename.includes("spots")) {
+	          if (Array.isArray(map)) {
+	            if (map.length === 0) {
+	              slog("warn", "Error: format error, skip this file. spot file must be array and not empty:", map);
+	            } else if (map[0].spotId && map[0].boardId) {
+	              spot = spot.concat(map);
+	            } else {
+	              slog("warn", "Error: format error, skip this file:", map);
+	            }
+	          }
+	        } else {
+	          if (Array.isArray(map)) {
+	            if (map.length === 0) {
+	              slog("warn", "Error: format error, skip this file. board file must be array and not empty:", map);
+	            } else if (map[0].mapid && map[0].obj) {
+	              board = board.concat(map);
+	            } else {
+	              slog("warn", "Error: format error, skip this file:", map);
+	            }
+	          }
+	        }
+	      });
+	      slog("log", "Get all the map done:", board, spot);
+	    }
+	    return { board, spot };
+	  });
+	}
+	function loadJson(path) {
+	  return __async$4(this, null, function* () {
+	    const response = yield fetch(path);
+	    const json = yield response.json();
+	    return json;
+	  });
+	}
+	function loadspot(data) {
+	  addSpot([data.boardId, data.spotId, data.name, data.spotType]);
+	  let spot = worldMap[data.boardId][data.spotId];
+	  if (data.placement)
+	    spot.Placement(data.placement);
+	  if (data.spotType == "house")
+	    spot.isHome();
+	  if (data.openhour)
+	    spot.OpenHour(data.openhour.weekday, data.openhour.open.data.openhour.close);
+	}
+	function loadboard(data) {
+	  return __async$4(this, null, function* () {
+	    addBoard(data.mapid, data.group, data.obj);
+	    if (data.mapdata) {
+	      worldMap[data.mapid].mapdata = yield loadJson("./data/Map/" + data.mapdata).then((res) => {
+	        slog("log", "Get mapdata from ", res);
+	        return res;
+	      });
+	    }
+	    let board = worldMap[data.mapid];
+	    if (data.movetime)
+	      board.movetime = data.movetime;
+	  });
+	}
 
 	var __async$3 = (__this, __arguments, generator) => {
 	  return new Promise((resolve, reject) => {
@@ -888,16 +1014,16 @@
 	    });
 	  });
 	}
-	function addBoard(name, group, obj) {
-	  worldMap$1.Boards[name] = new Boards(name, group, obj);
-	  Object.defineProperty(worldMap$1, name, {
-	    get: () => worldMap$1[name]
+	function addBoard$1(name, group, obj) {
+	  worldMap$1[name] = new Boards(name, group, obj);
+	  Object.defineProperty(worldMap$1.Boards, name, {
+	    get: () => worldMap$1.Boards[name]
 	  });
 	  return worldMap$1[name];
 	}
-	function addSpot([boardId, spotId, name, spotType2]) {
+	function addSpot$1([boardId, spotId, name, spotType2]) {
 	  worldMap$1[boardId][spotId] = new Spots([boardId, spotId, name, spotType2]);
-	  Object.defineProperty(worldMap$1.Spots, spotId, {
+	  Object.defineProperty(worldMap$1.Spots, boardId + "." + spotId, {
 	    get: () => worldMap$1[boardId][spotId]
 	  });
 	  return worldMap$1[boardId][spotId];
@@ -925,23 +1051,25 @@
 	    AutoFillRoads,
 	    GenerateMap,
 	    Distance,
+	    isConnected,
 	    findPath,
 	    printPath,
 	    createPath,
 	    Init: {
-	      initWorldMap
+	      initWorldMap,
+	      MapList
 	    }
 	  },
 	  config: {
 	    globalFunc: {
-	      addBoard,
-	      addSpot
+	      addBoard: addBoard$1,
+	      addSpot: addSpot$1
 	    }
 	  },
 	  setup: {
 	    setTagByBoardType
 	  },
-	  Init: ["initWorldMap"]
+	  Init: ["initWorldMap", "MapList"]
 	};
 	addModule(modules$4);
 
@@ -3451,7 +3579,7 @@
 	class MyChara extends Chara {
 	  static new(CharaId, obj) {
 	    let chara = new MyChara(CharaId, obj).Init(obj).initChara(obj);
-	    this.data[CharaId] = chara;
+	    MyChara.data[CharaId] = chara;
 	    return chara;
 	  }
 	  initChara(obj) {
@@ -4126,7 +4254,6 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  const command = [];
 	  Object.values(Com.data).forEach((com) => {
 	    const { id, time } = com;
-	    console.log(2, com);
 	    let name = "";
 	    if (com.alterName)
 	      name = com.alterName();
@@ -4206,10 +4333,11 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  const com = Com.data[id];
 	  console.log("try check com", com);
 	  T.comorder = 0;
-	  T.reason = "";
+	  T.reason = T.reason ? T.reason : "";
 	  T.order = "";
 	  T.orderGoal = Com.globalOrder(id) + com.order();
 	  T.comAble = Com.globalCheck(id) && com.check();
+	  console.log("reason", T.reason);
 	  T.msgId = 0;
 	  T.comPhase = "before";
 	  let txt = "";
@@ -4244,9 +4372,8 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  } else if (c) {
 	    Com.shownext();
 	    Com.next();
-	  } else {
-	    Com.Event(id);
 	  }
+	  Com.Event(id);
 	};
 	Com.Event = function(id, next) {
 	  const com = Com.data[id];
@@ -4257,6 +4384,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  T.comPhase = "event";
 	  T.lastCom = T.selectCom;
 	  T.selectCom = id;
+	  console.log(T.comAble, T.comCancel);
 	  $("#contentMsg a").remove();
 	  if (T.comCancel) {
 	    P.msg(resetHtml);

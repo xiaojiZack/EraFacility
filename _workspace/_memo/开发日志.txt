@@ -1,3 +1,49 @@
 2023/3/4
 TODO
     开场剧情，地图，基本交流com
+
+2023/3/7
+关于地图的问题
+    地图编辑器只能打开第一级的地图文件，如果多层嵌套的话会读取不到。
+    地图编辑器只用来生成和修改mapdata是可以的，而且保存的mapdata信息是作为额外的txt，由于仅仅保存了mapdata，所以不会在下一次直接读入初始化
+    MapEditor的addspot直接在board对象下存储spot对象，我觉得这是非常丑陋的
+    board的get方法通过id来查找对象，
+    而board下的spot方法只存储了spotid-{位置，朝向，地点类型，地形}这样的信息，而不存储spot对象。为什么不直接存储spot对象呢，这些信息放在spot对象内就好了。
+    如果要和GenerateSpot联动生成地图的话
+
+    有必要使用map吗？
+    使用map的好处，类TW的交流模式，露出系指令的具体实现
+    地图仅保存地图静态信息，不包含具体的函数处理。
+    进出设施相关的逻辑处理交由相关移动指令处理。
+
+    map的初始化逻辑
+        ·在setup文件夹下保存map系统的初始化
+        ·读取需要初始化的board列表json
+        ·根据json内容(mapid, group, obj:{type, name?, entry?, main?, xy?})通过addBoard生成
+        ·对生成的Board对象加载其mapdata
+        ·读取需要初始化的spot列表json
+        ·根据json内容执行spot对应的初始化函数
+        ·根据json内容([boardId,spotId,name,spotType])通过addSpot生成
+        
+2023/3/11
+    存档内的地图变更使用flag或者直接一个字典存储patch放在存档数据内。
+    mapdata仅仅保存静态数据。
+
+2023/3/15
+    关于NPC的移动，是生成移动路径后按照时间节点检查还是按照概率随机出现？
+    采用根据人物计划设置人物移动时间刻的效果
+    人物包含玩家主控人物
+    时间变化->持续性触发->检查所有人物时间表是否有触发事件->按顺序执行所有触发事件->注册新的触发事件->等待下一次时间变化
+
+    持续性触发:Base自然变化,装具变化,药液变化,
+
+    接下来是做时间刻系统
+
+    action 和 com里选一个
+    action有placement，autokeep, 涉及到的bodypart
+
+    用com吧
+    
+
+2023-3-17
+    继续调整com的流程

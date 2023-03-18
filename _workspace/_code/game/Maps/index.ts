@@ -3,7 +3,7 @@ export * from "./MapUtils";
 
 // Path: _workspace\code\game\Maps\Map.ts
 import { boardtype, spotType } from "../types";
-import { Boards, Spots, Square, typeTags, setTagByBoardType, printMap, GameMap } from "./Map";
+import { Boards, Spots, Square, typeTags, setTagByBoardType, printMap, GameMap, MapList, getMapJson } from "./Map";
 import {
 	moveableTile,
 	GenerateSpot,
@@ -12,6 +12,7 @@ import {
 	clearExtraRoad,
 	Distance,
 	findPath,
+	isConnected,
 	printPath,
 	createPath,
 } from "./MapUtils";
@@ -45,10 +46,10 @@ function addBoard(
 		xy?: [number, number?];
 	}
 ) {
-	worldMap.Boards[name] = new Boards(name, group, obj);
+	worldMap[name] = new Boards(name, group, obj);
 
-	Object.defineProperty(worldMap, name, {
-		get: () => worldMap[name],
+	Object.defineProperty(worldMap.Boards, name, {
+		get: () => worldMap.Boards[name],
 	});
 
 	return worldMap[name];
@@ -57,7 +58,7 @@ function addBoard(
 function addSpot([boardId, spotId, name, spotType]: [string, string, string[], spotType]) {
 	worldMap[boardId][spotId] = new Spots([boardId, spotId, name, spotType]);
 
-	Object.defineProperty(worldMap.Spots, spotId, {
+	Object.defineProperty(worldMap.Spots, boardId+'.'+spotId, {
 		get: () => worldMap[boardId][spotId],
 	});
 
@@ -87,11 +88,13 @@ const modules = {
 		AutoFillRoads,
 		GenerateMap,
 		Distance,
+		isConnected,
 		findPath,
 		printPath,
 		createPath,
 		Init: {
 			initWorldMap,
+			MapList
 		},
 	},
 	config: {
@@ -103,7 +106,7 @@ const modules = {
 	setup: {
 		setTagByBoardType,
 	},
-	Init: ["initWorldMap"],
+	Init: ["initWorldMap","MapList"],
 };
 
 declare function addModule(modules): boolean;

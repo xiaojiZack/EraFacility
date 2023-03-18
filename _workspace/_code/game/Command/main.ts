@@ -38,7 +38,6 @@ Com.listUp = function () {
 	const command = [];
 	Object.values(Com.data).forEach((com) => {
 		const { id, time } = com;
-		console.log(2, com)
 		let name = "";
 
 		if (com.alterName) name = com.alterName();
@@ -166,10 +165,11 @@ Com.Check = function (id) {
 	const com: Com = Com.data[id];
 	console.log('try check com', com)
 	T.comorder = 0;
-	T.reason = "";
+	T.reason = T.reason?T.reason:"";
 	T.order = "";
 	T.orderGoal = Com.globalOrder(id) + com.order();
 	T.comAble = Com.globalCheck(id) && com.check();
+	console.log("reason",T.reason)
 	T.msgId = 0;
 
 	//如果对方无反抗之力，目标值强行变零。
@@ -212,6 +212,20 @@ Com.Check = function (id) {
 		c = 1;
 	}
 
+	// //检测是否存在com.before(), 存在就在这里执行。
+	// if (com?.before) com.before();
+
+	// if (!Story.has(`Com_${id}`)) {
+	// 	P.flow("缺乏事件文本", 30, 1);
+	// 	Com.resetScene();
+	// }
+	// //存在待执行文本就直接出现Next按钮。
+	// else if (c) {
+	// 	Com.shownext();
+	// 	Com.next();
+	// } else {
+	// 	Com.Event(id);
+	// }
 	//检测是否存在com.before(), 存在就在这里执行。
 	if (com?.before) com.before();
 
@@ -223,9 +237,9 @@ Com.Check = function (id) {
 	else if (c) {
 		Com.shownext();
 		Com.next();
-	} else {
-		Com.Event(id);
 	}
+	Com.Event(id);
+	
 };
 
 //执行事件
@@ -239,7 +253,7 @@ Com.Event = function (id, next) {
 	T.comPhase = "event";
 	T.lastCom = T.selectCom;
 	T.selectCom = id;
-
+	console.log(T.comAble,T.comCancel)
 	//总之先清除多余链接
 	$("#contentMsg a").remove();
 
@@ -262,7 +276,7 @@ Com.Event = function (id, next) {
 			(com?.forceAble && T.comorder + S.ignoreOrder >= T.orderGoal)
 		) {
 			T.passtime = com.time;
-
+			//强迫执行
 			if (T.comorder < T.orderGoal && !V.system.debug) {
 				T.msg.push(
 					`配合度不足：${T.order}＝${T.comorder}/${T.orderGoal}<br>${
@@ -289,7 +303,6 @@ Com.Event = function (id, next) {
 			if (txt.includes("Kojo.put")) txt = F.convertKojo(txt);
 
 			P.msg(txt);
-
 			P.msg(`<<run Com.data['${id}'].source(); F.passtime(T.passtime); Com.After()>>`, 1);
 
 			//确认After事件。如果有就添加到 Msg中。

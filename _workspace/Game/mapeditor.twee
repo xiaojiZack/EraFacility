@@ -95,7 +95,7 @@
     <<run
         let mapdata = GameMap.convertData(T.mapdata)
         delete mapdata['.'] // remove empty space
-        download(JSON.stringify(mapdata), T.selectMap, 'txt')
+        download(JSON.stringify(mapdata), T.selectMap, 'json')
     >>
     <</button>>
 

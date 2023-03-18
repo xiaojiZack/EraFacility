@@ -379,8 +379,9 @@
 	    time: S.date[3]
 	  };
 	  V.location = {
-	    name: "",
+	    spotname: "",
 	    mapId: "",
+	    coord: [0, 0],
 	    printname: "",
 	    chara: []
 	  };
@@ -468,7 +469,7 @@
 	    Wikifier: { value: scEra.wikifier },
 	    V: { get: () => scEra.state.variables },
 	    T: { get: () => scEra.state.temporary },
-	    C: { get: () => scEra.state.variables.chara },
+	    C: { get: () => M.Creatures.classObj.MyChara.data },
 	    Flag: {
 	      get: () => scEra.state.variables.flag
 	    }

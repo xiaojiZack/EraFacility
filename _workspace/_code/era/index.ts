@@ -18,6 +18,7 @@ declare function slog(type: "log" | "warn" | "error", ...args: any[]): void;
 declare function dlog(type: "log" | "warn" | "error", ...args: any[]): void;
 declare var jQuery: typeof window.jQuery;
 declare var V: typeof window.V;
+declare var M: typeof window.M;
 //-------------------------------------------------------------
 //
 //   startup
@@ -51,7 +52,9 @@ $(document).one("Era:start", () => {
 		Wikifier: { value: scEra.wikifier },
 		V: { get: () => scEra.state.variables },
 		T: { get: () => scEra.state.temporary },
-		C: { get: () => scEra.state.variables.chara },
+		//C: { get: () => scEra.state.variables.chara },
+		//不知道为什么C与MyChara.data并不指向同一个对象
+		C: { get: () => M.Creatures.classObj.MyChara.data },
 		Flag: {
 			get: () => scEra.state.variables.flag,
 		},

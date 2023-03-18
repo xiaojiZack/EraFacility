@@ -48,7 +48,8 @@ F.timeEffects = function (t, mode) {
 	let charas = V.location.chara;
 	charas.forEach((cid) => {
 		const chara = C[cid];
-
+		//角色自主行动
+		F.charaAction(chara, cid);
 		//衣服穿着和持续行动带来的source变动
 		F.trackCheck(chara, cid);
 		F.sourceCheck(chara, cid);
@@ -58,3 +59,62 @@ F.timeEffects = function (t, mode) {
 	//对不在场的角色进行时间经过处理。
 	//charas = F.getNoActiveChara()
 };
+
+
+class TimeEventList{
+    constructor(){
+        this.event = [];
+        return this;
+    }
+    append(charaid, eventid, time, args=[]){
+        this.event.append([charaid,eventid,time,args]);
+        this.sort();
+        return this;
+    }
+    delete(record){
+        this.event.delete(record);
+        this.sort();
+    }
+    sort(){
+        this.event.sort(function(x,y){
+            return x[3]-y[3];
+        })
+        return this;
+    }
+    update(passTime){
+        this.event.forEach((record)=>{
+            record[3] -= passTime;
+        })
+    }
+    getHasHappend(getNumber = 1){
+        let records = [];
+        this.event.forEach((record)=>{
+            if (record[3]<0 && records.length<getNumber)
+                records.push(record)
+        })
+        return records;
+    }
+    getBycharaId(charaId, checklist = []){
+        let records = [];
+        let events = checklist?checklist:this.event; //如果没有指定范围，则查找所有时间戳.
+
+        events.forEach((record)=>{
+            if (record[0]==charaId){
+                records.append(record);
+            }
+        })
+        return records;
+    }
+    getByeventId(eventId, checklist = []){
+        let records = [];
+        let events = checklist?checklist:this.event; //如果没有指定范围，则查找所有时间戳.
+        events.forEach((record)=>{
+            if (record[1]==eventId){
+                records.append(record);
+            }
+        })
+        return records;
+    }
+}
+
+V.timeEventList = new TimeEventList();

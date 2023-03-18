@@ -1,6 +1,7 @@
 import { Dict, sblkey } from "_code/game/types/base";
 import { Chara } from "../Characters";
 declare var D: typeof window.D;
+declare var C: typeof window.C;
 declare class Items {
 	static getByName(arg0: string, equip: any): any
 }
@@ -15,7 +16,7 @@ export class MyChara extends Chara{
     static new(CharaId: string, obj): MyChara {
 		//create a new character and add to database
 		let chara = new MyChara(CharaId, obj).Init(obj).initChara(obj);
-		this.data[CharaId] = chara;
+		MyChara.data[CharaId] = chara;
 		return chara;
 	}
     initChara(obj) {
