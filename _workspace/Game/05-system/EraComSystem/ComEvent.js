@@ -3,7 +3,6 @@ if (window.Com) {
 	Com.updateScene = function () {
 		const chara = [];
 		let html = "";
-
 		//find the local character and generate the link
 		if (V.location.chara.length) {
 			V.location.chara.forEach((k) => {
@@ -18,8 +17,7 @@ if (window.Com) {
 				} else {
 					let name = C[k].name;
 					if (V.tc == k)
-						name = `< ${C[k].name} >
-            `;
+						name = `< ${C[k].name} >`;
 					t = `<span style='color:#AAA'>${name}</span>　`;
 				}
 
@@ -27,7 +25,7 @@ if (window.Com) {
 			});
 		}
 
-		html = `<span style='color:#fff000'>${V.player.name || F.you()}</span>　|　　${V.location.name}　|　`;
+		html = `<span style='color:#fff000'>${V.player.name || F.you()}</span>　|　　${V.location.printname}　|　`;
 		if (chara.length && chara.length < 5) html += "" + chara.join("") + "<br>";
 		else {
 			//if there are too many characters, then make a pre next button
@@ -82,8 +80,7 @@ if (window.Com) {
 		//if the scene is not initialized, initialize the scene.
 
 		let txt = "";
-
-		const title = `Msg_Spots_${local.mapId.replace(".", "_")}`;
+		const title = `Msg_Spots_${local.mapId}_${local.spotid}`;
 		if (Story.has(title)) {
 			txt += Story.get(title).text;
 		} else {
@@ -94,6 +91,7 @@ if (window.Com) {
 		F.summonChara();
 
 		setTimeout(() => {
+			P.clearMsg();
 			P.flow(txt, 30, 1);
 		}, 100);
 

@@ -7,7 +7,7 @@ declare class Items {
 }
 export interface MyChara extends Chara{
     schedule:any;
-
+	location?:any;
 }
 
 
@@ -30,6 +30,7 @@ export class MyChara extends Chara{
 		this.initFlag();
 		this.initLiquid();
         this.initSituAbility();
+		this.initLocation(obj);
 		if (obj.stats) {
 			this.Stats(obj.stats);
 		}
@@ -55,6 +56,9 @@ export class MyChara extends Chara{
 		}
 		$(document).trigger(":initCharacter", [this, obj]);
         return this;
+	}
+	initLocation(obj?){
+		this.location = obj.location?obj.location:{mapId:"academyLevel",coord:[4,4]};
 	}
     initSituAbility() {
 		Object.keys(D.sbl).forEach((key) => {

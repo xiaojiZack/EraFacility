@@ -135,7 +135,7 @@ export class Creature {
 		}
 
 		if (this.randomchara) {
-			this.RandomInitDefault();
+			this.RandomInitDefault(obj);
 		}
 
 		$(document).trigger(":initCreature", [this, obj]);
@@ -151,7 +151,7 @@ export class Creature {
 		this.initEquipment();
 	}
 
-	RandomInitDefault() {
+	RandomInitDefault(obj) {
 		this.randomStats();
 		this.randomAbility();
 		this.randomSituAbility();
@@ -160,7 +160,7 @@ export class Creature {
 			this.RandomInitApp();
 		} else {
 			let adj = {
-				bodysize: random(5),
+				bodysize: obj.bodysize || random(5),
 				breasts: {sizeLv: this.gender === "male" ? 0 : random(10),},
 				penis: {sizeLv: this.gender === "female" ? 0 : random(7)},
 			};

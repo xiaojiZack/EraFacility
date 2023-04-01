@@ -17,7 +17,7 @@
             "xy":[13,13],
             "name":["学院层"]
         },
-        "mapdata":"测试路线图.json",
+        "mapdata":"academyLevel.json",
         "movetime": 300
     },
     {

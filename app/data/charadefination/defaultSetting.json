@@ -1,13 +1,13 @@
 {
 	"basicBodypart": ["head", "torso", "arms", "legs", "feet", "ears", "ears", "breast", "butts", "genitals"],
 
-	"eyecolorPool": ["amber", "blue", "brown", "gray", "green", "hazel", "red", "violet"],
+	"eyecolorPool": ["琥珀色", "蓝色", "棕色", "灰色", "绿色", "榛子色", "红色", "紫罗兰色", "黑色"],
 
-	"haircolorPool": ["black", "blonde", "brown", "gray", "red", "white"],
+	"haircolorPool": ["黑色", "金色", "棕色", "灰色", "红色", "白色"],
 
-	"skincolorPool": ["sunset", "brown", "health", "white", "pale", "copper"],
+	"skincolorPool": ["浅红色", "棕色", "健康色", "白皙", "苍白色", "古铜色"],
 
-	"hairstylePool": ["bald", "bob", "bun", "curly", "long", "ponytail", "short", "straight", "twintail"],
+	"hairstylePool": ["短发", "齐耳短发", "长卷发", "长直发", "马尾", "双马尾", "盘发", "超长发"],
 
 	"initials": ["M", "B", "C", "U", "V", "A"],
 
@@ -47,6 +47,7 @@
 		"neck",
 		"shoulder",
 		"arms",
+		"hands",
 		"breasts",
 		"abdomen",
 		"back",
@@ -57,7 +58,9 @@
 		"thighs",
 		"penis",
 		"vagina",
-		"anus"
+		"anus",
+		"legs",
+		"feet"
 	],
 
 	"partSkinLayer": {

@@ -10,7 +10,15 @@
 [[创建人物|DesignPlayer]]
 
 :: DesignPlayer:Before
-<<set $playerdesign={name:"我",gender:"male",species:"human",BirthdayM:9,BirthdayD:1,Bouns:"魅惑",SexExp:"no"}>>
+<<set $playerdesign={
+    name:"我",
+    gender:"male",
+    species:"human",
+    BirthdayM:9,BirthdayD:1,
+    Bouns:"魅惑",
+    SexExp:"no", 
+    bodysize:random(2,3), 
+    appearance:{haircolor:"黑色",eyecolor:"黑色",hairstyle:"短发",skincolor:"健康色"}}>>
 <<run F.InitNewGame()>>
 
 :: DesignPlayer
@@ -21,6 +29,11 @@
 <<=F.Listbox({id:"BirthdayD",opt:Array.from(Array(30).keys(),n=>n+1), def:1, on:'F.DPset(this.id,parseInt(this.value))'})>>日<br>
 性经验:
 <<=F.Listbox({id:"SexExp",opt:["no","little","a lot"],names:["无","有","有很多"], def:$playerdesign.SexExp, on:'F.DPset(this.id,this.value)'})>><br>
+外貌设置:
+发色:<<=F.Listbox({id:"haircolor",opt:D.haircolorPool,names:D.haircolorPool, def:$playerdesign.appearance.haircolor, on:'F.DPAppset(this.id,this.value)'})>>
+瞳色:<<=F.Listbox({id:"eyecolor",opt:D.eyecolorPool,names:D.eyecolorPool, def:$playerdesign.appearance.eyecolor, on:'F.DPAppset(this.id,this.value)'})>>
+发型:<<=F.Listbox({id:"hairstyle",opt:D.hairstylePool,names:D.hairstylePool, def:$playerdesign.appearance.hairstyle, on:'F.DPAppset(this.id,this.value)'})>>
+肤色:<<=F.Listbox({id:"skincolor",opt:D.skincolorPool,names:D.skincolorPool, def:$playerdesign.appearance.skincolor, on:'F.DPAppset(this.id,this.value)'})>><br>
 特别的才能:
 <<=F.Listbox({id:"Bouns",opt:Object.keys(D.StartBouns), def:$playerdesign.Bouns, on:'F.CPchangeBouns(this.value)'})>>
 <div id = 'BounsDes'>

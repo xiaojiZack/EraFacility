@@ -1,0 +1,18 @@
+:: Msg_Spots_dorm_domRoom
+    你来到一间普通的房间
+
+:: Msg_Spots_dorm_domRoom_preview
+<<= T.neighbordir.delete(T.neighbordir[0])>>边是<<= T.neighborCoor.delete(T.neighborCoor[0])>>的房间。(待做房间归属和访问许可)
+
+:: Msg_Spots_dorm_yourRoom
+    你正位于你自己的房间里。
+
+:: Msg_Spots_dorm_road
+    你站在宿舍的走廊上。<<Get_Msg_Map_neighbor>>
+
+:: Msg_Spots_dorm_gate
+    你正位于宿舍的大门处。
+    <<link "出门">>
+        <<set T.jumpMove = {mapId:"academyLevel",coord:[4,4], allowjump:true}>>
+        <<run Com.Check("0-move-jump");>>
+    <</link>>

@@ -1,0 +1,35 @@
+:: CharaSheet_Alisa[csv]
+id, Alisa 
+name, 阿丽萨
+
+gender, female
+species, human
+location.mapId, academyLevel
+location.coord, 8,4
+title, 学园长
+
+birthday, 4028,1,1
+
+traits, 懒惰
+traits, 好色
+traits, 不过线
+traits, 不知耻
+traits, 小恶魔
+traits, 怕疼
+traits, 成瘾体质
+
+bodysize, 2
+appearance.eyecolor, 蓝色
+appearance.haircolor, 粉色
+appearance.hairstyle, 双马尾
+appearance.skincolor, 白色
+appearance.height, 1600
+
+sbl.exhibition, 1
+
+breast.size, 1
+vagina.sens, 1
+
+equip, 连衣裙
+equip, 毛绒拖鞋
+equip, 三角内裤

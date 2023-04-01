@@ -192,7 +192,6 @@
 	}
 	function isConnected(pos1, pos2, map) {
 	  const x1 = pos1.x, y1 = pos1.y, x2 = pos2.x, y2 = pos2.y;
-	  console.log(x1, x2, y1, y2, map);
 	  if (x1 === x2 && y1 === y2)
 	    return true;
 	  if (x1 === x2) {
@@ -744,6 +743,30 @@
 	      close
 	    };
 	    return this;
+	  }
+	  inOpenHour() {
+	    if (this.openhour) {
+	      let date = V.date;
+	      let openhour = this.openhour;
+	      if (openhour.weekday == "allday") ; else {
+	        if (openhour.weekday.includes(date.week)) ; else {
+	          return false;
+	        }
+	      }
+	      if (openhour.close > openhour.open) {
+	        if (date.time >= openhour.open && date.time <= openhour.close) {
+	          return true;
+	        } else
+	          return false;
+	      } else {
+	        if (date.time >= openhour.open || date.time <= openhour.close) {
+	          return true;
+	        } else
+	          return false;
+	      }
+	    } else {
+	      return true;
+	    }
 	  }
 	  isHome() {
 	    this.Home = true;
@@ -2869,7 +2892,7 @@
 	      this.initSpecies(obj);
 	    }
 	    if (this.randomchara) {
-	      this.RandomInitDefault();
+	      this.RandomInitDefault(obj);
 	    }
 	    $(document).trigger(":initCreature", [this, obj]);
 	    return this;
@@ -2881,7 +2904,7 @@
 	    this.initAbility();
 	    this.initEquipment();
 	  }
-	  RandomInitDefault() {
+	  RandomInitDefault(obj) {
 	    this.randomStats();
 	    this.randomAbility();
 	    this.randomSituAbility();
@@ -2890,7 +2913,7 @@
 	      this.RandomInitApp();
 	    } else {
 	      let adj = {
-	        bodysize: random(5),
+	        bodysize: obj.bodysize || random(5),
 	        breasts: { sizeLv: this.gender === "male" ? 0 : random(10) },
 	        penis: { sizeLv: this.gender === "female" ? 0 : random(7) }
 	      };
@@ -3230,6 +3253,7 @@
 	    this.randomSituAbility();
 	  }
 	  initSpecies(obj = {}) {
+	    console.log(obj);
 	    this.bodysize = obj.bodysize || random(5);
 	    this.initApp(obj);
 	    this.body = this.r.configureBody(this.gender, this.appearance.height, obj);
@@ -3242,6 +3266,7 @@
 	  }
 	  initApp(obj = {}) {
 	    const app = this.appearance;
+	    obj = obj.appearance ? obj.appearance : obj;
 	    app.height = obj.height || GenerateHeight(this.bodysize);
 	    app.weight = obj.weight || GenerateWeight(app.height);
 	    app.beauty = 1e3;
@@ -3593,6 +3618,7 @@
 	    this.initFlag();
 	    this.initLiquid();
 	    this.initSituAbility();
+	    this.initLocation(obj);
 	    if (obj.stats) {
 	      this.Stats(obj.stats);
 	    }
@@ -3618,6 +3644,9 @@
 	    }
 	    $(document).trigger(":initCharacter", [this, obj]);
 	    return this;
+	  }
+	  initLocation(obj) {
+	    this.location = obj.location ? obj.location : { mapId: "academyLevel", coord: [4, 4] };
 	  }
 	  initSituAbility() {
 	    Object.keys(D.sbl).forEach((key) => {
@@ -4367,7 +4396,8 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  if (com == null ? void 0 : com.before)
 	    com.before();
 	  if (!Story.has(`Com_${id}`)) {
-	    P.flow("\u7F3A\u4E4F\u4E8B\u4EF6\u6587\u672C", 30, 1);
+	    if (Config.debug)
+	      P.flow("\u7F3A\u4E4F\u4E8B\u4EF6\u6587\u672C", 30, 1);
 	    Com.resetScene();
 	  } else if (c) {
 	    Com.shownext();
@@ -4592,6 +4622,14 @@ Com.listUp();
 	  T.msg = [];
 	  T.msgId = 0;
 	  T.noMsg = 0;
+	};
+	const clearMsg = function() {
+	  if (document.getElementById("contentMsg")) {
+	    const element = document.getElementById("contentMsg");
+	    element.innerHTML = "";
+	  } else {
+	    console.log("\u65E0\u6CD5\u6E05\u7A7AMsg\uFF0C\u53EF\u80FD\u662FMsg\u4E0D\u5B58\u5728");
+	  }
 	};
 	const errorView = function(text) {
 	  return `<div class='error-view'><span class='error'>${text}</span></div>`;
@@ -4940,7 +4978,8 @@ Com.listUp();
 	      txt: converTxt,
 	      msg: setMsg,
 	      error: errorView,
-	      resetMsg
+	      resetMsg,
+	      clearMsg
 	    }
 	  },
 	  Init: ["InitDialogMain"]

@@ -98,6 +98,15 @@ export const resetMsg = function () {
 	T.noMsg = 0;
 };
 
+export const clearMsg = function(){
+	if (document.getElementById("contentMsg")) {
+		const element = document.getElementById("contentMsg");
+		element.innerHTML = "";
+	  } else {
+		console.log("无法清空Msg，可能是Msg不存在");
+	  }
+}
+
 export const errorView = function (text: string) {
 	return `<div class='error-view'><span class='error'>${text}</span></div>`;
 };

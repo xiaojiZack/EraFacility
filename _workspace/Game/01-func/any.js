@@ -2,8 +2,10 @@ F.summonChara = function () {};
 
 F.passtime = function () {};
 
+F.charaEvent = function() {};
+
 F.you = function () {
-	return "you";
+	return C[V.pc].callname?C[V.pc].callname:C[V.pc].name;
 };
 DefineMacros("you", F.you);
 

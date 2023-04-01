@@ -16,6 +16,7 @@ S.gameConfig = {
 	showOrder: 0,
 	showSideBarMap: false,
 	showSideBarTitle: true,
+	showHeaderInf:false,
 };
 
 //game flags.

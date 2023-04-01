@@ -8,6 +8,7 @@ declare var worldMap: typeof window.worldMap;
 declare var Config: typeof window.Config;
 declare var S: typeof window.S;
 declare var D: typeof window.D;
+declare var V: typeof window.V;
 
 declare function getJson(path: string): Promise<any>;
 declare function slog(type: "log" | "warn" | "error", ...args: any[]): void;
@@ -611,6 +612,34 @@ export class Spots extends GameMap {
 			close: close,
 		};
 		return this;
+	}
+	//判断目前是否在开放时间内
+	inOpenHour(){
+		if (this.openhour){
+			let flag = true;
+			let date = V.date;
+			let openhour = this.openhour;
+			if (openhour.weekday == "allday"){}
+			else{
+				if (openhour.weekday.includes(date.week)){}
+				else {return false;}
+			}
+			if (openhour.close > openhour.open){
+				if (date.time>=openhour.open && date.time<=openhour.close){
+					return true;
+				}
+				else return false;
+			}
+			else{ //跨夜处理
+				if (date.time>=openhour.open || date.time<=openhour.close){
+					return true;
+				}
+				else return false;
+			}
+		}
+		else{
+			return true;
+		}
 	}
 	//设置家flag
 	isHome() {

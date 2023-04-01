@@ -15,6 +15,7 @@ function createMoveComs(){
         }).Check(()=>{
             return moveComCheck(newCom.dir);
         }).Filter(()=>{
+            if (V.moveable == false) return false
             if (V.currentFilter == "常规" || V.currentFilter == "all") return true;
             return false
         })
@@ -32,7 +33,6 @@ function moveComCheck(dir){
     }
     
     let map = worldMap[V.location.mapId];
-    console.log(newlocation,map.mapsize);
     if (newlocation[0]<0 || newlocation[0]>=map.mapsize.x
         || newlocation[1]<0 || newlocation[1]>=map.mapsize.y){
         T.reason = "到达地图边界"; return false; 
@@ -41,6 +41,11 @@ function moveComCheck(dir){
     let loc2 = {x:newlocation[0],y:newlocation[1]};
     if(F.isConnected(loc1, loc2,Boards.getBoard(V.location.mapId)) == false)
         {T.reason = "无法到达"; return false;}
+    let spotid = Boards.getBoard(V.location.mapId)[newlocation[0]][newlocation[1]];
+    if (map[spotid].locked)
+        {T.reason = "地点上锁"; return false;}
+    else if (map[spotid].inOpenHour() == false)
+        {T.reason = "不在开放时间"; return false;}
     return true;
 }
 
@@ -67,4 +72,29 @@ function refrashSideBarMap(){
     if (document.getElementById("sidebarMap"))
         new Wikifier(null, `<<replace #sidebarMap>> <<sidebarMap>><</replace>>`);
     //$("#siderbarMap").remove();
+}
+
+
+function createJumpMoveComs(){
+    //非网格跳转移动指令
+    let newCom = Com.new("system",{
+        id:"0-move-jump",
+        name:`跳转移动`,
+        tags:[],
+        time:0,
+    });
+    newCom.Effect(()=>{
+        V.location.mapId = T.jumpMove.mapId;
+        V.location.coord = T.jumpMove.coord;
+        T.jumpMove.allowjump = false;
+        updateLocation();
+        Com.updateMovement();
+    }).Check(()=>{
+        console.log(T.jumpMove);
+        return T.jumpMove.allowjump;
+    }).Filter(()=>{
+        //不可用一般方式调用
+        return false
+    })
+    
 }

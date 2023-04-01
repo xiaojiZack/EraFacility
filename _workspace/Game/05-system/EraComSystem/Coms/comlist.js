@@ -7,7 +7,7 @@ Com.new("system",{
     time:5,
 }).Filter(
     function(){
-        if (V.currentFilter == "常规") return true;
+        if (V.currentFilter == "常规" && Config.debug) return true;
         return false
     })
     .Effect(
@@ -26,4 +26,4 @@ Com.new("system",{
 
 //移动类指令统一生成
 createMoveComs();
-
+createJumpMoveComs();

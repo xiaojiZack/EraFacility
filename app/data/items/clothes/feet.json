@@ -11,6 +11,23 @@
         "price": 0,
         "color": [],
         "cover":{
+			"feet":[0,0]
+        },
+        "allure":0
+	},
+	{
+		"name": ["毛绒拖鞋","stuffed slipper"],
+		"des": [
+			"物品说明"
+		],
+		"group": "clothes",
+		"category": "feet",
+        "gender":"h",
+		"tags": ["normal"],
+        "price": 0,
+        "color": [],
+        "cover":{
+			"feet":[0,0]
         },
         "allure":0
 	}

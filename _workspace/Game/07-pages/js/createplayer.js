@@ -4,6 +4,11 @@ F.DPset = function(key,value){
     return V.playerdesign;
 }
 
+F.DPAppset = function(key,value){
+    V.playerdesign.appearance[key] = value;
+    return V.playerdesign;
+}
+
 D.StartBouns={
     "魅惑":"不知道为什么，你总是能让人听你的话。",
     "启动资金":"初始携带5000额外资金。"
@@ -77,6 +82,7 @@ const CPRandomVirginity = function(chara, sexexp){
         })
     }
     chara.Exp(RandomExp);
+    chara.callname = "你"
 }
 
 const CPGetBouns = function(chara,Bouns){
@@ -93,6 +99,7 @@ F.InitNewGame = function(){
     V.money = 1000;
     V.facilityLevel = 0;
     V.facilityFame = {};
+    V.moveable = true;
 }
 
 F.CPdetermine = function(){
@@ -107,4 +114,5 @@ F.CPdetermine = function(){
     
     V.system.showSideBarMap = true;
     V.system.showSideBarTitle = false;
+    V.system.showHeaderInf = true;
 }

@@ -1,0 +1,5 @@
+:: CharaInf[widget]
+<<widget "IpadCharalist">>
+    <<run F.showIpadCharalist()>>
+    <<print T.printText.join("<br><<dashline>>")>>
+<</widget>>

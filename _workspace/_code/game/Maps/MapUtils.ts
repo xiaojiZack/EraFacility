@@ -211,7 +211,6 @@ export function isConnected(pos1: iPos, pos2: iPos, map: string[][]) {
 		y1 = pos1.y,
 		x2 = pos2.x,
 		y2 = pos2.y;
-		console.log(x1,x2,y1,y2,map);
 	if (x1 === x2 && y1 === y2) return true;
 	if (x1 === x2) {
 		if (y1 > y2) {

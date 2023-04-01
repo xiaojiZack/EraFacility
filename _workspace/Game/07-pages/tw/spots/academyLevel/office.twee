@@ -1,0 +1,20 @@
+:: Msg_Spots_academyLevel_office
+    
+    <<if $flag.scenePhase == "start">><<office_firstVisit>>
+    <<else>><<office_normalVisit>>
+    <</if>>
+
+    
+:: Msg_Spots_academyLevel_office_firstVisit[widget]
+    <<widget "office_firstVisit">>
+        <<run F.creatHeadMaster()>>
+        <<set $tc = "Alisa">>
+        <<run F.summonChara()>>
+        *事件文本
+    <</widget>>
+
+
+:: Msg_Spots_academyLevel_office_normalVisit
+    <<widget "office_normalVisit">>
+        你位于学院层的学园长办公区域
+    <</widget>>

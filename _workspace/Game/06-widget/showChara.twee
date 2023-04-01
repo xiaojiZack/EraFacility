@@ -10,6 +10,7 @@
             <<showCharaBase>>
             <<ShowCharaPhoto>>
             <<ShowCharaTrait>>
+            <<ShowCharaLocation>>
             <<ShowCharaSbl>>
         </div>
         <div id="SCbox2"  class="SCgridConter">
@@ -33,7 +34,7 @@
     <<widget 'showCharaBase'>>
     <div id='SCbaseBox' class="SCBaseConter">
         <div id="SCname">
-            _showChara.name[0]
+            _showChara.name
             <<script>>
                 if (T.showChara.gender == "female") T.gendercoin = "♀";
                 else{
@@ -66,28 +67,45 @@
 
 :: ShowCharaBody[widget]
     <<widget 'ShowCharaBody'>>
-        <div class='SCBody'>
-            <<run F.initSCBody()>>
-            <<print T.printtext.join('')>>
-        </div>
+        <<if (Config.debug || T.showChara.cid == "player")>>
+            <div class='SCBody'>
+                <<run F.initSCBody()>>
+                <<print T.printtext.join('')>>
+            </div>
+        <<else>>
+            <div class='SCBody-blur'>
+                <<run F.initSCBody()>>
+                <<print T.printtext.join('')>>
+            </div>
+        <</if>>
     <</widget>>
 
 :: ShowCharaVirginity[widget]
     <<widget 'ShowCharaVirginity'>>
         <div class='SCDashline'><<dashline>></div>
         <<run F.initSCVirginity()>>
-        <div>
-            <<print T.printtext.join('<br>')>>
-        </div>
+        <<if (Config.debug || T.showChara.cid == "player")>>
+            <div>
+                <<print T.printtext.join('<br>')>>
+            </div>
+        <<else>>
+            未知经验情况
+        <</if>>
     <</widget>>
 
 :: ShowCharaExp[widget]
     <<widget 'ShowCharaExp'>>
         <div class = 'SCDashline'><<dashline>></div>
         <<run F.initSCExp()>>
-        <div class='SCExp'>
-            <<print T.printtext.join('')>>
-        </div>
+        <<if Config.debug == false and _showChara.cid !== "player">>
+            <div class='SCExp-blur'>
+                <<print T.printtext.join('')>>
+            </div>
+        <<else>>
+            <div class='SCExp'>
+                <<print T.printtext.join('')>>
+            </div>
+        <</if>>
     <</widget>>
 
 :: ShowCharaSbl[widget]
@@ -116,13 +134,23 @@
 
 :: ShowCharaEquip[widget]
     <<widget 'ShowCharaEquip'>>
-        <div class='SCDashline'><<dashline>></div>
-        <<run F.initSCEquip()>>
-        <div>
-            <<print T.printtext.join('<br>')>>
+        <<if (Config.debug || T.showChara.cid == "player")>>
+            <div class='SCDashline'><<dashline>></div>
+            <<run F.initSCEquip()>>
+            <div>
+                <<print T.printtext.join('<br>')>>
+                <br>
+                暴露值:<<=T.showChara.reveals.reveal>>
+            </div>
+        <<else>>
+            <div class='SCDashline'><<dashline>></div>
+            <div>
+            <<run F.initVagueEquipDescribe()>>
+            <<print T.printtext.join("")>>
             <br>
             暴露值:<<=T.showChara.reveals.reveal>>
-        </div>
+            </div>
+        <</if>>
     <</widget>>
 
 :: ShowCharaPalam[widget]
@@ -130,24 +158,39 @@
         <div class='SCDashline'><<dashline>></div>
         <div class="SCPalamBox">
             <div class="SCPalamtype">[心理]</div>
-            <<run F.initSCPalam(D.mentalpalam)>>
-            <<print T.printtext.join('')>>
+            <<if (Config.debug || T.showChara.cid == "player")>>
+                <<run F.initSCPalam(D.mentalpalam)>>
+                <<print T.printtext.join('')>>
+            <<else>>
+                你无法分析具体的心理
+            <</if>>
         </div>
         <div class="SCPalamBox">
-            <div class="SCPalamtype">[快感]</div>
-            <<run F.initSCPalam(D.ecstacypalam)>>
-            <<print T.printtext.join('')>>
+            <<if (Config.debug || T.showChara.cid == "player")>>
+                <div class="SCPalamtype">[快感]</div>
+                <<run F.initSCPalam(D.ecstacypalam)>>
+                <<print T.printtext.join('')>>
+            <</if>>
         </div>
         <div class="SCPalamBox">
-            <div class="SCPalamtype">[痛楚]</div>
-            <<run F.initSCPalam(D.painpalam)>>
-            <<print T.printtext.join('')>>
+            <<if (Config.debug || T.showChara.cid == "player")>>
+                <div class="SCPalamtype">[痛楚]</div>
+                <<run F.initSCPalam(D.painpalam)>>
+                <<print T.printtext.join('')>>
+            <</if>>
         </div>
     <</widget>>
 
 :: ShowCharaLocation[widget]
     <<widget 'ShowCharaLocation'>>
-        
+        <<if (Config.debug && T.showChara.cid !== "player")>>
+        <div>
+        当前位置:<<=worldMap[T.showChara.location.mapId].name[0]>>
+        -
+        <<run T.spotid = worldMap[T.showChara.location.mapId].findspot(T.showChara.location.coord[0],T.showChara.location.coord[1])>>
+        <<= worldMap[T.showChara.location.mapId][T.spotid].name>>
+        </div>
+        <</if>>
     <</widget>>
 
 :: ShowCharaWork[widget]

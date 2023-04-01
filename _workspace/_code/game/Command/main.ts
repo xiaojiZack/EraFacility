@@ -230,7 +230,7 @@ Com.Check = function (id) {
 	if (com?.before) com.before();
 
 	if (!Story.has(`Com_${id}`)) {
-		P.flow("缺乏事件文本", 30, 1);
+		if (Config.debug) P.flow("缺乏事件文本", 30, 1);
 		Com.resetScene();
 	}
 	//存在待执行文本就直接出现Next按钮。

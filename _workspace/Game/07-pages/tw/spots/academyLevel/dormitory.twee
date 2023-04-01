@@ -1,0 +1,6 @@
+:: Msg_Spots_academyLevel_dormitory
+    你正站在学院层宿舍门口
+    <<link "进入">>
+        <<set T.jumpMove = {mapId:"dorm",coord:[6,3], allowjump:true}>>
+        <<run Com.Check("0-move-jump");>>
+    <</link>>

@@ -59,11 +59,26 @@
     text-align: left;
 }
 
+.SCTrait-blur{
+    display: grid;
+    grid-template-rows: auto auto auto auto;
+    text-align: left;
+    filter: blur(10px);
+}
+
 .SCExp{
     display: grid;
     grid-template-columns: auto auto auto auto auto;
     text-align: left;
     grid-column: 1/span 4;
+}
+
+.SCExp-blur{
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    text-align: left;
+    grid-column: 1/span 4;
+    filter: blur(5px);
 }
 
 .SCSbl{
@@ -80,6 +95,16 @@
     grid-column: 1/span 4;
     border: 0px solid rgba(255,255,0,0.6);
     width: 90%;
+}
+
+.SCBody-blur{
+    display: grid;
+    grid-template-columns: auto auto;
+    text-align: left;
+    grid-column: 1/span 4;
+    border: 0px solid rgba(255,255,0,0.6);
+    width: 90%;
+    filter: blur(3px);
 }
 
 .SCOrgan{
@@ -123,6 +148,15 @@
     padding: 5px;
     gap: 5px;
     grid-column: span 4;
+}
+
+.SCPalamBox-blur{
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+    padding: 5px;
+    gap: 5px;
+    grid-column: span 4;
+    filter: blur(3px);
 }
 
 .SCPalamBar{

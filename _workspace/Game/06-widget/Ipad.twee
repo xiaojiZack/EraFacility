@@ -1,0 +1,55 @@
+:: SideBarIpad[widget]
+    <<widget "SideBarIpad">>
+        <<button "查看信息">><<Ipad "testIpad">><</button>>
+    <</widget>>
+
+:: Ipad[widget]
+    <<widget "Ipad">>
+        <<set _key to _args[0]>>
+        <<script>>
+            $("#customOverlay").removeClass("hidden").parent().removeClass("hidden");
+            $("#customOverlay").attr("data-overlay", T.currentOverlay);
+        <</script>>
+        <<run console.log(T.key)>>
+        <<switch _key>>
+            <<case "testIpad">>
+                <<replace #customOverlayTitle>><<IpadTab>><</replace>>
+                <<replace #customOverlayContent>><<FacilityInf>><</replace>>
+        <</switch>>
+    <</widget>>
+
+    <<widget "TitleIpadTest">>
+        <div id="overlayTabs" class="tab">
+            <<button "IpadTest">>
+                <<replace #customOverlayContent>><<IpadTest>><</replace>>
+            <</button>>
+        </div>
+        <<closeButton>>
+    <</widget>>
+    <<widget "IpadTest">>
+        <<set _showChara=C['player']>>
+        <<showChara>>
+    <</widget>>
+
+    <<widget "IpadTab">>
+            <div id="overlayTabs" class="tab">
+                <<button "设施信息">>
+                    <<replace #customOverlayContent>><<FacilityInf>><</replace>>
+                <</button>>
+                <<button "人物档案">>
+                    <<replace #customOverlayContent>><<IpadCharalist>><</replace>>
+                <</button>>
+            </div>
+        <<closeButton>>
+    <</widget>>
+
+    <<widget "closeButton">>
+        <div class="customOverlayClose" onclick="F.closeOverlay()"></div>
+    <</widget>>
+
+:: overlayReplace[widget]
+    <<widget "setupTabs">>
+        <<script>>
+           
+        <</script>>
+    <</widget>>

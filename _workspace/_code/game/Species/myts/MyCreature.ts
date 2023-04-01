@@ -57,7 +57,6 @@ export class MyCreature extends Creature{
 		this.r = MySpecies.data[this.species];
 
 		this.name = name;
-
 		if (gender) {
 			this.gender = gender;
 		} else {
@@ -103,6 +102,7 @@ export class MyCreature extends Creature{
 		this.randomSituAbility();
 	}
 	initSpecies(obj = {} as any) {
+		console.log(obj)
 		this.bodysize = obj.bodysize || random(5);
 		this.initApp(obj);
 		this.body = this.r.configureBody(this.gender, this.appearance.height, obj);
@@ -115,7 +115,7 @@ export class MyCreature extends Creature{
 	}
 	initApp(obj = {} as any) {
 		const app = this.appearance;
-
+		obj = obj.appearance?obj.appearance:obj;
 		app.height = obj.height || GenerateHeight(this.bodysize);
 		app.weight = obj.weight || GenerateWeight(app.height);
 		app.beauty = 1000;

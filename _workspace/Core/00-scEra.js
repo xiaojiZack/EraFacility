@@ -376,7 +376,8 @@
 	    year: S.date[0],
 	    month: S.date[1],
 	    day: S.date[2],
-	    time: S.date[3]
+	    week: S.date[3],
+	    time: S.date[4]
 	  };
 	  V.location = {
 	    spotname: "",

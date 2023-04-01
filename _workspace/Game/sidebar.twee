@@ -16,9 +16,7 @@
        $('#story-header').removeClass('hidden') 
     }
 >>
-/*
-这里是header. 每个页面都会运行。<br>
-*/
+/*这里是header. 每个页面都会运行。<br>*/
 
 :: StoryCaption
 <<if $system.showSideBarTitle>>
@@ -27,7 +25,13 @@ EraFacility beta 0.0.1<br>
 <</if>>
 
 /* 这里显示目前操作角色的信息 */
+<<if $system.showHeaderInf>>
+    <<HeaderShowTime>>
+    <<HeaderShowMoney>>
+    <<dashline>>
+<</if>>
 <<sidebarMap>>
+<<SideBarIpad>>
 <div id='random_tips'>
 </div>
 <div id='update_note'>
@@ -35,6 +39,12 @@ EraFacility beta 0.0.1<br>
 
 :: PassageFooter
 /*这里是footer。每个页面都会运行。<br>*/
+<div id="customOverlayContainer" class="customOverlayContainer no-numberify hidden" onclick="F.closeOverlay()">
+	<div id="customOverlay" class="customOverlay hidden" onclick="event.stopPropagation()">
+		<div id="customOverlayTitle"></div>
+		<div id="customOverlayContent"></div>
+	</div>
+</div>
 
 :: PassageReady
 <<run

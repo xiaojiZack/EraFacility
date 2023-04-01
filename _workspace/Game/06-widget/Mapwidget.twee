@@ -1,0 +1,4 @@
+:: Get_Msg_Map_neighbor[widget]
+    <<widget 'Get_Msg_Map_neighbor'>>
+        <<run F.Get_Msg_Map_neighbor()>>
+    <</widget>>
