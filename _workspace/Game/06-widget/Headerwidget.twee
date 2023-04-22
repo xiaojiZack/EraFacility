@@ -1,15 +1,15 @@
-:: HeaderShowMoney[widget]
-<<widget "HeaderShowMoney">>
-    <div id="HeaderShowMoney">
+:: sideBarShowMoney[widget]
+<<widget "sideBarShowMoney">>
+    <div id="sideBarShowMoney">
         <<if C[$pc]>>
             资金:<<= C[$pc].wallet>>G
         <</if>>
     </div>
 <</widget>>
 
-:: HeaderShowTime[widget]
-<<widget "HeaderShowTime">>
-    <div id ="HeaderShowTime">
-        时间:$date.year年$date.month月$date.day日 <<= Math.floor($date.time/60)>>：<<= parseInt($date.time%60)>>
+:: sideBarShowTime[widget]
+<<widget "sideBarShowTime">>
+    <div id ="sideBarShowTime">
+        时间:$date.year年$date.month月$date.day日 <<= Math.floor($date.time/60)>>：<<= $date.time%60>>
     </div>
 <</widget>>

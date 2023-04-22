@@ -51,6 +51,7 @@ if (window.Com) {
 		}
 
 		new Wikifier(null, `<<replace #location>>${html}<</replace>>`);
+		new Wikifier(null, `<<replace #sidebarShowChara>><<sidebarShowChara>><</replace>>`)
 	};
 
 	//高潮、射精、刻印获得、素质变动事件的处理

@@ -6,7 +6,7 @@
 		"order": 0,
 		"sourceEffect": [
 			["fear", 0.8],
-			["angry", 0.8],
+			["resist", 0.8],
 			["depress", 0.8]
 		]
 	},
@@ -17,7 +17,8 @@
 		"order": 0,
 		"sourceEffect": [
 			["surrend", 0.8],
-			["angry", 1.2],
+			["deference",0.8],
+			["resist", 1.2],
 			["favo", 1.2]
 		]
 	},
@@ -27,7 +28,8 @@
 		"des": "温和顺从的性格。",
 		"order": 5,
 		"sourceEffect": [
-			["surrend", 1.4],
+			["surrend", 1.2],
+			["deference",1.4],
 			["resist", 0.6],
 			["favo", 1.2]
 		]
@@ -39,6 +41,7 @@
 		"order": -10,
 		"sourceEffect": [
 			["surrend", 0.5],
+			["deference",0.5],
 			["resist", 1.5],
 			["favo", 0.6]
 		]
@@ -50,6 +53,7 @@
 		"order": -5,
 		"sourceEffect": [
 			["surrend", 0.5],
+			["deference",0.5],
 			["humiliate", 1.2],
 			["resist", 1.2],
 			["favo", 0.8],
@@ -63,6 +67,7 @@
 		"order": -5,
 		"sourceEffect": [
 			["surrend", 1.5],
+			["deference",1.5],
 			["fear", 1.4],
 			["humiliate", 1.2],
 			["depress", 1.4],
@@ -112,15 +117,14 @@
 		"sourceEffect": [
 			["lust", 0.7],
 			["surrend", 0.7],
+			["deference",0.7],
 			["fear", 0.7],
 			["mortify", 0.7],
 			["humiliate", 0.7],
 			["depress", 0.7],
 			["resist", 0.7],
 			["favo", 0.7],
-			["uncomfort", 0.7],
-			["eager", 0.7],
-			["angry", 0.7],
+			["deference", 0.7],
 			["satisfy", 1.2],
 			["superior", 0.7],
 			["esAll", 0.9]

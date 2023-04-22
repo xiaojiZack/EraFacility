@@ -25,11 +25,14 @@ appearance.hairstyle, 双马尾
 appearance.skincolor, 白色
 appearance.height, 1600
 
-sbl.exhibition, 1
+sbl.exhibition, 2
 
-breast.size, 1
+breast.size, 2
 vagina.sens, 1
 
-equip, 连衣裙
-equip, 毛绒拖鞋
+kojo, Alisa
+
+equip, 衬衫
 equip, 三角内裤
+equip, 耳机
+equip, 毛绒拖鞋

@@ -43,10 +43,35 @@
             "back":[0,0],
             "waistback":[0,2],
             "private":[0,2],
-            "genital":[0,3],
-            "butt":[1,2],
-            "anus":[1,3]
+            "genital":[1,3],
+            "butts":[1,2],
+            "anus":[1,2]
         },
         "allure":0.05
+	},
+    {
+		"name": ["衬衫(敞开)","open_shirt"],
+		"des": [
+			"物品说明"
+		],
+		"group": "clothes",
+		"category": "outfitUp",
+        "gender":"h",
+		"tags": ["basic","normal"],
+        "price": 0,
+        "color": [],
+        "cover":{
+            "shoulder":[0,0],
+            "arms":[0,0],
+            "breasts":[2,2],
+            "abdomen":[3,3],
+            "back":[0,0],
+            "waistback":[1,2],
+            "private":[3,3],
+            "genital":[3,3],
+            "butts":[1,2],
+            "anus":[1,2]
+        },
+        "allure":0.1
 	}
 ]

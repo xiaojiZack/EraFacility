@@ -29,8 +29,7 @@
 		],
 		"order": 5,
 		"sourceEffect": [
-			["lust", 1.4],
-			["eager", 1.4]
+			["lust", 1.4]
 		],
 		"rate":0.2
 	},
@@ -43,7 +42,6 @@
 		"order": -5,
 		"sourceEffect": [
 			["lust", 0.6],
-			["eager", 0.6],
 			["favo", 1.2]
 		],
 		"rate":0.2

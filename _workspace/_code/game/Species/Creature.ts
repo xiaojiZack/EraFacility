@@ -277,7 +277,7 @@ export class Creature {
 		this.palam = {};
 		this.source = {};
 		Object.keys(D.palam).forEach((key) => {
-			this.palam[key] = [0, 1200];
+			this.palam[key] = [0, 0];
 			this.source[key] = 0;
 		});
 		return this;

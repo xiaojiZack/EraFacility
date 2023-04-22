@@ -5,6 +5,7 @@ F.sourceCheck = function (chara, cid) {
 
 	//根据素质进行数值处理. 数值buff最后处理
 	F.traitSource(chara, cid);
+
 };
 
 F.ablSource = function (chara, cid) {
@@ -40,40 +41,33 @@ F.traitSource = function (chara, cid) {
 
 F.sourceUp = function (chara) {
 	//根据处理结果进行反馈。并输出结果文字到 S.sourceResult下。当启用显示结果数值时，会显示在COM after之后。
-	const base = Object.keys(D.base);
+	const base = Object.values(D.basekey);
 	const palam = Object.keys(D.palam);
 
 	let retext = [chara.name + "数值变动："];
-
 	for (let i in chara.source) {
 		let msg = "";
-
 		if (chara.source[i] !== 0) {
 			//将变动记录作为文本记录到 S.msg 里面。
 			const v = chara.source[i];
 			const lv = chara.palam[i][0] + 1;
 			msg = `>> ${lan(D.palam[i])}${v > 0 ? " + " : " - "}${v} = ${chara.palam[i][1] + v} / ${S.palamLv[lv]}`;
 		}
-
 		if (base.includes(i) && chara.source[i]) {
 			chara.base[i][0] = Math.clamp(chara.base[i][0] + chara.source[i], -100, chara.base[i][1] * 1.5);
 		}
-
 		if (palam.includes(i) && chara.source[i]) {
 			const lv = chara.palam[i][0] + 1;
-
 			chara.palam[i][1] += chara.source[i];
 
 			//palam lv的处理， 顺便在这里记录变动文本？
-			if (chara.palam[i][1] >= D.palamLv[lv]) {
-				chara.palam[i][i] -= D.palamLv[lv];
+			while (chara.palam[i][1] >= S.palamLv[lv] && chara.palam[i][0]<=S.palamLv.length) {
+				chara.palam[i][1] -= S.palamLv[lv];
 				//use clamp to limit the palam lv
-				chara.palam[i][0] = Math.clamp(chara.palam[i][0] + 1, 0, S.palamLv.length);
-
-				msg += "　Lvup!!";
+				chara.palam[i][0] += 1;//Math.clamp(chara.palam[i][0] + 1, 0, S.palamLv.length);
 			}
 		}
-
+		
 		if (msg) retext.push(msg);
 		//清空数值
 		chara.source[i] = 0;

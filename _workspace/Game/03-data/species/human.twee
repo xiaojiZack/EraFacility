@@ -94,7 +94,7 @@
 		<sizeLv>1</sizeLv>
 		<conduct>
 			<uetrus rate='0.1' inflateRequire='3'></uetrus>
-			<outside rate='0.8'></outside>
+			<thighs rate='0.8'></thighs>
 			<absorb rate='0.2' inflateRequire='1'></absorb>
 		</conduct>
 		<produce>
@@ -104,7 +104,7 @@
    <clitoris name='clitoris' group='genitals' pos='i' herm='false'></clitoris>
 
    <penis name='penis' group='genitals' pos='f'>
-		<size default='3' max='5'></size>
+		<size default='2' max='4'></size>
    </penis>
    <testicles name='testicles' group='genitals' pos='rt' herm='false'>
 		<capacity default='30'></capacity>

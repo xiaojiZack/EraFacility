@@ -3036,7 +3036,7 @@
 	    this.palam = {};
 	    this.source = {};
 	    Object.keys(D.palam).forEach((key) => {
-	      this.palam[key] = [0, 1200];
+	      this.palam[key] = [0, 0];
 	      this.source[key] = 0;
 	    });
 	    return this;
@@ -3604,7 +3604,7 @@
 	class MyChara extends Chara {
 	  static new(CharaId, obj) {
 	    let chara = new MyChara(CharaId, obj).Init(obj).initChara(obj);
-	    MyChara.data[CharaId] = chara;
+	    C[CharaId] = chara;
 	    return chara;
 	  }
 	  initChara(obj) {
@@ -3618,6 +3618,7 @@
 	    this.initFlag();
 	    this.initLiquid();
 	    this.initSituAbility();
+	    this.initKojo();
 	    this.initLocation(obj);
 	    if (obj.stats) {
 	      this.Stats(obj.stats);
@@ -3654,6 +3655,22 @@
 	    });
 	    return this;
 	  }
+	  initKojo() {
+	    this.kojo = this.cid;
+	    return this;
+	  }
+	  initLiquid() {
+	    this.liquid = {};
+	    D.liquidPlace.forEach((alpha) => {
+	      let i = alpha.toLowerCase();
+	      this.liquid[i] = {};
+	      Object.keys(D.liquidType).forEach((key) => {
+	        this.liquid[i][key] = 0;
+	      });
+	      this.liquid[i].total = 0;
+	    });
+	    return this;
+	  }
 	  initReveals() {
 	    this.reveals = {};
 	    const ignore = ["vagina", "penis", "buttL", "buttR"];
@@ -3671,6 +3688,7 @@
 	    this.reveals.parts = Object.keys(this.reveals.detail);
 	    this.reveals.tags = {};
 	    this.reveals.cloth = {};
+	    this.reveals.clothSumUp = {};
 	    this.reveals.parts.forEach((k) => {
 	      this.reveals.cloth[k] = {};
 	      Object.keys(D.equipSlot).forEach((layer) => {
@@ -3735,6 +3753,7 @@
 	    this.reveals.parts.forEach((k) => {
 	      this.CalvisibleAndTouchable(k, clothcover, { expose: 3, block: 3 });
 	    });
+	    this.CalClothReveals();
 	    this.CalRevealsLevel();
 	  }
 	  CalvisibleAndTouchable(skin, forest, VT) {
@@ -3750,6 +3769,50 @@
 	    }
 	    this.reveals.detail[skin] = VT;
 	  }
+	  CalClothReveals() {
+	    const reveals = this.reveals;
+	    const clothcover2 = [
+	      "cover",
+	      "head",
+	      "face",
+	      "ears",
+	      "hands",
+	      "neck",
+	      "outfitUp",
+	      "outfitBt",
+	      "feet",
+	      "innerUp",
+	      "legs",
+	      "innerBt",
+	      "chest",
+	      "bottom"
+	    ];
+	    const revealsDetail = {};
+	    clothcover2.forEach((layer) => {
+	      for (const key of Object.keys(reveals.cloth)) {
+	        const clothReveals = reveals.cloth[key];
+	        if (Object.keys(clothReveals).includes(layer)) {
+	          revealsDetail[layer] = revealsDetail[layer] ? revealsDetail[layer] : { expose: 0 };
+	          if (clothReveals[layer].expose == 3) {
+	            revealsDetail[layer].expose = 3;
+	          }
+	          if (clothReveals[layer].expose == 2 && revealsDetail[layer].expose < 3) {
+	            revealsDetail[layer].expose = 2;
+	            let index = Object.keys(clothReveals).indexOf(layer);
+	            revealsDetail[layer].cover = Object.keys(clothReveals)[index - 1];
+	            revealsDetail[layer].layer = layer;
+	          }
+	          if (clothReveals[layer].expose == 1 && revealsDetail[layer].expose < 2) {
+	            revealsDetail[layer].expose = 1;
+	            let index = Object.keys(clothReveals).indexOf(layer);
+	            revealsDetail[layer].cover = Object.keys(clothReveals)[index - 1];
+	            revealsDetail[layer].layer = layer;
+	          }
+	        }
+	      }
+	    });
+	    this.reveals.clothSumUp = revealsDetail;
+	  }
 	  CalRevealsLevel() {
 	    let tags = this.reveals.tags;
 	    for (let part of ["genital", "anus", "breasts", "private", "butts", "thighs", "abdomen"])
@@ -3758,12 +3821,13 @@
 	      tags["no pangci"] = 3;
 	    else
 	      tags["no pangci"] = 0;
+	    tags["see pangci"] = this.equip.tags.includes("pangci") ? this.reveals.clothSumUp["innerBt"].expose : 0;
 	    if (this.reveals.detail["breasts"].expose == 0 && !this.equip.tags.includes("bra"))
 	      tags["no bra"] = 3;
-	    else
+	    else {
 	      tags["no bra"] = 0;
-	    tags["see pangci"] = this.equip.tags.includes["pangci"] ? this.reveals.cloth["genital"]["innerBt"].expose : 0;
-	    tags["see bra"] = this.equip.tags.includes["bra"] ? this.reveals.cloth["breasts"]["innerBt"].expose : 0;
+	    }
+	    tags["see bra"] = this.equip.tags.includes("bra") ? this.reveals.clothSumUp["innerUp"].expose : 0;
 	    if (this.gender == "male") {
 	      tags["see bra"] = 0;
 	      tags["no bra"] = 0;
@@ -4806,6 +4870,7 @@ Com.listUp();
 	      delete T.afterselect;
 	      return;
 	    }
+	    console.log(this.msg);
 	    T.msgId++;
 	    let dialog = this.msg.logs[T.msgId];
 	    if (T.msgId < this.msg.len) {
@@ -4818,7 +4883,7 @@ Com.listUp();
 	    const e = V.event;
 	    const config = this.config;
 	    const { type = "end", exit = this.msg.exit, exitButton = this.msg.next } = config;
-	    console.log("nextScene", type, config, e, V.selectId);
+	    console.log("nextScene", type, "config", config, "e", e, "selectid", V.selectId);
 	    switch (type) {
 	      case "return":
 	        this.return(config);
@@ -4869,6 +4934,7 @@ Com.listUp();
 	    }
 	    setTimeout(() => {
 	      if (config.target && !e.fullTitle.includes(config.target)) {
+	        e.fullTitle = config.target;
 	        this.before(config.target);
 	      } else {
 	        e.fullTitle = this.combineTitle(e);
@@ -4957,7 +5023,7 @@ Com.listUp();
    `;
 	  scEra.newPsg("DialogMain", html);
 	  $(document).on("dialog:set", function(event, data) {
-	    console.log(event, data);
+	    console.log("\u6267\u884C\u4E8B\u4EF6", event, data);
 	    Dialogs.before();
 	  });
 	}
@@ -4979,7 +5045,8 @@ Com.listUp();
 	      msg: setMsg,
 	      error: errorView,
 	      resetMsg,
-	      clearMsg
+	      clearMsg,
+	      clearComment
 	    }
 	  },
 	  Init: ["InitDialogMain"]
@@ -5037,6 +5104,7 @@ Com.listUp();
 	  }
 	  static has(cid, { type, id = "", dif = "", check }) {
 	    let title = _Kojo.title(cid, type, id, dif);
+	    console.log("try get Kojo Title", title);
 	    if (dif) {
 	      dif = `:${dif}`;
 	    }
@@ -5051,7 +5119,11 @@ Com.listUp();
 	    return Story.has(title);
 	  }
 	  static put(cid, { type, id, dif, noTag }) {
+	    if (type == "event") {
+	      return `<<= Dialogs.set({tp:'Kojo_${cid}_event',nm:'${id}'})>>`;
+	    }
 	    let title = _Kojo.title(cid, type, id, dif);
+	    console.log("try put Kojo", title);
 	    if (dif) {
 	      dif = `:${dif}`;
 	    }
@@ -5075,8 +5147,8 @@ Com.listUp();
 	      T.noMsg = 1;
 	      return "";
 	    }
-	    let txt2 = checkTxtWithCode(retext2.text);
-	    if (txt2.length > 1) {
+	    let txt_length = checkTxtWithCode(retext2.text);
+	    if (txt_length > 1) {
 	      retext2 = retext2.text;
 	      let matcher = [`<<nameTag '${cid}'>>`, `<<nameTag "${cid}">>`];
 	      if (!retext2.has(matcher) && !noTag) {
@@ -5107,6 +5179,7 @@ Com.listUp();
 	    this.home = "void";
 	    this.relation = {};
 	    this.counter = [];
+	    this.callNameList = {};
 	  }
 	  Intro(str) {
 	    this.intro = str;
@@ -5176,6 +5249,14 @@ Com.listUp();
 	    } else {
 	      this.preset.push([name, objs]);
 	    }
+	    return this;
+	  }
+	  SetUpdate(method) {
+	    this.update = method;
+	    return this;
+	  }
+	  CallName(obj) {
+	    this.callNameList[obj[0]] = obj[1];
 	    return this;
 	  }
 	};

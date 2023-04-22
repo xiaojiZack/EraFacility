@@ -52,7 +52,7 @@
 :: Test_Chapter_ep1:sp2
 选择了B，准备跳转到另一个地方。
 #:{ "type":"jump", "target":"Test_Chapter", "phase":1}
-
+1
 :: Test_Chapter:sp1
 <<run Dialogs.clear(2)>>
 <fr>

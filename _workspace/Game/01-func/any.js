@@ -1,5 +1,7 @@
+//在05-system\mapSystem.js内定义
 F.summonChara = function () {};
 
+//在05-system\timeSystem.js内定义
 F.passtime = function () {};
 
 F.charaEvent = function() {};
@@ -13,3 +15,8 @@ F.dashline = function () {
 	return "----------------------------------------";
 };
 DefineMacros("dashline", F.dashline);
+
+F.nameTag = function(cid){
+	return "";
+}
+DefineMacros("nameTag", F.nameTag)

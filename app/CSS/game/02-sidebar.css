@@ -195,7 +195,7 @@
     z-index: 1000;
 }
 
-#HeaderShowTime {
+#sideBarShowTime {
   position: relative;
   top: 2px;
   font-size: 10px;
@@ -203,7 +203,7 @@
   z-index: 1000;
 }
 
-#HeaderShowMoney {
+#sideBarShowMoney {
   position: relative;
   top: 2px;
   font-size: 10px;
@@ -460,3 +460,33 @@
   .customOverlayClose:after {
 	transform: rotate(-45deg);
   }
+
+#sidebarBaseBarContainer{
+  border: 1px ;
+  padding: 1px;
+  width: auto;
+  line-height: 1;
+}
+
+.sidebarBaseBar{
+  border: 1px ;
+  padding: 1px;
+  height: 2px;
+  
+}
+
+.sidebarBaseDescribe{
+  font-size: small;
+}
+
+.sidebarPalamDescribe{
+  font-size: small;
+}
+
+.sidebarEquipDescribe{
+  font-size: small;
+}
+
+.sidebarLiquidDescribe{
+  font-size: small;
+}

@@ -2321,7 +2321,7 @@ window.parseXml = function (xml, arrayTags) {
 	    Wikifier: { value: scEra.wikifier },
 	    V: { get: () => scEra.state.variables },
 	    T: { get: () => scEra.state.temporary },
-	    C: { get: () => M.Creatures.classObj.MyChara.data },
+	    C: { get: () => scEra.state.variables.chara },
 	    Flag: {
 	      get: () => scEra.state.variables.flag
 	    }
@@ -5488,7 +5488,7 @@ window.parseXml = function (xml, arrayTags) {
 	    this.palam = {};
 	    this.source = {};
 	    Object.keys(D.palam).forEach((key) => {
-	      this.palam[key] = [0, 1200];
+	      this.palam[key] = [0, 0];
 	      this.source[key] = 0;
 	    });
 	    return this;
@@ -6056,7 +6056,7 @@ window.parseXml = function (xml, arrayTags) {
 	class MyChara extends Chara {
 	  static new(CharaId, obj) {
 	    let chara = new MyChara(CharaId, obj).Init(obj).initChara(obj);
-	    MyChara.data[CharaId] = chara;
+	    C[CharaId] = chara;
 	    return chara;
 	  }
 	  initChara(obj) {
@@ -6070,6 +6070,7 @@ window.parseXml = function (xml, arrayTags) {
 	    this.initFlag();
 	    this.initLiquid();
 	    this.initSituAbility();
+	    this.initKojo();
 	    this.initLocation(obj);
 	    if (obj.stats) {
 	      this.Stats(obj.stats);
@@ -6106,6 +6107,22 @@ window.parseXml = function (xml, arrayTags) {
 	    });
 	    return this;
 	  }
+	  initKojo() {
+	    this.kojo = this.cid;
+	    return this;
+	  }
+	  initLiquid() {
+	    this.liquid = {};
+	    D.liquidPlace.forEach((alpha) => {
+	      let i = alpha.toLowerCase();
+	      this.liquid[i] = {};
+	      Object.keys(D.liquidType).forEach((key) => {
+	        this.liquid[i][key] = 0;
+	      });
+	      this.liquid[i].total = 0;
+	    });
+	    return this;
+	  }
 	  initReveals() {
 	    this.reveals = {};
 	    const ignore = ["vagina", "penis", "buttL", "buttR"];
@@ -6123,6 +6140,7 @@ window.parseXml = function (xml, arrayTags) {
 	    this.reveals.parts = Object.keys(this.reveals.detail);
 	    this.reveals.tags = {};
 	    this.reveals.cloth = {};
+	    this.reveals.clothSumUp = {};
 	    this.reveals.parts.forEach((k) => {
 	      this.reveals.cloth[k] = {};
 	      Object.keys(D.equipSlot).forEach((layer) => {
@@ -6187,6 +6205,7 @@ window.parseXml = function (xml, arrayTags) {
 	    this.reveals.parts.forEach((k) => {
 	      this.CalvisibleAndTouchable(k, clothcover, { expose: 3, block: 3 });
 	    });
+	    this.CalClothReveals();
 	    this.CalRevealsLevel();
 	  }
 	  CalvisibleAndTouchable(skin, forest, VT) {
@@ -6202,6 +6221,50 @@ window.parseXml = function (xml, arrayTags) {
 	    }
 	    this.reveals.detail[skin] = VT;
 	  }
+	  CalClothReveals() {
+	    const reveals = this.reveals;
+	    const clothcover2 = [
+	      "cover",
+	      "head",
+	      "face",
+	      "ears",
+	      "hands",
+	      "neck",
+	      "outfitUp",
+	      "outfitBt",
+	      "feet",
+	      "innerUp",
+	      "legs",
+	      "innerBt",
+	      "chest",
+	      "bottom"
+	    ];
+	    const revealsDetail = {};
+	    clothcover2.forEach((layer) => {
+	      for (const key of Object.keys(reveals.cloth)) {
+	        const clothReveals = reveals.cloth[key];
+	        if (Object.keys(clothReveals).includes(layer)) {
+	          revealsDetail[layer] = revealsDetail[layer] ? revealsDetail[layer] : { expose: 0 };
+	          if (clothReveals[layer].expose == 3) {
+	            revealsDetail[layer].expose = 3;
+	          }
+	          if (clothReveals[layer].expose == 2 && revealsDetail[layer].expose < 3) {
+	            revealsDetail[layer].expose = 2;
+	            let index = Object.keys(clothReveals).indexOf(layer);
+	            revealsDetail[layer].cover = Object.keys(clothReveals)[index - 1];
+	            revealsDetail[layer].layer = layer;
+	          }
+	          if (clothReveals[layer].expose == 1 && revealsDetail[layer].expose < 2) {
+	            revealsDetail[layer].expose = 1;
+	            let index = Object.keys(clothReveals).indexOf(layer);
+	            revealsDetail[layer].cover = Object.keys(clothReveals)[index - 1];
+	            revealsDetail[layer].layer = layer;
+	          }
+	        }
+	      }
+	    });
+	    this.reveals.clothSumUp = revealsDetail;
+	  }
 	  CalRevealsLevel() {
 	    let tags = this.reveals.tags;
 	    for (let part of ["genital", "anus", "breasts", "private", "butts", "thighs", "abdomen"])
@@ -6210,12 +6273,13 @@ window.parseXml = function (xml, arrayTags) {
 	      tags["no pangci"] = 3;
 	    else
 	      tags["no pangci"] = 0;
+	    tags["see pangci"] = this.equip.tags.includes("pangci") ? this.reveals.clothSumUp["innerBt"].expose : 0;
 	    if (this.reveals.detail["breasts"].expose == 0 && !this.equip.tags.includes("bra"))
 	      tags["no bra"] = 3;
-	    else
+	    else {
 	      tags["no bra"] = 0;
-	    tags["see pangci"] = this.equip.tags.includes["pangci"] ? this.reveals.cloth["genital"]["innerBt"].expose : 0;
-	    tags["see bra"] = this.equip.tags.includes["bra"] ? this.reveals.cloth["breasts"]["innerBt"].expose : 0;
+	    }
+	    tags["see bra"] = this.equip.tags.includes("bra") ? this.reveals.clothSumUp["innerUp"].expose : 0;
 	    if (this.gender == "male") {
 	      tags["see bra"] = 0;
 	      tags["no bra"] = 0;
@@ -7258,6 +7322,7 @@ Com.listUp();
 	      delete T.afterselect;
 	      return;
 	    }
+	    console.log(this.msg);
 	    T.msgId++;
 	    let dialog = this.msg.logs[T.msgId];
 	    if (T.msgId < this.msg.len) {
@@ -7270,7 +7335,7 @@ Com.listUp();
 	    const e = V.event;
 	    const config = this.config;
 	    const { type = "end", exit = this.msg.exit, exitButton = this.msg.next } = config;
-	    console.log("nextScene", type, config, e, V.selectId);
+	    console.log("nextScene", type, "config", config, "e", e, "selectid", V.selectId);
 	    switch (type) {
 	      case "return":
 	        this.return(config);
@@ -7321,6 +7386,7 @@ Com.listUp();
 	    }
 	    setTimeout(() => {
 	      if (config.target && !e.fullTitle.includes(config.target)) {
+	        e.fullTitle = config.target;
 	        this.before(config.target);
 	      } else {
 	        e.fullTitle = this.combineTitle(e);
@@ -7409,7 +7475,7 @@ Com.listUp();
    `;
 	  scEra.newPsg("DialogMain", html);
 	  $(document).on("dialog:set", function(event, data) {
-	    console.log(event, data);
+	    console.log("\u6267\u884C\u4E8B\u4EF6", event, data);
 	    Dialogs.before();
 	  });
 	}
@@ -7431,7 +7497,8 @@ Com.listUp();
 	      msg: setMsg,
 	      error: errorView,
 	      resetMsg,
-	      clearMsg
+	      clearMsg,
+	      clearComment
 	    }
 	  },
 	  Init: ["InitDialogMain"]
@@ -7489,6 +7556,7 @@ Com.listUp();
 	  }
 	  static has(cid, { type, id = "", dif = "", check }) {
 	    let title = _Kojo.title(cid, type, id, dif);
+	    console.log("try get Kojo Title", title);
 	    if (dif) {
 	      dif = `:${dif}`;
 	    }
@@ -7503,7 +7571,11 @@ Com.listUp();
 	    return Story.has(title);
 	  }
 	  static put(cid, { type, id, dif, noTag }) {
+	    if (type == "event") {
+	      return `<<= Dialogs.set({tp:'Kojo_${cid}_event',nm:'${id}'})>>`;
+	    }
 	    let title = _Kojo.title(cid, type, id, dif);
+	    console.log("try put Kojo", title);
 	    if (dif) {
 	      dif = `:${dif}`;
 	    }
@@ -7527,8 +7599,8 @@ Com.listUp();
 	      T.noMsg = 1;
 	      return "";
 	    }
-	    let txt2 = checkTxtWithCode(retext2.text);
-	    if (txt2.length > 1) {
+	    let txt_length = checkTxtWithCode(retext2.text);
+	    if (txt_length > 1) {
 	      retext2 = retext2.text;
 	      let matcher = [`<<nameTag '${cid}'>>`, `<<nameTag "${cid}">>`];
 	      if (!retext2.has(matcher) && !noTag) {
@@ -7559,6 +7631,7 @@ Com.listUp();
 	    this.home = "void";
 	    this.relation = {};
 	    this.counter = [];
+	    this.callNameList = {};
 	  }
 	  Intro(str) {
 	    this.intro = str;
@@ -7628,6 +7701,14 @@ Com.listUp();
 	    } else {
 	      this.preset.push([name, objs]);
 	    }
+	    return this;
+	  }
+	  SetUpdate(method) {
+	    this.update = method;
+	    return this;
+	  }
+	  CallName(obj) {
+	    this.callNameList[obj[0]] = obj[1];
 	    return this;
 	  }
 	};
@@ -7796,7 +7877,7 @@ D.coverlistB = Object.keys(D.covergroupB);</script>
 		<div id="init-lacking"><p>Browser lacks capabilities required to play.</p><p>Upgrade or switch to another browser.</p></div>
 		<div id="init-loading"><div>Loading&hellip;</div></div>
 	</div>
-	<!-- UUID://B0C16C95-EDFE-48A2-9746-BEADC30CE67C// --><tw-storydata name="EraFacility" startnode="70" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="B0C16C95-EDFE-48A2-9746-BEADC30CE67C" zoom="1" format="SugarCube" format-version="2.36.1" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css"></style><script role="script" id="twine-user-script" type="text/twine-javascript">/* twine-user-script #1: "00-loadfirst.js" */
+	<!-- UUID://B0C16C95-EDFE-48A2-9746-BEADC30CE67C// --><tw-storydata name="EraFacility" startnode="81" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="B0C16C95-EDFE-48A2-9746-BEADC30CE67C" zoom="1" format="SugarCube" format-version="2.36.1" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css"></style><script role="script" id="twine-user-script" type="text/twine-javascript">/* twine-user-script #1: "00-loadfirst.js" */
 //---------------------------------------------------------------------------
 //
 //  setup path
@@ -9519,8 +9600,10 @@ Perflog.report = function (options) {
 	return entries;
 };
 /* twine-user-script #16: "any.js" */
+//在05-system\mapSystem.js内定义
 F.summonChara = function () {};
 
+//在05-system\timeSystem.js内定义
 F.passtime = function () {};
 
 F.charaEvent = function() {};
@@ -9534,6 +9617,11 @@ F.dashline = function () {
 	return "----------------------------------------";
 };
 DefineMacros("dashline", F.dashline);
+
+F.nameTag = function(cid){
+	return "";
+}
+DefineMacros("nameTag", F.nameTag)
 /* twine-user-script #17: "fixer.js" */
 Fix.reveals = function (reveal, equip) {
 	const { detail } = reveal;
@@ -9627,6 +9715,8 @@ S.gameConfig = {
 	showAllCommand: 0,
 	showOrder: 0,
 	showSideBarMap: false,
+	showSideBarshowChara: false,
+	showSideBarBaseBar: false,
 	showSideBarTitle: true,
 	showHeaderInf:false,
 };
@@ -9650,7 +9740,7 @@ S.gameVars = {
 		total: 0,
 		now: 0,
 	},
-	chara: M.Creatures.classObj.MyChara.data,
+	chara: [],
 	player: {
 		name: "",
 	},
@@ -9663,10 +9753,10 @@ S.gameVars = {
 	tc: "",
 };
 
-S.startyear = 4066;
+S.startyear = 2050;
 
 //time setting. year, month, day, weekday, time(minute)
-S.date = [4066, 3, 14, 1, 1120];
+S.date = [2050, 3, 14, 1, 1120];
 
 //default exit link after event
 S.defaultExit = "MainLoop";
@@ -9708,9 +9798,162 @@ if (window.Com) {
 	//
 	//-------------------------------------------------------------------
 }
-/* twine-user-script #20: "initFunc.js" */
+/* twine-user-script #20: "0-tools.js" */
+function KojoInstall(obj){
+    const {
+        charaname,
+        color,
+        intro,
+        sleeptime,
+        wakeuptime,
+        home,
+        present = [],
+        action = [],
+        relation = [],
+        events = [],
+        filter = ()=>{return 1},
+        update = ()=>{},
+        callname = []
+    } = obj;
+    let newKojo = Kojo.set(charaname,color)
+    .Intro(intro)
+    .SleepTime(sleeptime)
+    .WakeupTime(wakeuptime)
+    .Home(home);
+    for (let Sets of present){
+        newKojo.Preset(Sets[0],Sets[1]);
+    }
+    for (let entrys of relation){
+        newKojo.Relation(entrys[0],entrys[1],entrys[2]);
+    }
+    for (let entrys of action){
+        newKojo.Action(entrys);
+    }
+    for (let entrys of events){
+        newKojo.Event(entrys);
+    }
+    newKojo.Filter=filter;
+    newKojo.update = update;
+    for (let entrys of callname){
+        newKojo.CallName(entrys);
+    }
+    return newKojo
+}
+
+/**
+ * 
+ * @param {*} Kojo Kojo类对象
+ * @description
+ *  返回对应Kojo中对玩家的称呼
+ * @example
+ *  <<callyou>>
+ */
+F.callPlayer = function(){
+    let Kojo = T.RuningKojo
+    return Kojo.Callname['player']?Kojo.Callname['player']:"你";
+}
+DefineMacros("callyou", F.callPlayer);
+/* twine-user-script #21: "Title.js" */
+/*
+Alisa
+*/
+
+let actions = [], events=[], preset=[]
+
+let kojoCard = {
+    charaname: "Alisa",
+    color: "blue", //口上颜色
+    intro: `学园长Alisa,作者硝基`,
+    home: `academyLevel_office`,
+    relation: [],
+    sleeptime: 22,
+    wakeuptime: 8,
+    //日程表:动作,地点,日期,开始时间,结束时间,持续时间,几率
+    scheduler: [
+        ["Act_game","home","all",8,22,14,100],
+        ["sleep","home","all",22,8,10,100]
+    ],
+    //服装设置
+    preset: preset,
+    //事件设置
+    events: events,
+    //动作设置
+    action: actions,
+    filter: ()=>{
+        return 1;
+    },
+    callname:[
+        ["player","你"]
+    ],
+    update:()=>{}
+}
+
+/**
+ * Action 设定
+ */
+kojoCard.actions = [
+    {
+        id:"game",
+        name:"打游戏",
+        type:"Interact",
+        tags:["alone"],
+        placement:"academyLevel_office",
+        setting:["kojo"],
+        actPart:["hands"],
+        targetPart:["None"],
+        effect:()=>{
+            let chara = C['Alisa'];
+            if (chara.mood<50) chara.mood = 50;
+        }
+    }
+]
+
+/**
+ * Event 设定
+ */
+
+kojoCard.events = [
+    {
+        id:"testEvent",
+        title:"Alisa_Event_Test",
+        config:[],
+        cond:()=>{return true},
+        branch:[],
+        branchCond:()=>{}
+    }
+]
+
+/**
+ * preset 设定
+ */
+kojoCard.preset = [
+    [
+        ["home",[
+            ["head","耳机"],
+            ["outfitUp","衬衫(敞开)"],
+            ["innerUp","普通胸罩"],
+            ["innerBt","三角内裤"],
+            ["feet","毛绒拖鞋"]
+        ]],
+        ["sleep",[
+            ["innerBt","三角内裤"],
+        ]]
+    ]
+]
+
+/**
+ * update 设定
+ */
+kojoCard.update= function(){
+    let chara = C[kojoCard.charaname];
+    if (chara.flag.changeEquip){
+        kojoCard.preset=chara.flag.changeEquip;
+    }
+}
+KojoInstall(kojoCard)
+/* twine-user-script #22: "initFunc.js" */
 console.log("now in initFunc.js");
-/* twine-user-script #21: "ActionUI.js" */
+/* twine-user-script #23: "ActionUI.js" */
 if (window.Action) {
 	const selectedActionBtn = function (name) {
 		return `<div class='actions selectAct'>[ ${name} ]</div>`;
@@ -9951,7 +10194,7 @@ if (window.Action) {
 		return "";
 	};
 }
-/* twine-user-script #22: "Time.js" */
+/* twine-user-script #24: "Time.js" */
 //执行对应代办事项
 F.charaAction = function(chara, cid){
     const HasHappen = V.timeEventList.getHasHappend(V.timeEventList.event.length)
@@ -9972,7 +10215,7 @@ function exectionRecord(chara, eventid, args){
         case("changeEquip"):break;
     }
 }
-/* twine-user-script #23: "ComEvent.js" */
+/* twine-user-script #25: "ComEvent.js" */
 if (window.Com) {
 	//update the scene
 	Com.updateScene = function () {
@@ -10026,6 +10269,7 @@ if (window.Com) {
 		}
 
 		new Wikifier(null, `<<replace #location>>${html}<</replace>>`);
+		new Wikifier(null, `<<replace #sidebarShowChara>><<sidebarShowChara>><</replace>>`)
 	};
 
 	//高潮、射精、刻印获得、素质变动事件的处理
@@ -10073,7 +10317,7 @@ if (window.Com) {
 		return "";
 	};
 }
-/* twine-user-script #24: "ComFilter.js" */
+/* twine-user-script #26: "ComFilter.js" */
 if (window.Com) {
 	//-------------------------------------------------------------------
 	//
@@ -10094,7 +10338,7 @@ if (window.Com) {
 		return 1;
 	};
 }
-/* twine-user-script #25: "comlist.js" */
+/* twine-user-script #27: "comlist.js" */
 //指令的初始化
 
 Com.new("system",{
@@ -10124,7 +10368,7 @@ Com.new("system",{
 //移动类指令统一生成
 createMoveComs();
 createJumpMoveComs();
-/* twine-user-script #26: "comutils.js" */
+/* twine-user-script #28: "comutils.js" */
 function createMoveComs(){
     let cn_dict = {'N':"北","S":"南","E":"东","W":"西"};
     for (let dir of ['N','E','S','W']){
@@ -10192,14 +10436,14 @@ function updateLocation(){
     let board = Boards.getBoard(V.location.mapId);
     V.location.spotid = board[coord[0]][coord[1]];
     V.location.printname = worldMap[V.location.mapId][V.location.spotid].name;
-    refrashSideBarMap();
+    F.refrashSideBar();
 }
 
-function refrashSideBarMap(){
-    if (document.getElementById("sidebarMap"))
-        new Wikifier(null, `<<replace #sidebarMap>> <<sidebarMap>><</replace>>`);
-    //$("#siderbarMap").remove();
-}
+// function refrashSideBarMap(){
+//     if (document.getElementById("sidebarMap"))
+//         new Wikifier(null, `<<replace #sidebarMap>> <<sidebarMap>><</replace>>`);
+//     //$("#siderbarMap").remove();
+// }
 
 
 function createJumpMoveComs(){
@@ -10225,7 +10469,7 @@ function createJumpMoveComs(){
     })
     
 }
-/* twine-user-script #27: "mapsystem.js" */
+/* twine-user-script #29: "mapSystem.js" */
 F.summonChara = function(){
     F.updateLocationChara()
     Com.updateScene()
@@ -10242,7 +10486,23 @@ F.updateLocationChara = function(){
             V.location.chara.push(cid)
     }
 }
-/* twine-user-script #28: "sourceTrack.js" */
+
+/**
+ * 绕过指令系统，仅仅改变坐标位置
+ * @param {*} mapId 
+ * @param {*} coord 
+ */
+F.changeLocation = function(mapId,x,y){
+    let loc = V.location;
+    loc.mapId = mapId;
+    loc.coord = [x,y];
+    let board = Boards.getBoard(V.location.mapId);
+    V.location.spotid = board[x][y];
+    V.location.printname = worldMap[V.location.mapId][V.location.spotid].name;
+    return ""
+}
+DefineMacros("changeLoc", F.changeLocation)
+/* twine-user-script #30: "sourceTrack.js" */
 F.sourceCheck = function (chara, cid) {
 	//source的处理。根据条件对source的获得值进行加减。
 
@@ -10250,6 +10510,7 @@ F.sourceCheck = function (chara, cid) {
 
 	//根据素质进行数值处理. 数值buff最后处理
 	F.traitSource(chara, cid);
+
 };
 
 F.ablSource = function (chara, cid) {
@@ -10285,40 +10546,33 @@ F.traitSource = function (chara, cid) {
 
 F.sourceUp = function (chara) {
 	//根据处理结果进行反馈。并输出结果文字到 S.sourceResult下。当启用显示结果数值时，会显示在COM after之后。
-	const base = Object.keys(D.base);
+	const base = Object.values(D.basekey);
 	const palam = Object.keys(D.palam);
 
 	let retext = [chara.name + "数值变动："];
-
 	for (let i in chara.source) {
 		let msg = "";
-
 		if (chara.source[i] !== 0) {
 			//将变动记录作为文本记录到 S.msg 里面。
 			const v = chara.source[i];
 			const lv = chara.palam[i][0] + 1;
 			msg = `>> ${lan(D.palam[i])}${v > 0 ? " + " : " - "}${v} = ${chara.palam[i][1] + v} / ${S.palamLv[lv]}`;
 		}
-
 		if (base.includes(i) && chara.source[i]) {
 			chara.base[i][0] = Math.clamp(chara.base[i][0] + chara.source[i], -100, chara.base[i][1] * 1.5);
 		}
-
 		if (palam.includes(i) && chara.source[i]) {
 			const lv = chara.palam[i][0] + 1;
-
 			chara.palam[i][1] += chara.source[i];
 
 			//palam lv的处理， 顺便在这里记录变动文本？
-			if (chara.palam[i][1] >= D.palamLv[lv]) {
-				chara.palam[i][i] -= D.palamLv[lv];
+			while (chara.palam[i][1] >= S.palamLv[lv] && chara.palam[i][0]<=S.palamLv.length) {
+				chara.palam[i][1] -= S.palamLv[lv];
 				//use clamp to limit the palam lv
-				chara.palam[i][0] = Math.clamp(chara.palam[i][0] + 1, 0, S.palamLv.length);
-
-				msg += "　Lvup!!";
+				chara.palam[i][0] += 1;//Math.clamp(chara.palam[i][0] + 1, 0, S.palamLv.length);
 			}
 		}
-
+		
 		if (msg) retext.push(msg);
 		//清空数值
 		chara.source[i] = 0;
@@ -10340,7 +10594,7 @@ F.trackCheck = function (chara, cid) {
 
    */
 };
-/* twine-user-script #29: "timeSystem.js" */
+/* twine-user-script #31: "timeSystem.js" */
 F.timeProcess = function (t) {
 	const date = V.date;
 
@@ -10376,11 +10630,12 @@ F.passtime = function (time) {
 	//时间变化时的处理
 	F.timeEffects(time);
 	F.timeProcess(time);
-
+    F.refrashSideBar();
 	return "";
 };
 
 DefineMacros("passtime", F.passtime);
+
 
 F.timeEffects = function (t, mode) {
 	const { pc, date, flag, time } = V;
@@ -10461,7 +10716,7 @@ class TimeEventList{
 }
 
 V.timeEventList = new TimeEventList();
-/* twine-user-script #30: "CharaInf.js" */
+/* twine-user-script #32: "CharaInf.js" */
 F.showIpadCharalist = function(){
     T.printText = [];
     console.log(C)
@@ -10491,8 +10746,8 @@ F.showIpadCharalist = function(){
         T.printText.push(temptext);
     })
 }
-/* twine-user-script #31: "FacilityInf.js" */
-/* twine-user-script #32: "Ipad.js" */
+/* twine-user-script #33: "FacilityInf.js" */
+/* twine-user-script #34: "Ipad.js" */
 function closeOverlay() {
 	$("#customOverlay").addClass("hidden").parent().addClass("hidden");
 }
@@ -10518,7 +10773,7 @@ function updateOptions() {
 	}
 }
 F.updateOptions = updateOptions;
-/* twine-user-script #33: "Mapwidget.js" */
+/* twine-user-script #35: "Mapwidget.js" */
 F.Get_Msg_Map_neighbor = function(){
     if (V.location.spotid !== "road") return ""; //仅在道路上显示周边建筑
 
@@ -10559,8 +10814,8 @@ F.Get_Msg_Map_neighbor = function(){
     }
     
 }
-/* twine-user-script #34: "condition.js" */
-/* twine-user-script #35: "hover.js" */
+/* twine-user-script #36: "condition.js" */
+/* twine-user-script #37: "hover.js" */
 /* HoverTxt - Start */
 var HTIntervalID = 0;
 $(document).on(":passagerender", function (ev) {
@@ -10611,9 +10866,9 @@ function UpdateHoverTxt(Container) {
 	}
 }
 /* HoverTxt - End */
-/* twine-user-script #36: "loading-bar.min.js" */
+/* twine-user-script #38: "loading-bar.min.js" */
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){var presets,simpleStr,wrap,slice$=[].slice,toString$={}.toString;presets=require("./presets").presets;simpleStr=function(arr){return arr.join("")};wrap=function(content){return"data:image/svg+xml;base64,"+btoa(content)};(function(){var make,handler,ldBar;make={head:function(viewBox){return'<?xml version="1.0" encoding="utf-8"?>\n        <svg xmlns="http://www.w3.org/2000/svg" viewBox="'+viewBox+'">'},gradient:function(dir,dur){var colors,ret,len,gx,gy,x,y,i$,i,idx;dir==null&&(dir=45);dur==null&&(dur=1);colors=slice$.call(arguments,2);ret=[this.head("0 0 100 100")];len=colors.length*4+1;dir=dir*Math.PI/180;gx=Math.pow(Math.cos(dir),2);gy=Math.sqrt(gx-Math.pow(gx,2));if(dir>Math.PI*.25){gy=Math.pow(Math.sin(dir),2);gx=Math.sqrt(gy-Math.pow(gy,2))}x=gx*100;y=gy*100;ret.push('<defs><linearGradient id="gradient" x1="0" x2="'+gx+'" y1="0" y2="'+gy+'">');for(i$=0;i$<len;++i$){i=i$;idx=i*100/(len-1);ret.push('<stop offset="'+idx+'%" stop-color="'+colors[i%colors.length]+'"/>')}ret.push('</linearGradient></defs>\n<rect x="0" y="0" width="400" height="400" fill="url(#gradient)">\n<animateTransform attributeName="transform" type="translate" from="-'+x+",-"+y+'"\nto="0,0" dur="'+dur+'s" repeatCount="indefinite"/></rect></svg>');return wrap(ret.join(""))},stripe:function(c1,c2,dur){var ret,i;c1==null&&(c1="#b4b4b4");c2==null&&(c2="#e6e6e6");dur==null&&(dur=1);ret=[this.head("0 0 100 100")];ret=ret.concat(['<rect fill="'+c2+'" width="100" height="100"/>',"<g><g>",function(){var i$,results$=[];for(i$=0;i$<13;++i$){i=i$;results$.push('<polygon fill="'+c1+'" '+('points="'+(-90+i*20)+",100 "+(-100+i*20)+",")+("100 "+(-60+i*20)+",0 "+(-50+i*20)+',0 "/>'))}return results$}().join(""),'</g><animateTransform attributeName="transform" type="translate" ','from="0,0" to="20,0" dur="'+dur+'s" repeatCount="indefinite"/></g></svg>'].join(""));return wrap(ret)},bubble:function(c1,c2,count,dur,size,sw){var ret,i$,i,idx,x,r,d;c1==null&&(c1="#39d");c2==null&&(c2="#9cf");count==null&&(count=15);dur==null&&(dur=1);size==null&&(size=6);sw==null&&(sw=1);ret=[this.head("0 0 200 200"),'<rect x="0" y="0" width="200" height="200" fill="'+c1+'"/>'];for(i$=0;i$<count;++i$){i=i$;idx=-(i/count)*dur;x=Math.random()*184+8;r=(Math.random()*.7+.3)*size;d=dur*(1+Math.random()*.5);ret.push(['<circle cx="'+x+'" cy="0" r="'+r+'" fill="none" stroke="'+c2+'" stroke-width="'+sw+'">','<animate attributeName="cy" values="190;-10" times="0;1" ','dur="'+d+'s" begin="'+idx+'s" repeatCount="indefinite"/>',"</circle>",'<circle cx="'+x+'" cy="0" r="'+r+'" fill="none" stroke="'+c2+'" stroke-width="'+sw+'">','<animate attributeName="cy" values="390;190" times="0;1" ','dur="'+d+'s" begin="'+idx+'s" repeatCount="indefinite"/>',"</circle>"].join(""))}return wrap(ret.join("")+"</svg>")}};handler={queue:{},running:false,main:function(timestamp){var keepon,removed,k,ref$,func,ret,this$=this;keepon=false;removed=[];for(k in ref$=this.queue){func=ref$[k];ret=func(timestamp);if(!ret){removed.push(func)}keepon=keepon||ret}for(k in ref$=this.queue){func=ref$[k];if(removed.indexOf(func)>=0){delete this.queue[k]}}if(keepon){return requestAnimationFrame(function(it){return this$.main(it)})}else{return this.running=false}},add:function(key,f){var this$=this;if(!this.queue[key]){this.queue[key]=f}if(!this.running){this.running=true;return requestAnimationFrame(function(it){return this$.main(it)})}}};window.ldBar=ldBar=function(selector,option){var xmlns,root,cls,idPrefix,id,domTree,newNode,x$,config,attr,that,isStroke,parseRes,dom,svg,text,group,length,path0,path1,patimg,img,ret,size,this$=this;option==null&&(option={});xmlns={xlink:"http://www.w3.org/1999/xlink"};root=toString$.call(selector).slice(8,-1)==="String"?document.querySelector(selector):selector;if(!root.ldBar){root.ldBar=this}else{return root.ldBar}cls=root.getAttribute("class")||"";if(!~cls.indexOf("ldBar")){root.setAttribute("class",cls+" ldBar")}idPrefix="ldBar-"+Math.random().toString(16).substring(2);id={key:idPrefix,clip:idPrefix+"-clip",filter:idPrefix+"-filter",pattern:idPrefix+"-pattern",mask:idPrefix+"-mask",maskPath:idPrefix+"-mask-path"};domTree=function(n,o){var k,v;n=newNode(n);for(k in o){v=o[k];if(k!=="attr"){n.appendChild(domTree(k,v||{}))}}n.attrs(o.attr||{});return n};newNode=function(n){return document.createElementNS("http://www.w3.org/2000/svg",n)};x$=document.body.__proto__.__proto__.__proto__;x$.text=function(t){return this.appendChild(document.createTextNode(t))};x$.attrs=function(o){var k,v,ret,results$=[];for(k in o){v=o[k];ret=/([^:]+):([^:]+)/.exec(k);if(!ret||!xmlns[ret[1]]){results$.push(this.setAttribute(k,v))}else{results$.push(this.setAttributeNS(xmlns[ret[1]],k,v))}}return results$};x$.styles=function(o){var k,v,results$=[];for(k in o){v=o[k];results$.push(this.style[k]=v)}return results$};x$.append=function(n){var r;return this.appendChild(r=document.createElementNS("http://www.w3.og/2000/svg",n))};x$.attr=function(n,v){if(v!=null){return this.setAttribute(n,v)}else{return this.getAttribute(n)}};config={type:"stroke",img:"",path:"M10 10L90 10M90 8M90 12","fill-dir":"btt",fill:"#25b","fill-background":"#ddd","fill-background-extrude":3,"pattern-size":null,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,duration:1,easing:"linear",value:0,"img-size":null,bbox:null,"set-dim":true,"aspect-ratio":"xMidYMid","transition-in":false,min:0,max:100,precision:0,padding:undefined};config["preset"]=root.attr("data-preset")||option["preset"];if(config.preset!=null){import$(config,presets[config.preset])}for(attr in config){if(that=that=root.attr("data-"+attr)){config[attr]=that}}import$(config,option);if(config.img){config.path=null}isStroke=config.type==="stroke";parseRes=function(v){var parser,ret;parser=/data:ldbar\/res,([^()]+)\(([^)]+)\)/;ret=parser.exec(v);if(!ret){return v}return ret=make[ret[1]].apply(make,ret[2].split(","))};config.fill=parseRes(config.fill);config.stroke=parseRes(config.stroke);if(config["set-dim"]==="false"){config["set-dim"]=false}dom={attr:{"xmlns:xlink":"http://www.w3.org/1999/xlink",preserveAspectRatio:config["aspect-ratio"],width:"100%",height:"100%"},defs:{filter:{attr:{id:id.filter,x:-1,y:-1,width:3,height:3},feMorphology:{attr:{operator:+config["fill-background-extrude"]>=0?"dilate":"erode",radius:Math.abs(+config["fill-background-extrude"])}},feColorMatrix:{attr:{values:"0 0 0 0 1    0 0 0 0 1    0 0 0 0 1    0 0 0 1 0",result:"cm"}}},mask:{attr:{id:id.mask},image:{attr:{"xlink:href":config.img,filter:"url(#"+id.filter+")",x:0,y:0,width:100,height:100,preserveAspectRatio:config["aspect-ratio"]}}},g:{mask:{attr:{id:id.maskPath},path:{attr:{d:config.path||"",fill:"#fff",stroke:"#fff",filter:"url(#"+id.filter+")"}}}},clipPath:{attr:{id:id.clip},rect:{attr:{class:"mask",fill:"#000"}}},pattern:{attr:{id:id.pattern,patternUnits:"userSpaceOnUse",x:0,y:0,width:300,height:300},image:{attr:{x:0,y:0,width:300,height:300}}}}};svg=domTree("svg",dom);text=document.createElement("div");text.setAttribute("class","ldBar-label");root.appendChild(svg);root.appendChild(text);group=[0,0];length=0;this.fit=function(){var that,box,d,rect;if(that=config["bbox"]){box=that.split(" ").map(function(it){return+it.trim()});box={x:box[0],y:box[1],width:box[2],height:box[3]}}else{box=group[1].getBBox()}if(!box||box.width===0||box.height===0){box={x:0,y:0,width:100,height:100}}d=Math.max.apply(null,["stroke-width","stroke-trail-width","fill-background-extrude"].map(function(it){return config[it]}))*1.5;if(config["padding"]!=null){d=+config["padding"]}svg.attrs({viewBox:[box.x-d,box.y-d,box.width+d*2,box.height+d*2].join(" ")});if(config["set-dim"]){["width","height"].map(function(it){if(!root.style[it]||this$.fit[it]){root.style[it]=box[it]+d*2+"px";return this$.fit[it]=true}})}rect=group[0].querySelector("rect");if(rect){return rect.attrs({x:box.x-d,y:box.y-d,width:box.width+d*2,height:box.height+d*2})}};if(config.path){if(isStroke){group[0]=domTree("g",{path:{attr:{d:config.path,fill:"none",class:"baseline"}}})}else{group[0]=domTree("g",{rect:{attr:{x:0,y:0,width:100,height:100,mask:"url(#"+id.maskPath+")",fill:config["fill-background"],class:"frame"}}})}svg.appendChild(group[0]);group[1]=domTree("g",{path:{attr:{d:config.path,class:isStroke?"mainline":"solid","clip-path":config.type==="fill"?"url(#"+id.clip+")":""}}});svg.appendChild(group[1]);path0=group[0].querySelector(isStroke?"path":"rect");path1=group[1].querySelector("path");if(isStroke){path1.attrs({fill:"none"})}patimg=svg.querySelector("pattern image");img=new Image;img.addEventListener("load",function(){var box,that;box=(that=config["pattern-size"])?{width:+that,height:+that}:img.width&&img.height?{width:img.width,height:img.height}:{width:300,height:300};svg.querySelector("pattern").attrs({width:box.width,height:box.height});return patimg.attrs({width:box.width,height:box.height})});if(/.+\..+|^data:/.exec(!isStroke?config.fill:config.stroke)){img.src=!isStroke?config.fill:config.stroke;patimg.attrs({"xlink:href":img.src})}if(isStroke){path0.attrs({stroke:config["stroke-trail"],"stroke-width":config["stroke-trail-width"]});path1.attrs({"stroke-width":config["stroke-width"],stroke:/.+\..+|^data:/.exec(config.stroke)?"url(#"+id.pattern+")":config.stroke})}if(config.fill&&!isStroke){path1.attrs({fill:/.+\..+|^data:/.exec(config.fill)?"url(#"+id.pattern+")":config.fill})}length=path1.getTotalLength();this.fit();this.inited=true}else if(config.img){if(config["img-size"]){ret=config["img-size"].split(",");size={width:+ret[0],height:+ret[1]}}else{size={width:100,height:100}}group[0]=domTree("g",{rect:{attr:{x:0,y:0,width:100,height:100,mask:"url(#"+id.mask+")",fill:config["fill-background"]}}});svg.querySelector("mask image").attrs({width:size.width,height:size.height});group[1]=domTree("g",{image:{attr:{width:size.width,height:size.height,x:0,y:0,preserveAspectRatio:config["aspect-ratio"],"clip-path":config.type==="fill"?"url(#"+id.clip+")":"","xlink:href":config.img,class:"solid"}}});img=new Image;img.addEventListener("load",function(){var ret,size,v;if(config["img-size"]){ret=config["img-size"].split(",");size={width:+ret[0],height:+ret[1]}}else if(img.width&&img.height){size={width:img.width,height:img.height}}else{size={width:100,height:100}}svg.querySelector("mask image").attrs({width:size.width,height:size.height});group[1].querySelector("image").attrs({width:size.width,height:size.height});this$.fit();v=this$.value;this$.value=undefined;this$.set(v,true);return this$.inited=true});img.src=config.img;svg.appendChild(group[0]);svg.appendChild(group[1])}svg.attrs({width:"100%",height:"100%"});this.transition={value:{src:0,des:0},time:{},ease:function(t,b,c,d){t=t/(d*.5);if(t<1){return c*.5*t*t+b}t=t-1;return-c*.5*(t*(t-2)-1)+b},handler:function(time,doTransition){var ref$,min,max,prec,dv,dt,dur,v,p,node,style,box,dir;doTransition==null&&(doTransition=true);if(this.time.src==null){this.time.src=time}ref$=[config["min"],config["max"],1/config["precision"]],min=ref$[0],max=ref$[1],prec=ref$[2];ref$=[this.value.des-this.value.src,(time-this.time.src)*.001,+config["duration"]||1],dv=ref$[0],dt=ref$[1],dur=ref$[2];v=doTransition?this.ease(dt,this.value.src,dv,dur):this.value.des;if(config.precision){v=Math.round(v*prec)/prec}else if(doTransition){v=Math.round(v)}v>=min||(v=min);v<=max||(v=max);text.textContent=v;p=100*(v-min)/(max-min);if(isStroke){node=path1;style={"stroke-dasharray":config["stroke-dir"]==="reverse"?"0 "+length*(100-p)*.01+" "+length*p*.01+" 0":p*.01*length+" "+((100-p)*.01*length+1)}}else{box=group[1].getBBox();dir=config["fill-dir"];style=dir==="btt"||!dir?{y:box.y+box.height*(100-p)*.01,height:box.height*p*.01,x:box.x,width:box.width}:dir==="ttb"?{y:box.y,height:box.height*p*.01,x:box.x,width:box.width}:dir==="ltr"?{y:box.y,height:box.height,x:box.x,width:box.width*p*.01}:dir==="rtl"?{y:box.y,height:box.height,x:box.x+box.width*(100-p)*.01,width:box.width*p*.01}:void 8;node=svg.querySelector("rect")}node.attrs(style);if(dt>=dur){delete this.time.src;return false}return true},start:function(src,des,doTransition){var ref$,this$=this;ref$=this.value;ref$.src=src;ref$.des=des;!!(root.offsetWidth||root.offsetHeight||root.getClientRects().length);if(!doTransition||!(root.offsetWidth||root.offsetHeight||root.getClientRects().length)){this.time.src=0;this.handler(1e3,false);return}return handler.add(id.key,function(time){return this$.handler(time)})}};this.set=function(v,doTransition){var src,des;doTransition==null&&(doTransition=true);src=this.value||0;if(v!=null){this.value=v}else{v=this.value}des=this.value;return this.transition.start(src,des,doTransition)};this.set(+config.value||0,config["transition-in"])||false;return this};return window.addEventListener("load",function(){var i$,ref$,len$,node,results$=[];for(i$=0,len$=(ref$=document.querySelectorAll(".ldBar")).length;i$<len$;++i$){node=ref$[i$];if(!node.ldBar){results$.push(node.ldBar=new ldBar(node))}}return results$},false)})();module.exports=ldBar;function import$(obj,src){var own={}.hasOwnProperty;for(var key in src)if(own.call(src,key))obj[key]=src[key];return obj}},{"./presets":2}],2:[function(require,module,exports){var presets,out$=typeof exports!="undefined"&&exports||this;out$.presets=presets={rainbow:{type:"stroke",path:"M10 10L90 10",stroke:"data:ldbar/res,gradient(0,1,#a551df,#fd51ad,#ff7f82,#ffb874,#ffeb90)",bbox:"10 10 80 10"},energy:{type:"fill",path:"M15 5L85 5A5 5 0 0 1 85 15L15 15A5 5 0 0 1 15 5",stroke:"#f00",fill:"data:ldbar/res,gradient(45,2,#4e9,#8fb,#4e9)","fill-dir":"ltr","fill-background":"#444","fill-background-extrude":1,bbox:"10 5 80 10"},stripe:{type:"fill",path:"M15 5L85 5A5 5 0 0 1 85 15L15 15A5 5 0 0 1 15 5",stroke:"#f00",fill:"data:ldbar/res,stripe(#25b,#58e,1)","fill-dir":"ltr","fill-background":"#ddd","fill-background-extrude":1,bbox:"10 5 80 10"},text:{type:"fill",img:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="70" height="20" viewBox="0 0 70 20"><text x="35" y="10" text-anchor="middle" dominant-baseline="central" font-family="arial">LOADING</text></svg>',"fill-background-extrude":1.3,"pattern-size":100,"fill-dir":"ltr","img-size":"70,20",bbox:"0 0 70 20"},line:{type:"stroke",path:"M10 10L90 10",stroke:"#25b","stroke-width":3,"stroke-trail":"#ddd","stroke-trail-width":1,bbox:"10 10 80 10"},fan:{type:"stroke",path:"M10 90A40 40 0 0 1 90 90","fill-dir":"btt",fill:"#25b","fill-background":"#ddd","fill-background-extrude":3,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,bbox:"10 50 80 40"},circle:{type:"stroke",path:"M50 10A40 40 0 0 1 50 90A40 40 0 0 1 50 10","fill-dir":"btt",fill:"#25b","fill-background":"#ddd","fill-background-extrude":3,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,bbox:"10 10 80 80"},bubble:{type:"fill",path:"M50 10A40 40 0 0 1 50 90A40 40 0 0 1 50 10","fill-dir":"btt",fill:"data:ldbar/res,bubble(#39d,#cef)","pattern-size":"150","fill-background":"#ddd","fill-background-extrude":2,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,bbox:"10 10 80 80"}}},{}]},{},[1]);
-/* twine-user-script #37: "mapeditor.js" */
+/* twine-user-script #39: "mapeditor.js" */
 F.confirmNewmap = function () {
 	T.mapsizeX = parseInt(T.mapsizeX);
 	T.mapsizeY = parseInt(T.mapsizeY);
@@ -10795,7 +11050,7 @@ F.showPathMap = function () {
 		}, i * 150);
 	});
 };
-/* twine-user-script #38: "showChara.js" */
+/* twine-user-script #40: "showChara.js" */
 F.initSCTrait = function(){
     const TransTrait = [];
     for (let i in T.showChara.traits){
@@ -10807,29 +11062,29 @@ F.initSCTrait = function(){
     console.log(TransTrait) 
     
     let order = ["性格","堕落","体质","心智","SM倾向","行为模式","其他"];
-    T.printtext = [];
+    T.printText = [];
     
     for (let i in order){
         let key = order[i];
         if (TransTrait[key]){
-            let text = ((Config.debug || T.showChara.cid == "player" || key=="性格")?`<div>`:'<div class="blur">')+
+            let text = ((T.showChara.flag.showTrait || T.showChara.cid == "player" || key=="性格")?`<div>`:'<div class="blur">')+
             `${key}:`;
             for (let T in TransTrait[key]){
                 let Tname = TransTrait[key][T];
                 text= text+`[${Tname}]`;
             }
-            T.printtext.push(text+'</div>');
+            T.printText.push(text+'</div>');
         }
     }
 }
 
 F.initSCBaseBar = function(){
-    T.printtext = [];
+    T.printText = [];
     for(let i in D.basekey){
         let key = D.basekey[i];
         let cnname = D.basicNeeds[key]?D.basicNeeds[key][0]:D.basicPalam[key][0];
         let color = F.RGBdec2hex(D.basecolor[key][0],D.basecolor[key][1],D.basecolor[key][2]);
-        T.printtext.push(
+        T.printText.push(
             `<div class="SCBaseBar">
             ${cnname}:
             <<=F.Progressbar({
@@ -10848,10 +11103,10 @@ F.initSCBaseBar = function(){
 }
 
 F.initSCExp = function(){
-    T.printtext = [];
+    T.printText = [];
     for (let i in D.exp){
         let expname = (T.showChara.exp[i].aware?D.exp[i][0]:'??')+"经验";
-        T.printtext.push(
+        T.printText.push(
             `<div>`
             +`${expname}:${(T.showChara.exp[i].aware?T.showChara.exp[i].aware:0)}`
             +`</div>`
@@ -10860,10 +11115,10 @@ F.initSCExp = function(){
 }
 
 F.initSCSbl = function(){
-    T.printtext = [];
+    T.printText = [];
     for (let i in T.showChara.sbl){
-        T.printtext.push(
-            ((Config.debug || T.showChara.cid == "player")?`<div>`: `<div class = "blur">`)
+        T.printText.push(
+            ((T.showChara.flag.showSbl || T.showChara.cid == "player")?`<div>`: `<div class = "blur">`)
             +`${D.sbl[i][0]}:Lv.${T.showChara.sbl[i]}`
             +`</div>`
         )
@@ -10871,8 +11126,8 @@ F.initSCSbl = function(){
 }
 
 F.SCchangeDiv = function(pagename){
-    const allpages = ['SCbox1','SCbox2','SCbox3','SCbox4','SCbox5'];
-    const allbutton = ['Divbutton1','Divbutton2','Divbutton3','Divbutton4','Divbutton5']
+    const allpages = ['SCbox1','SCbox2','SCbox3','SCbox4'];
+    const allbutton = ['Divbutton1','Divbutton2','Divbutton3','Divbutton4']
     for (let i of allpages){
         var hidepage = document.getElementById(i);
         hidepage.style.display = "none";
@@ -10890,7 +11145,7 @@ F.SCchangeDiv = function(pagename){
 F.initSCBody = function(){
     const c = T.showChara;
     const sexorgan = D.sexorgan;
-    T.printtext = [];
+    T.printText = [];
     for (let o of sexorgan){
         let oname = D.bodyDict[o];
         if (c.body[o]){
@@ -10920,26 +11175,26 @@ F.initSCBody = function(){
                 ${organ.vessel.current}ml
                 </div>`:``)
             +`</div>`;
-            T.printtext.push(text);
+            T.printText.push(text);
         }
     }
 }
 
 F.initSCVirginity = function(){
     const virginity = T.showChara.virginity;
-    T.printtext = [];
+    T.printText = [];
     for (let key in virginity){
         let record = virginity[key];
         if (record.length==0) continue;
-        T.printtext.push(
+        T.printText.push(
             `${D.VirginityDict[key]}:${record[2]}被${record[0]}夺走了。[${record[1]}]`
         )
     }
-    if (T.printtext.length == 0) T.printtext.push('还没有任何初体验')
+    if (T.printText.length == 0) T.printText.push('还没有任何初体验')
 }
 
 F.initSCEquip = function(){
-    T.printtext = [];
+    T.printText = [];
     const equip = T.showChara.equip;
     for (let equipStyle in D.equipSlot){
         let text = D.equipSlot[equipStyle]+":"
@@ -10954,12 +11209,12 @@ F.initSCEquip = function(){
                 text = text + `${equip[equipStyle].name[0]}`;
             }
         }
-        T.printtext.push(text)
+        T.printText.push(text)
     }
 }
 
 F.initVagueEquipDescribe = function(){
-    T.printtext = [];
+    T.printText = [];
     const equip = T.showChara.equip;
     const reveals = T.showChara.reveals;
     
@@ -10978,46 +11233,63 @@ F.initVagueEquipDescribe = function(){
                 }
                 if (clothReveals[layer].expose==2 && revealsDetail[layer].expose<3){
                     revealsDetail[layer].expose=2;
-                    index=Object.keys(clothReveals).indexOf(layer);
+                    let index=Object.keys(clothReveals).indexOf(layer);
                     revealsDetail[layer].cover=Object.keys(clothReveals)[index-1];
-                    revealsDetail[layer].layer = layer;
+                    revealsDetail[layer].layer = key;
                 }
                 if (clothReveals[layer].expose==1 && revealsDetail[layer].expose<2){
                     revealsDetail[layer].expose=1;
-                    index=Object.keys(clothReveals).indexOf(layer);
+                    let index=Object.keys(clothReveals).indexOf(layer);
                     revealsDetail[layer].cover=Object.keys(clothReveals)[index-1];
-                    revealsDetail[layer].layer = layer;
+                    revealsDetail[layer].layer = key;
                 } 
             }
         }
     })
     console.log(revealsDetail)
-    if(Object.keys(clothcover).length == 0) T.printtext.push(draw([
+    if(Object.keys(clothcover).length == 0) T.printText.push(draw([
         `${T.showChara.name}什么都没穿。`,
-        `${T.showChara.name}正一丝不挂。`
+        `${T.showChara.name}全裸中。`
     ]))
     else{
         Object.keys(revealsDetail).forEach((layer)=>{
-            if (revealsDetail[layer].expose==3){
-                T.printtext.push(draw([
-                    `${T.showChara.name}穿着${equip[layer].name[0]}。`,
+            if (revealsDetail[layer].expose==3 && !['innerBt','innerUp'].has(layer)){
+                T.printText.push(draw([
+                    `穿着${equip[layer].name[0]}。`,
+                    `${T.showChara.name}正穿着${equip[layer].name[0]}。`,
                     `${T.showChara.name}今天的${D.equipSlot[layer]}是${equip[layer].name[0]}。`
+                ]))
+            }
+            if (revealsDetail[layer].expose == 3 && layer=="innerBt"){
+                T.printText.push(draw([
+                    `可以直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
+                    `${T.showChara.name}的${equip[layer].name[0]}正露在外面。`,
+                    `下半身直接露出了${equip[layer].name[0]}。`,
+                    `${T.showChara.name}的下身由于没有其他衣物的遮挡，可以看见今天的内裤是${equip[layer].name[0]}`
+                ]))
+            }
+            if (revealsDetail[layer].expose == 3 && layer=="innerUp"){
+                T.printText.push(draw([
+                    `可以直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
+                    `${T.showChara.name}的${equip[layer].name[0]}正露在外面。`,
+                    `上半身露出了${equip[layer].name[0]}。`,
+                    `${T.showChara.name}的上身由于没有其他衣物的遮挡，可以看见今天的内衣是${equip[layer].name[0]}`
                 ]))
             }
             if (revealsDetail[layer].expose==2){
                 let coverClothName = equip[revealsDetail[layer].cover].name[0]
-                T.printtext.push(draw([
-                    `透过${coverClothName},似乎可以看到${equip[layer].name[0]}`,
-                    `${equip[layer].name[0]}在${coverClothName}下若隐若现。`,
-                    `在${D.bodyDict[revealsDetail[layer].layer]}处，好像能看见${T.showChara.name}的${equip[layer].name[0]}。`
+                T.printText.push(draw([
+                    `透过${coverClothName},可以清楚地看到${equip[layer].name[0]}`,
+                    `在${coverClothName}下能直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
+                    `在${D.bodyDict[revealsDetail[layer].layer]}处，${T.showChara.name}的${equip[layer].name[0]}清晰可见。`
                 ]))
             }
             if (revealsDetail[layer].expose==1){
                 let coverClothName = equip[revealsDetail[layer].cover].name[0]
-                T.printtext.push(draw([
-                    `透过${coverClothName},可以清楚地看到${equip[layer].name[0]}`,
-                    `在${coverClothName}下能直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
-                    `在${D.bodyDict[revealsDetail[layer].layer]}处，${T.showChara.name}的${equip[layer].name[0]}清晰可见。`
+                T.printText.push(draw([
+                    `透过${coverClothName},似乎可以看到${equip[layer].name[0]}`,
+                    `${equip[layer].name[0]}在${coverClothName}下若隐若现。`,
+                    `在${D.bodyDict[revealsDetail[layer].layer]}处，好像能看见${T.showChara.name}的${equip[layer].name[0]}。`
                 ]))
             }
         })
@@ -11025,19 +11297,19 @@ F.initVagueEquipDescribe = function(){
 }
 
 F.initSCPalam = function(group = D.palam){
-    T.printtext = [];
+    T.printText = [];
     const palam = T.showChara.palam
     for (let key of group){
-        T.printtext.push(
+        T.printText.push(
             `<div class="SCPalamBar">`+
             `<div>
-            ${D.palam[key][0]}:
+            ${D.palam[key][0]}Lv.${palam[key][0]}:
             </div>
             <div>
             <<=F.Progressbar({
                 id:'Palamprogress${key}',
-                value:${palam[key][0]},
-                max:${palam[key][1]},
+                value:${palam[key][1]},
+                max:${S.palamLv[palam[key][0]+1]},
                 color:"#fff",
                 backColor:"#333",
                 width:"120px",
@@ -11048,12 +11320,21 @@ F.initSCPalam = function(group = D.palam){
     }
 }
 
+F.generalPalamDescribe = function(group = D.palam){
+    T.printText = [];
+    const palam = T.showChara.palam
+    for (let key of group){
+        let sentence = D.palamDescribe[key][palam[key][0]][1].replace("tc",T.showChara.name);
+        T.printText.push(sentence)
+    }
+}
+
 F.initSCMark = function(){
-    T.printtext = [];
+    T.printText = [];
     let m = T.showChara.mark;
     for (let i in m){
-        T.printtext.push(
-            ((Config.debug || T.showChara.cid == "player")?
+        T.printText.push(
+            ((T.showChara.flag.showMark || T.showChara.cid == "player")?
             "<div>":`<div class = "blur">`)+
             `${D.mark[i][0]}:
             Lv.${m[i].lv}
@@ -11061,7 +11342,9 @@ F.initSCMark = function(){
         `)
     }
 }
-/* twine-user-script #39: "sidebarMap.js" */
+/* twine-user-script #41: "sidebarWidget.js" */
+const { threadId } = require("worker_threads");
+
 F.sidebarMap = function() {
     let mapId = V.location.mapId;
     let board = Boards.getBoard(mapId);
@@ -11090,7 +11373,135 @@ F.sidebarMap = function() {
         T.printText.push("<br>");
     } 
 }
-/* twine-user-script #40: "inputTool.js" */
+
+F.sidebarBaseBar = function(){
+    if (V.tc != "") T.showChara = C[V.tc]
+    else T.showChara = C[V.pc]
+    T.printText = [];
+    for(let i in D.basekey){
+        let key = D.basekey[i];
+        let color = F.RGBdec2hex(D.basecolor[key][0],D.basecolor[key][1],D.basecolor[key][2]);
+        let cnname = D.basicNeeds[key]?D.basicNeeds[key][0]:D.basicPalam[key][0];
+        if (T.showChara.base[key][0]){
+            T.printText.push(
+                `<div {line-height:6px; }><div class="sidebarBaseDescribe">${cnname}:<<sidebarBaseDescribe "${key}">></div>`+
+                `<div class="sidBarBaseBar">
+                <<=F.Progressbar({
+                    id:'sidebarbaseprogress${key}',
+                    value:${T.showChara.base[key][0]},
+                    max:${T.showChara.base[key][1]},
+                    color:'${color}',
+                    backColor:"#333",
+                    width:"150px",
+                    height:"2px"
+                    })>>`+
+                `</div></div>`
+            )
+        }
+            
+    }
+}
+
+F.sideBarGeneralPalam = function(group){
+    T.printText = [];
+    const palam = T.showChara.palam
+    for (let key of group){
+        if (!palam[key][0]==0){
+            let sentence = D.palamDescribe[key][palam[key][0]][1].replace("tc",T.showChara.name);
+            T.printText.push(`<span class="sidebarPalamDescribe">`+ sentence +`</span>`)
+        }
+    }
+}
+
+F.sideBarEquipDescribe = function(){
+    T.tags = [`<div class="sidebarEquipDescribe">`];
+    let chara = T.showChara;
+    Object.keys(chara.reveals.clothSumUp).forEach((layer)=>{
+        let equip = chara.equip[layer];
+        if (chara.reveals.clothSumUp[layer].expose>1){
+            T.tags.push("["+equip.name[0]+"]");
+        }
+        else if(chara.reveals.clothSumUp[layer].expose==1){
+            T.tags.push("["+equip.name[0]+"(隐约)]")
+        }
+    })
+    if (T.tags.length==0) T.tags.push("全裸");
+    let banTags = ["no pangci", "no bra", "see pangci", "see bra"];
+    Object.keys(chara.reveals.tags).forEach((key)=>{
+        if(!banTags.includes(key) && chara.reveals.tags[key]>1)
+            T.tags.push("["+D.revealsTags[key]+"]");
+        else if (!banTags.includes(key) && chara.reveals.tags[key]==1)
+            T.tags.push("["+D.revealsTags[key]+'(隐约)]');
+    })
+    T.tags.push(`</div>`)
+}
+
+F.sidebarLiquidDescribe = function(){
+    T.printText = [`<div class="sidebarLiquidDescribe">`];
+    let cLiquid = T.showChara.liquid;
+    for (let place in cLiquid){
+        let placename = D.bodyDict[place];
+        let liquids = cLiquid[place];
+        let max2Lq = [["",0],["",0]];//最多的两种液体
+        for (let lq in liquids){
+            if (lq == "total") continue;
+            if (liquids[lq]>max2Lq[0][1]) max2Lq[0]=[lq,liquids[lq]];
+            else if (liquids[lq]>max2Lq[1][1]) max2Lq[1]=[lq,liquids[lq]];
+        }
+        let lqWord = max2Lq[0][0]+max2Lq==""?"":"和"+max2Lq[1][0];
+        let count = 0;let total = liquids.total;
+        let sentence ="";
+        if (total==0) sentence = "";//sentence = D.liquidDescribe[place][0][1];
+        else{
+            while(count < D.liquidDescribe[place].length && D.liquidDescribe[place][count][0]<total)
+                count +=1;
+            sentence = D.liquidDescribe[place][count][0][1];
+        }
+
+        sentence = sentence.replace("tc",T.showChara.name);
+        sentence = sentence.replace("lq",lqWord);
+        T.printText.push(sentence)
+    }
+    T.printText.push(`</div>`);
+
+}
+
+F.refrashSideBarTime = function(){
+    if (document.getElementById("sideBarShowTime"))
+        new Wikifier(null, `<<replace #sideBarShowTime>> <<sideBarShowTime>><</replace>>`);
+}
+
+F.refrashSideBarMoney=function(){
+    if (document.getElementById("sideBarShowMoney"))
+        new Wikifier(null, `<<replace #sideBarShowMoney>> <<sideBarShowMoney>><</replace>>`);
+}
+
+F.refrashSideBarChara=function(){
+    if (document.getElementById("sidebarShowChara"))
+        new Wikifier(null, `<<replace #sidebarShowChara>> <<sidebarShowChara>><</replace>>`);
+}
+
+F.refrashSideBarMap=function(){
+    if (document.getElementById("sidebarMap"))
+        new Wikifier(null, `<<replace #sidebarMap>> <<sidebarMap>><</replace>>`);
+}
+
+F.refrashSideBar = function(){
+    F.refrashSideBarChara();
+    F.refrashSideBarTime();
+    F.refrashSideBarMoney();
+    F.refrashSideBarMap();
+}
+/* twine-user-script #42: "sourceWidget.js" */
+F.sourceGet = function(cid,palam,value){
+	C[cid].source[palam] += value;
+	F.sourceCheck(C[cid],cid);
+	F.sourceUp(C[cid]);
+	F.refrashSideBar();
+	return "";
+}
+DefineMacros("sourceGet", F.sourceGet)
+/* twine-user-script #43: "inputTool.js" */
 F.Textbox = function(args){
     const { id, minlen, maxlen, size, on, value, inp } = args
     const txt = `type='text' `
@@ -11151,7 +11562,7 @@ F.Range = function(args){
 
     return `<<print "${txt}" >>`
 }
-/* twine-user-script #41: "others.js" */
+/* twine-user-script #44: "others.js" */
 F.RGBdec2hex = function(red,bule,green){
     let text = "#";
     const RGB = [red,bule,green]
@@ -11189,7 +11600,7 @@ F.Progressbar = function(args){
     
     return `<<print "${text}" >>`
 }
-/* twine-user-script #42: "createplayer.js" */
+/* twine-user-script #45: "createplayer.js" */
 
 F.DPset = function(key,value){
     V.playerdesign[key] = value;
@@ -11215,7 +11626,7 @@ F.CPchangeBouns = function(value){
 F.CPRandomPlayer = function(){
     const design = V.playerdesign;
     MyChara.new("player",design).initChara(design);
-    const player = MyChara.data["player"]
+    const player = C["player"]
     player.birthday[1] = design.BirthdayM?design.BirthdayM:1;
     player.birthday[2] = design.BirthdayD?design.BirthdayD:1;
     CPRandomVirginity(player,design.SexExp);
@@ -11305,17 +11716,22 @@ F.CPdetermine = function(){
     V.location.chara = [];
     
     V.system.showSideBarMap = true;
+    V.system.showSideBarshowChara= true;
+    V.system.showSideBarBaseBar = true
     V.system.showSideBarTitle = false;
     V.system.showHeaderInf = true;
+
+    Flag.firstVisitYourRoom = true;
+    Flag.firstVisitOffice = true;
 }
-/* twine-user-script #43: "move.js" */
-/* twine-user-script #44: "office.js" */
+/* twine-user-script #46: "move.js" */
+/* twine-user-script #47: "office.js" */
 F.creatHeadMaster = function(){
     let csv = scEra.csv.get("CharaSheet_Alisa")
-    console.log(csv)
+    console.log("try creat chara",csv)
     MyChara.new("Alisa", csv);
 }
-/* twine-user-script #45: "Selection.js" */
+/* twine-user-script #48: "Selection.js" */
 //------------------------------------------------------------
 //
 //  add selection macro
@@ -11455,7 +11871,7 @@ Ui.removelink = function () {
 	$("#contentMsg a").remove();
 };
 DefineMacros("removelink", Ui.removelink);
-/* twine-user-script #46: "startconfig.js" */
+/* twine-user-script #49: "startconfig.js" */
 game.version = "0.0.1";
 l10nStrings.errorTitle = game.version + " Error";
 console.log("Game Version:", game.version);
@@ -11485,14 +11901,17 @@ appearance.hairstyle, 双马尾
 appearance.skincolor, 白色
 appearance.height, 1600
 
-sbl.exhibition, 1
+sbl.exhibition, 2
 
-breast.size, 1
+breast.size, 2
 vagina.sens, 1
 
-equip, 连衣裙
-equip, 毛绒拖鞋
-equip, 三角内裤</tw-passagedata><tw-passagedata pid="2" name="CharaSheet_Besta" tags="csv" position="225,100" size="100,100">id, Besta
+kojo, Alisa
+
+equip, 衬衫
+equip, 三角内裤
+equip, 耳机
+equip, 毛绒拖鞋</tw-passagedata><tw-passagedata pid="2" name="CharaSheet_Besta" tags="csv" position="225,100" size="100,100">id, Besta
 name, 贝斯塔
 
 gender, male
@@ -11576,9 +11995,30 @@ virginity.anal, 不明, 不明, 在一次酒吧派对上、醉酒后与伙伴发
 virginity.analsex, 不明, 不明, 在一次酒吧派对上、醉酒后与伙伴发生了关系。
 virginity.penis, 不明, 不明, 在一次酒吧派对上、醉酒后与伙伴发生了关系。
 virginity.vagina, 不明, 不明, 在一次酒吧派对上、醉酒后与伙伴发生了关系。
-virginity.vaginasex, 不明, 不明, 在一次酒吧派对上、醉酒后与伙伴发生了关系。</tw-passagedata><tw-passagedata pid="3" name="Kojo_Main" tags="system" position="350,100" size="100,100">大概会在这里执行一些前置操作，比如初始化一些变量。
+virginity.vaginasex, 不明, 不明, 在一次酒吧派对上、醉酒后与伙伴发生了关系。</tw-passagedata><tw-passagedata pid="3" name="Kojo_Alisa_event_firstMeet::Before" tags="" position="350,100" size="100,100">&lt;&lt;run F.creatHeadMaster()&gt;&gt;
+    &lt;&lt;set $tc = &quot;Alisa&quot;&gt;&gt;
+    &lt;&lt;set Flag.firstVisitOffice = false&gt;&gt;</tw-passagedata><tw-passagedata pid="4" name="Kojo_Alisa_event_firstMeet" tags="" position="475,100" size="100,100">你按照路线来到了一栋门口挂着&quot;学园长办公区&quot;的建筑前。
+    与其说是某种&quot;办公区&quot;,更像是一栋大别墅。&lt;br&gt;
+    进入建筑，你看到许多已经拆掉的外卖盒与快递包装随意地堆在玄关附近，厨房和餐厅内部也是一片狼藉。&lt;br&gt;
+    顺着楼梯来到二楼，一路上你看见许多衣物都被扔在地上。
+    最终你站在了一间房门前，里面隐约传出了像是男大学生宿舍常有的敲击键盘的声音。&lt;br&gt;
+    &lt;fr&gt;
+    你尝试敲了敲门，里面激烈的键盘敲击声随即戛然而止。随后是一阵悉悉索索的响声。&lt;br&gt;
+    &lt;&lt;selection replace&gt;&gt;
+        &lt;&lt;select &#39;开门&#39;&gt;&gt;
+            你尝试推开门，但只能把门推开一条小缝隙。
+            门后有门链作为保险。&lt;br&gt;
+            当你想透过门缝看看里面的时候，&lt;span class=&quot;red&quot;&gt;有什么东西从门缝里飞出来砸到了你脸上。&lt;/span&gt; 
+            &lt;&lt;sourceGet &quot;player&quot; &quot;pain&quot; 2000&gt;&gt;
+            &lt;&lt;sourceGet &quot;Alisa&quot; &quot;resist&quot; 2000&gt;&gt;
+            &quot;变态。&quot;你只好老实等着。
+        &lt;&lt;select &#39;老实等着&#39;&gt;&gt;
+    &lt;&lt;/selection&gt;&gt;
+    &lt;fr&gt;
+    
+    &lt;&lt;changeLoc &quot;dorm&quot; 4 4&gt;&gt;</tw-passagedata><tw-passagedata pid="5" name="Kojo_Main" tags="system" position="600,100" size="100,100">大概会在这里执行一些前置操作，比如初始化一些变量。
 一些通用的执行处理。
-以这里为入口再分配到各个角色的入口。</tw-passagedata><tw-passagedata pid="4" name="ActionList" tags="table" position="475,100" size="100,100">/* general action */
+以这里为入口再分配到各个角色的入口。</tw-passagedata><tw-passagedata pid="6" name="ActionList" tags="table" position="725,100" size="100,100">/* general action */
 @General
 #id         ,name          ,time ,tags          ,placement       ,setting,
 Relax       ,放松          ,15   ,休息区         ,沙发|椅子        ,canTrain,;
@@ -11728,7 +12168,7 @@ sleep       ,睡觉       ,Sleep
 resetAct    ,清除动作
 resetAll    ,全部
 stopTouch   ,住手
-resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags="table" position="600,100" size="100,100"></tw-passagedata><tw-passagedata pid="6" name="Species_Deamon" tags="xml" position="725,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
+resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags="table" position="850,100" size="100,100"></tw-passagedata><tw-passagedata pid="8" name="Species_Deamon" tags="xml" position="975,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
 &lt;race type=&#39;chara&#39; id=&#39;deamon&#39;&gt;
 &lt;name lan=&#39;CN&#39;&gt;魔人&lt;/name&gt;
 &lt;name lan=&#39;EN&#39;&gt;Half Deamon&lt;/name&gt;
@@ -11863,7 +12303,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
    &lt;eyecolor&gt;blue||silver||amber||purple||lightpurple||black||red&lt;/eyecolor&gt;
 	&lt;defaulthaircolor&gt;white&lt;/defaulthaircolor&gt;
 &lt;/avatar&gt;
-&lt;/race&gt;</tw-passagedata><tw-passagedata pid="7" name="Species_Elvin" tags="xml" position="850,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
+&lt;/race&gt;</tw-passagedata><tw-passagedata pid="9" name="Species_Elvin" tags="xml" position="1100,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
 &lt;race type=&#39;chara&#39; id=&#39;elvin&#39;&gt;
 &lt;name lan=&#39;CN&#39;&gt;精灵&lt;/name&gt;
 &lt;name lan=&#39;EN&#39;&gt;Elvin&lt;/name&gt;
@@ -12034,7 +12474,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
    &lt;eyecolor&gt;blue||green||limegreen||skyblue||silver&lt;/eyecolor&gt;
 	&lt;defaulthaircolor&gt;blond&lt;/defaulthaircolor&gt;
 &lt;/avatar&gt;
-&lt;/race&gt;</tw-passagedata><tw-passagedata pid="8" name="Species_Human" tags="xml" position="975,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
+&lt;/race&gt;</tw-passagedata><tw-passagedata pid="10" name="Species_Human" tags="xml" position="1225,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
 &lt;race type=&#39;chara&#39; id=&#39;human&#39;&gt;
 &lt;name lan=&#39;EN&#39;&gt;Human&lt;/name&gt;
 &lt;name lan=&#39;CN&#39;&gt;人类&lt;/name&gt;
@@ -12129,7 +12569,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
 		&lt;sizeLv&gt;1&lt;/sizeLv&gt;
 		&lt;conduct&gt;
 			&lt;uetrus rate=&#39;0.1&#39; inflateRequire=&#39;3&#39;&gt;&lt;/uetrus&gt;
-			&lt;outside rate=&#39;0.8&#39;&gt;&lt;/outside&gt;
+			&lt;thighs rate=&#39;0.8&#39;&gt;&lt;/thighs&gt;
 			&lt;absorb rate=&#39;0.2&#39; inflateRequire=&#39;1&#39;&gt;&lt;/absorb&gt;
 		&lt;/conduct&gt;
 		&lt;produce&gt;
@@ -12139,7 +12579,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
    &lt;clitoris name=&#39;clitoris&#39; group=&#39;genitals&#39; pos=&#39;i&#39; herm=&#39;false&#39;&gt;&lt;/clitoris&gt;
 
    &lt;penis name=&#39;penis&#39; group=&#39;genitals&#39; pos=&#39;f&#39;&gt;
-		&lt;size default=&#39;3&#39; max=&#39;5&#39;&gt;&lt;/size&gt;
+		&lt;size default=&#39;2&#39; max=&#39;4&#39;&gt;&lt;/size&gt;
    &lt;/penis&gt;
    &lt;testicles name=&#39;testicles&#39; group=&#39;genitals&#39; pos=&#39;rt&#39; herm=&#39;false&#39;&gt;
 		&lt;capacity default=&#39;30&#39;&gt;&lt;/capacity&gt;
@@ -12178,10 +12618,10 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
 	&lt;skincolor&gt;pale||white||health||black||chocolate||copper||sunset&lt;/skincolor&gt;
 	&lt;defaulthaircolor&gt;brown&lt;/defaulthaircolor&gt;
 &lt;/avatar&gt;
-&lt;/race&gt;</tw-passagedata><tw-passagedata pid="9" name="CharaInf" tags="widget" position="1100,100" size="100,100">&lt;&lt;widget &quot;IpadCharalist&quot;&gt;&gt;
+&lt;/race&gt;</tw-passagedata><tw-passagedata pid="11" name="CharaInf" tags="widget" position="100,225" size="100,100">&lt;&lt;widget &quot;IpadCharalist&quot;&gt;&gt;
     &lt;&lt;run F.showIpadCharalist()&gt;&gt;
     &lt;&lt;print T.printText.join(&quot;&lt;br&gt;&lt;&lt;dashline&gt;&gt;&quot;)&gt;&gt;
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="10" name="FacilityInf" tags="widget" position="1225,100" size="100,100">&lt;&lt;widget &quot;FacilityInf&quot;&gt;&gt;
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="12" name="FacilityInf" tags="widget" position="225,225" size="100,100">&lt;&lt;widget &quot;FacilityInf&quot;&gt;&gt;
     $facilityName 目前的知名程度是: $facilityLevel。&lt;br&gt;
     目前的资源有&lt;&lt;IpadShowMoney&gt;&gt;。&lt;br&gt;
     当前的代办事项是:&lt;&lt;IpadTaskTarget&gt;&gt;&lt;br&gt;
@@ -12224,19 +12664,19 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
         T.printText.push(`&lt;/div&gt;&lt;/div&gt;`);
     &gt;&gt;
     &lt;&lt;print T.printText.join(&quot;&quot;)&gt;&gt;
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="11" name="HeaderShowMoney" tags="widget" position="100,225" size="100,100">&lt;&lt;widget &quot;HeaderShowMoney&quot;&gt;&gt;
-    &lt;div id=&quot;HeaderShowMoney&quot;&gt;
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="13" name="sideBarShowMoney" tags="widget" position="350,225" size="100,100">&lt;&lt;widget &quot;sideBarShowMoney&quot;&gt;&gt;
+    &lt;div id=&quot;sideBarShowMoney&quot;&gt;
         &lt;&lt;if C[$pc]&gt;&gt;
             资金:&lt;&lt;= C[$pc].wallet&gt;&gt;G
         &lt;&lt;/if&gt;&gt;
     &lt;/div&gt;
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="12" name="HeaderShowTime" tags="widget" position="225,225" size="100,100">&lt;&lt;widget &quot;HeaderShowTime&quot;&gt;&gt;
-    &lt;div id =&quot;HeaderShowTime&quot;&gt;
-        时间:$date.year年$date.month月$date.day日 &lt;&lt;= Math.floor($date.time/60)&gt;&gt;：&lt;&lt;= parseInt($date.time%60)&gt;&gt;
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="14" name="sideBarShowTime" tags="widget" position="475,225" size="100,100">&lt;&lt;widget &quot;sideBarShowTime&quot;&gt;&gt;
+    &lt;div id =&quot;sideBarShowTime&quot;&gt;
+        时间:$date.year年$date.month月$date.day日 &lt;&lt;= Math.floor($date.time/60)&gt;&gt;：&lt;&lt;= $date.time%60&gt;&gt;
     &lt;/div&gt;
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="13" name="SideBarIpad" tags="widget" position="350,225" size="100,100">&lt;&lt;widget &quot;SideBarIpad&quot;&gt;&gt;
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="15" name="SideBarIpad" tags="widget" position="600,225" size="100,100">&lt;&lt;widget &quot;SideBarIpad&quot;&gt;&gt;
         &lt;&lt;button &quot;查看信息&quot;&gt;&gt;&lt;&lt;Ipad &quot;testIpad&quot;&gt;&gt;&lt;&lt;/button&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="14" name="Ipad" tags="widget" position="475,225" size="100,100">&lt;&lt;widget &quot;Ipad&quot;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="16" name="Ipad" tags="widget" position="725,225" size="100,100">&lt;&lt;widget &quot;Ipad&quot;&gt;&gt;
         &lt;&lt;set _key to _args[0]&gt;&gt;
         &lt;&lt;script&gt;&gt;
             $(&quot;#customOverlay&quot;).removeClass(&quot;hidden&quot;).parent().removeClass(&quot;hidden&quot;);
@@ -12277,37 +12717,35 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
 
     &lt;&lt;widget &quot;closeButton&quot;&gt;&gt;
         &lt;div class=&quot;customOverlayClose&quot; onclick=&quot;F.closeOverlay()&quot;&gt;&lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="15" name="overlayReplace" tags="widget" position="600,225" size="100,100">&lt;&lt;widget &quot;setupTabs&quot;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="17" name="overlayReplace" tags="widget" position="850,225" size="100,100">&lt;&lt;widget &quot;setupTabs&quot;&gt;&gt;
         &lt;&lt;script&gt;&gt;
            
         &lt;&lt;/script&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="16" name="Get_Msg_Map_neighbor" tags="widget" position="725,225" size="100,100">&lt;&lt;widget &#39;Get_Msg_Map_neighbor&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="18" name="Get_Msg_Map_neighbor" tags="widget" position="975,225" size="100,100">&lt;&lt;widget &#39;Get_Msg_Map_neighbor&#39;&gt;&gt;
         &lt;&lt;run F.Get_Msg_Map_neighbor()&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="17" name="testshowChara:Before" tags="" position="850,225" size="100,100"></tw-passagedata><tw-passagedata pid="18" name="testshowChara" tags="" position="975,225" size="100,100">&lt;&lt;showChara&gt;&gt;</tw-passagedata><tw-passagedata pid="19" name="showChara" tags="widget" position="1100,225" size="100,100">&lt;&lt;widget &#39;showChara&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="19" name="testshowChara:Before" tags="" position="1100,225" size="100,100"></tw-passagedata><tw-passagedata pid="20" name="testshowChara" tags="" position="1225,225" size="100,100">&lt;&lt;showChara&gt;&gt;</tw-passagedata><tw-passagedata pid="21" name="showChara" tags="widget" position="100,350" size="100,100">&lt;&lt;widget &#39;showChara&#39;&gt;&gt;
         &lt;&lt;ShowCharaDiv&gt;&gt;
         &lt;div id=&quot;SCbox1&quot;  class=&quot;SCgridConter&quot;&gt;
             &lt;&lt;showCharaBase&gt;&gt;
             &lt;&lt;ShowCharaPhoto&gt;&gt;
-            &lt;&lt;ShowCharaTrait&gt;&gt;
             &lt;&lt;ShowCharaLocation&gt;&gt;
-            &lt;&lt;ShowCharaSbl&gt;&gt;
+            &lt;&lt;ShowCharaTrait&gt;&gt;
+            &lt;&lt;ShowCharaApp&gt;&gt;
+            &lt;&lt;ShowCharaEquip&gt;&gt;
         &lt;/div&gt;
         &lt;div id=&quot;SCbox2&quot;  class=&quot;SCgridConter&quot;&gt;
+            &lt;&lt;ShowCharaSbl&gt;&gt;
             &lt;&lt;ShowCharaExp&gt;&gt;
             &lt;&lt;ShowCharaVirginity&gt;&gt;
         &lt;/div&gt;
         &lt;div id=&quot;SCbox3&quot;  class=&quot;SCgridConter&quot;&gt;
-            &lt;&lt;ShowCharaApp&gt;&gt;
-            &lt;&lt;ShowCharaEquip&gt;&gt;
-        &lt;/div&gt;
-        &lt;div id=&quot;SCbox4&quot;  class=&quot;SCgridConter&quot;&gt;
             &lt;&lt;ShowCharaBody&gt;&gt;
         &lt;/div&gt;
-        &lt;div id=&quot;SCbox5&quot; class=&quot;SCgridConter&quot;&gt;
+        &lt;div id=&quot;SCbox4&quot; class=&quot;SCgridConter&quot;&gt;
             &lt;&lt;ShowCharaMark&gt;&gt;
             &lt;&lt;ShowCharaPalam&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="20" name="showCharaBase" tags="widget" position="1225,225" size="100,100">&lt;&lt;widget &#39;showCharaBase&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="22" name="showCharaBase" tags="widget" position="225,350" size="100,100">&lt;&lt;widget &#39;showCharaBase&#39;&gt;&gt;
     &lt;div id=&#39;SCbaseBox&#39; class=&quot;SCBaseConter&quot;&gt;
         &lt;div id=&quot;SCname&quot;&gt;
             _showChara.name
@@ -12321,63 +12759,65 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
         &lt;/div&gt;
         &lt;&lt;run F.initSCBaseBar()&gt;&gt;
         &lt;div class=&quot;SCBaseBarConter&quot;&gt;
-            &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+            &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
         &lt;/div&gt;
     &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="21" name="ShowCharaPhoto" tags="widget" position="100,350" size="100,100">&lt;&lt;widget &#39;ShowCharaPhoto&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="23" name="ShowCharaPhoto" tags="widget" position="350,350" size="100,100">&lt;&lt;widget &#39;ShowCharaPhoto&#39;&gt;&gt;
         &lt;div class=&quot;SCphoto&quot;&gt;
             
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="22" name="ShowCharaTrait" tags="widget" position="225,350" size="100,100">&lt;&lt;widget &#39;ShowCharaTrait&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="24" name="ShowCharaTrait" tags="widget" position="475,350" size="100,100">&lt;&lt;widget &#39;ShowCharaTrait&#39;&gt;&gt;
         &lt;div class=&#39;SCTrait&#39;&gt;
             &lt;&lt;run F.initSCTrait()&gt;&gt;
-            &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+            &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="23" name="ShowCharaBody" tags="widget" position="350,350" size="100,100">&lt;&lt;widget &#39;ShowCharaBody&#39;&gt;&gt;
-        &lt;&lt;if (Config.debug || T.showChara.cid == &quot;player&quot;)&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="25" name="ShowCharaBody" tags="widget" position="600,350" size="100,100">&lt;&lt;widget &#39;ShowCharaBody&#39;&gt;&gt;
+        &lt;&lt;if (T.showChara.flag.showBody || T.showChara.cid == &quot;player&quot;)&gt;&gt;
             &lt;div class=&#39;SCBody&#39;&gt;
                 &lt;&lt;run F.initSCBody()&gt;&gt;
-                &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;else&gt;&gt;
-            &lt;div class=&#39;SCBody-blur&#39;&gt;
-                &lt;&lt;run F.initSCBody()&gt;&gt;
-                &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+            &lt;div class=&#39;SCBody&#39;&gt;
+            //////////&lt;br&gt;
+                身体数据不明
+            //////////&lt;br&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="24" name="ShowCharaVirginity" tags="widget" position="475,350" size="100,100">&lt;&lt;widget &#39;ShowCharaVirginity&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="26" name="ShowCharaVirginity" tags="widget" position="725,350" size="100,100">&lt;&lt;widget &#39;ShowCharaVirginity&#39;&gt;&gt;
         &lt;div class=&#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
         &lt;&lt;run F.initSCVirginity()&gt;&gt;
-        &lt;&lt;if (Config.debug || T.showChara.cid == &quot;player&quot;)&gt;&gt;
+        &lt;&lt;if (T.showChara.flag.showVirginity || T.showChara.cid == &quot;player&quot;)&gt;&gt;
             &lt;div&gt;
-                &lt;&lt;print T.printtext.join(&#39;&lt;br&gt;&#39;)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&lt;br&gt;&#39;)&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;else&gt;&gt;
-            未知经验情况
+            未知初次经验情况
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="25" name="ShowCharaExp" tags="widget" position="600,350" size="100,100">&lt;&lt;widget &#39;ShowCharaExp&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="27" name="ShowCharaExp" tags="widget" position="850,350" size="100,100">&lt;&lt;widget &#39;ShowCharaExp&#39;&gt;&gt;
         &lt;div class = &#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
         &lt;&lt;run F.initSCExp()&gt;&gt;
-        &lt;&lt;if Config.debug == false and _showChara.cid !== &quot;player&quot;&gt;&gt;
+        &lt;&lt;if !T.showChara.flag.showExp and _showChara.cid !== &quot;player&quot;&gt;&gt;
             &lt;div class=&#39;SCExp-blur&#39;&gt;
-                &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;else&gt;&gt;
             &lt;div class=&#39;SCExp&#39;&gt;
-                &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="26" name="ShowCharaSbl" tags="widget" position="725,350" size="100,100">&lt;&lt;widget &#39;ShowCharaSbl&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="28" name="ShowCharaSbl" tags="widget" position="975,350" size="100,100">&lt;&lt;widget &#39;ShowCharaSbl&#39;&gt;&gt;
         &lt;div class = &#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
         &lt;&lt;run F.initSCSbl()&gt;&gt;
         &lt;div class=&#39;SCSbl&#39;&gt;
-            &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+            &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="27" name="ShowCharaApp" tags="widget" position="850,350" size="100,100">&lt;&lt;widget &#39;ShowCharaApp&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="29" name="ShowCharaApp" tags="widget" position="1100,350" size="100,100">&lt;&lt;widget &#39;ShowCharaApp&#39;&gt;&gt;
         &lt;div class=&#39;SCAppBox&#39;&gt;
             &lt;div&gt;身高 &lt;&lt;=_showChara.appearance.height/10&gt;&gt;cm &lt;/div&gt;
             &lt;div&gt;体重 &lt;&lt;=_showChara.appearance.weight&gt;&gt;kg &lt;/div&gt;
             &lt;div&gt;胸围 &lt;&lt;=_showChara.appearance.bust/10&gt;&gt;cm&lt;/div&gt;
+            &lt;div&gt;[&lt;&lt;=D.breastSize[T.showChara.body.breasts.sizeLv]&gt;&gt;]&lt;/div&gt;
             &lt;div&gt;腰围 &lt;&lt;=_showChara.appearance.waist/10&gt;&gt;cm&lt;/div&gt;
             &lt;div&gt;臀围 &lt;&lt;=_showChara.appearance.hip/10&gt;&gt;cm&lt;/div&gt;
             &lt;div&gt;肤色: &lt;&lt;=_showChara.appearance.skincolor&gt;&gt; &lt;/div&gt;
@@ -12385,12 +12825,12 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
             &lt;div&gt;发色: &lt;&lt;=_showChara.appearance.haircolor&gt;&gt; &lt;/div&gt;
             &lt;div&gt;发型: &lt;&lt;=_showChara.appearance.hairstyle&gt;&gt; &lt;/div&gt;
         &lt;/div&gt;    
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="28" name="ShowCharaEquip" tags="widget" position="975,350" size="100,100">&lt;&lt;widget &#39;ShowCharaEquip&#39;&gt;&gt;
-        &lt;&lt;if (Config.debug || T.showChara.cid == &quot;player&quot;)&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="30" name="ShowCharaEquip" tags="widget" position="1225,350" size="100,100">&lt;&lt;widget &#39;ShowCharaEquip&#39;&gt;&gt;
+        &lt;&lt;if (T.showChara.flag.showEquip || T.showChara.cid == &quot;player&quot;)&gt;&gt;
             &lt;div class=&#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
             &lt;&lt;run F.initSCEquip()&gt;&gt;
             &lt;div&gt;
-                &lt;&lt;print T.printtext.join(&#39;&lt;br&gt;&#39;)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&lt;br&gt;&#39;)&gt;&gt;
                 &lt;br&gt;
                 暴露值:&lt;&lt;=T.showChara.reveals.reveal&gt;&gt;
             &lt;/div&gt;
@@ -12398,37 +12838,38 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
             &lt;div class=&#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
             &lt;div&gt;
             &lt;&lt;run F.initVagueEquipDescribe()&gt;&gt;
-            &lt;&lt;print T.printtext.join(&quot;&quot;)&gt;&gt;
+            &lt;&lt;print T.printText.join(&quot;&quot;)&gt;&gt;
             &lt;br&gt;
             暴露值:&lt;&lt;=T.showChara.reveals.reveal&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="29" name="ShowCharaPalam" tags="widget" position="1100,350" size="100,100">&lt;&lt;widget &#39;ShowCharaPalam&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="31" name="ShowCharaPalam" tags="widget" position="100,475" size="100,100">&lt;&lt;widget &#39;ShowCharaPalam&#39;&gt;&gt;
         &lt;div class=&#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
         &lt;div class=&quot;SCPalamBox&quot;&gt;
             &lt;div class=&quot;SCPalamtype&quot;&gt;[心理]&lt;/div&gt;
-            &lt;&lt;if (Config.debug || T.showChara.cid == &quot;player&quot;)&gt;&gt;
+            &lt;&lt;if (T.showChara.flag.showPalam || T.showChara.cid == &quot;player&quot;)&gt;&gt;
                 &lt;&lt;run F.initSCPalam(D.mentalpalam)&gt;&gt;
-                &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;&lt;else&gt;&gt;
-                你无法分析具体的心理
+                &lt;&lt;run F.generalPalamDescribe(D.mentalpalam)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&lt;br&gt;&#39;)&gt;&gt;
             &lt;&lt;/if&gt;&gt;
         &lt;/div&gt;
         &lt;div class=&quot;SCPalamBox&quot;&gt;
-            &lt;&lt;if (Config.debug || T.showChara.cid == &quot;player&quot;)&gt;&gt;
+            &lt;&lt;if (T.showChara.flag.showPalam || T.showChara.cid == &quot;player&quot;)&gt;&gt;
                 &lt;div class=&quot;SCPalamtype&quot;&gt;[快感]&lt;/div&gt;
                 &lt;&lt;run F.initSCPalam(D.ecstacypalam)&gt;&gt;
-                &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;&lt;/if&gt;&gt;
         &lt;/div&gt;
         &lt;div class=&quot;SCPalamBox&quot;&gt;
-            &lt;&lt;if (Config.debug || T.showChara.cid == &quot;player&quot;)&gt;&gt;
+            &lt;&lt;if (T.showChara.flag.showPalam || T.showChara.cid == &quot;player&quot;)&gt;&gt;
                 &lt;div class=&quot;SCPalamtype&quot;&gt;[痛楚]&lt;/div&gt;
                 &lt;&lt;run F.initSCPalam(D.painpalam)&gt;&gt;
-                &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;&lt;/if&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="30" name="ShowCharaLocation" tags="widget" position="1225,350" size="100,100">&lt;&lt;widget &#39;ShowCharaLocation&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="32" name="ShowCharaLocation" tags="widget" position="225,475" size="100,100">&lt;&lt;widget &#39;ShowCharaLocation&#39;&gt;&gt;
         &lt;&lt;if (Config.debug &amp;&amp; T.showChara.cid !== &quot;player&quot;)&gt;&gt;
         &lt;div&gt;
         当前位置:&lt;&lt;=worldMap[T.showChara.location.mapId].name[0]&gt;&gt;
@@ -12437,9 +12878,10 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
         &lt;&lt;= worldMap[T.showChara.location.mapId][T.spotid].name&gt;&gt;
         &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="31" name="ShowCharaWork" tags="widget" position="100,475" size="100,100">&lt;&lt;widget &#39;ShowCharaWork&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="33" name="ShowCharaWork" tags="widget" position="350,475" size="100,100">&lt;&lt;widget &#39;ShowCharaWork&#39;&gt;&gt;
         
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="32" name="ShowCharaOthers" tags="widget" position="225,475" size="100,100"></tw-passagedata><tw-passagedata pid="33" name="ShowCharaDiv" tags="widget" position="350,475" size="100,100">&lt;&lt;widget &#39;ShowCharaDiv&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="34" name="ShowCharaBodyLiquid" tags="widget" position="475,475" size="100,100">&lt;&lt;widget &#39;ShowCharaBodyLiquid&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="35" name="ShowCharaOthers" tags="widget" position="600,475" size="100,100"></tw-passagedata><tw-passagedata pid="36" name="ShowCharaDiv" tags="widget" position="725,475" size="100,100">&lt;&lt;widget &#39;ShowCharaDiv&#39;&gt;&gt;
         &lt;&lt;script&gt;&gt;
             const allpages = [&#39;SCbox1&#39;,&#39;SCbox2&#39;,&#39;SCbox3&#39;];
             function SCchangeDiv(pagename){
@@ -12453,30 +12895,83 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
         &lt;&lt;/script&gt;&gt;
         &lt;div class=&quot;SCDivButton&quot;&gt;
             &lt;button id=&quot;Divbutton1&quot; style=&#39;color:darkmagenta&#39;  onclick=&quot;F.SCchangeDiv(&#39;1&#39;)&quot;&gt;基本信息&lt;/button&gt;
-            &lt;button id=&quot;Divbutton2&quot;  onclick=&quot;F.SCchangeDiv(&#39;2&#39;)&quot;&gt;经验&lt;/button&gt;
-            &lt;button id=&quot;Divbutton3&quot;  onclick=&quot;F.SCchangeDiv(&#39;3&#39;)&quot;&gt;外貌衣装&lt;/button&gt;
-            &lt;button id=&quot;Divbutton4&quot;  onclick=&quot;F.SCchangeDiv(&#39;4&#39;)&quot;&gt;肉体信息&lt;/button&gt;
-            &lt;button id=&quot;Divbutton5&quot;  onclick=&quot;F.SCchangeDiv(&#39;5&#39;)&quot;&gt;状态&lt;/button&gt;
+            &lt;button id=&quot;Divbutton2&quot;  onclick=&quot;F.SCchangeDiv(&#39;2&#39;)&quot;&gt;调教开发&lt;/button&gt;
+            &lt;button id=&quot;Divbutton3&quot;  onclick=&quot;F.SCchangeDiv(&#39;3&#39;)&quot;&gt;肉体信息&lt;/button&gt;
+            &lt;button id=&quot;Divbutton4&quot;  onclick=&quot;F.SCchangeDiv(&#39;4&#39;)&quot;&gt;心理状态&lt;/button&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="34" name="ShowCharaMark" tags="widget" position="475,475" size="100,100">&lt;&lt;widget ShowCharaMark&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="37" name="ShowCharaMark" tags="widget" position="850,475" size="100,100">&lt;&lt;widget ShowCharaMark&gt;&gt;
         &lt;&lt;run F.initSCMark()&gt;&gt;
-        &lt;div&gt;
-            &lt;&lt;print T.printtext.join(&#39;&#39;)&gt;&gt;
+        &lt;div class=&quot;SCMarkBox&quot;&gt;
+            &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="35" name="sidebarMap" tags="widget" position="600,475" size="100,100">&lt;&lt;widget &#39;sidebarMap&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="38" name="sidebarMap" tags="widget" position="975,475" size="100,100">&lt;&lt;widget &#39;sidebarMap&#39;&gt;&gt;
         &lt;&lt;if $system.showSideBarMap&gt;&gt;
             &lt;div id=&quot;sidebarMap&quot;&gt;
                 &lt;&lt;run F.sidebarMap()&gt;&gt;
                 &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="36" name="Welcome" tags="" position="725,475" size="100,100">&lt;&lt;set _seeBegin = true&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="39" name="sidebarBaseBar" tags="widget" position="1100,475" size="100,100">&lt;&lt;widget &#39;sidebarBaseBar&#39;&gt;&gt;
+        &lt;&lt;if $system.showSideBarBaseBar&gt;&gt;
+            &lt;&lt;set _showChara = C[&#39;player&#39;]&gt;&gt;
+            &lt;&lt;run F.sidebarBaseBar()&gt;&gt;
+            &lt;div id=&quot;sidebarBaseBarContainer&quot;&gt;
+                &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
+            &lt;/div&gt;
+        &lt;&lt;/if&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="40" name="sidebarBaseDescribe" tags="widget" position="1225,475" size="100,100">&lt;&lt;widget &#39;sidebarBaseDescribe&#39;&gt;&gt;
+    &lt;&lt;run
+        let level = 0;
+        let rate = T.showChara.base[_args[0]][0]/T.showChara.base[_args[0]][1];
+        while(rate&lt;D.basicDescribe[_args[0]][level][0])
+            level += 1;
+        T.discribe = D.basicDescribe[_args[0]][0][1];
+    &gt;&gt;
+        _discribe
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="41" name="sidebarEquipDescribe" tags="widget" position="100,600" size="100,100">&lt;&lt;widget &#39;sidebarEquipDescribe&#39;&gt;&gt;
+        &lt;&lt;run F.sideBarEquipDescribe()&gt;&gt;
+        &lt;&lt;print T.tags.join(&quot;&quot;)&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="42" name="sidebarLiquidDescribe" tags="widget" position="225,600" size="100,100">&lt;&lt;widget &#39;sidebarLiquidDescribe&#39;&gt;&gt;
+        &lt;&lt;run F.sidebarLiquidDescribe()&gt;&gt;
+        &lt;&lt;print T.printText.join(&quot;&quot;)&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="43" name="sidebarShowChara" tags="widget" position="350,600" size="100,100">&lt;&lt;widget &#39;sidebarShowChara&#39;&gt;&gt;
+        &lt;&lt;if $system.showSideBarshowChara&gt;&gt;
+            &lt;div id = &quot;sidebarShowChara&quot;&gt;
+                &lt;&lt;if $tc==&quot;&quot;&gt;&gt;
+                    &lt;&lt;set _showChara = C[&#39;player&#39;]&gt;&gt;
+                    _showChara.name
+                &lt;&lt;else&gt;&gt;
+                    &lt;&lt;set _showChara = C[$tc]&gt;&gt;
+                    _showChara.name
+                &lt;&lt;/if&gt;&gt;
+                &lt;&lt;sidebarBaseBar&gt;&gt;
+                &lt;&lt;run F.sideBarGeneralPalam(D.mentalpalam)&gt;&gt;
+                &lt;&lt;print T.printText.join(&#39;&lt;br&gt;&#39;)&gt;&gt;
+                &lt;&lt;sidebarEquipDescribe&gt;&gt;
+                &lt;&lt;sidebarLiquidDescribe&gt;&gt;
+            &lt;/div&gt;
+        &lt;&lt;/if&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="44" name="Welcome" tags="" position="475,600" size="100,100">&lt;&lt;set _seeBegin = true&gt;&gt;
 &lt;div id=&#39;select_see_or_not&#39;&gt;
 想看序章吗？&lt;br&gt;
-&lt;&lt;choice [[是|Foreword]]&gt;&gt;&lt;br&gt;
+&lt;&lt;choice [[是|playForeword]]&gt;&gt;&lt;br&gt;
 &lt;&lt;choice [[否|DesignPlayer]]&gt;&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="37" name="Foreword" tags="" position="850,475" size="100,100">[[创建人物|DesignPlayer]]</tw-passagedata><tw-passagedata pid="38" name="DesignPlayer:Before" tags="" position="975,475" size="100,100">&lt;&lt;set $playerdesign={
-    name:&quot;我&quot;,
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="45" name="Foreword_Foreword" tags="" position="600,600" size="100,100">由于以cat-PTG为首的人工智能浪潮出现,许多行业纷纷加入成本更为低廉的&quot;机器换人&quot;大军。&lt;br&gt;
+社会在过去几年中就已经陷入了大量人力岗位完全被替代的困境。&lt;br&gt;
+大量人口失业，与之而来的消费力下行、生活信心低迷等等因素更是加剧了生育率快速下滑。&lt;br&gt;
+养老金危机、少子化危机、医保空虚……接踵而至&lt;br&gt;
+但作为失业大军的一员，这与你有什么关系呢?
+&lt;fr&gt;
+好吧，至少你现在面前就有一份工作。&lt;br&gt;
+————从门缝里塞进来的来历不明的信封，本以为是哪里来的小广告。但是一看到到上面写着你的名字，你还是忍不住好奇心还是打开了。
+&lt;fr&gt;
+似乎是一份求职表格。在现在这个隐私权形同虚设的时代里竟然还有求职表格，令人惊讶。&lt;br&gt;
+伴随表格的是一张小卡片，上面歪歪扭扭地写着“明天上班,&#39;老师&#39;”。&lt;br&gt;
+尽管觉得可能是某种恶作剧，但考虑到你快要交不起的房租，你决定--
+[[填写表格|DesignPlayer]]
+[[填写表格|DesignPlayer]]
+[[我莫得选择|DesignPlayer]]</tw-passagedata><tw-passagedata pid="46" name="playForeword" tags="" position="725,600" size="100,100">&lt;&lt;run Dialogs.set({tp:&#39;Foreword&#39;,nm:&#39;Foreword&#39;, exit:&#39;DesignPlayer&#39;})&gt;&gt;</tw-passagedata><tw-passagedata pid="47" name="DesignPlayer:Before" tags="" position="850,600" size="100,100">&lt;&lt;set $playerdesign={
+    name:&quot;你&quot;,
     gender:&quot;male&quot;,
     species:&quot;human&quot;,
     BirthdayM:9,BirthdayD:1,
@@ -12484,7 +12979,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
     SexExp:&quot;no&quot;, 
     bodysize:random(2,3), 
     appearance:{haircolor:&quot;黑色&quot;,eyecolor:&quot;黑色&quot;,hairstyle:&quot;短发&quot;,skincolor:&quot;健康色&quot;}}&gt;&gt;
-&lt;&lt;run F.InitNewGame()&gt;&gt;</tw-passagedata><tw-passagedata pid="39" name="DesignPlayer" tags="" position="1100,475" size="100,100">称呼:&lt;&lt;textbox &quot;$playerdesign.name&quot; &quot;我&quot; &gt;&gt;&lt;br&gt;
+&lt;&lt;run F.InitNewGame()&gt;&gt;</tw-passagedata><tw-passagedata pid="48" name="DesignPlayer" tags="" position="975,600" size="100,100">称呼:&lt;&lt;textbox &quot;$playerdesign.name&quot; &quot;你&quot; &gt;&gt;&lt;br&gt;
 性别:&lt;&lt;radiobutton &quot;$playerdesign.gender&quot; &quot;male&quot; autocheck&gt;&gt;男性 &lt;&lt;radiobutton &quot;$playerdesign.gender&quot; &quot;female&quot; autocheck&gt;&gt;女性&lt;br&gt;
 生日:
 &lt;&lt;=F.Listbox({id:&quot;BirthdayM&quot;,opt:Array.from(Array(12).keys(),n=&gt;n+1), def:9, on:&#39;F.DPset(this.id,parseInt(this.value))&#39;})&gt;&gt;月
@@ -12502,36 +12997,56 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="5" name="ComList" tags=
 说明:
 &lt;&lt;=D.StartBouns[$playerdesign.Bouns]&gt;&gt;
 &lt;/div&gt;&lt;br&gt;
-[[决定|DesignPlayerShow]]</tw-passagedata><tw-passagedata pid="40" name="DesignPlayerShow:Before" tags="" position="1225,475" size="100,100">&lt;&lt;run F.CPRandomPlayer()&gt;&gt;
-&lt;&lt;run T.showChara = MyChara.data[&#39;player&#39;]&gt;&gt;</tw-passagedata><tw-passagedata pid="41" name="DesignPlayerShow" tags="" position="100,600" size="100,100">&lt;&lt;showChara&gt;&gt;
+[[决定|DesignPlayerShow]]</tw-passagedata><tw-passagedata pid="49" name="DesignPlayerShow:Before" tags="" position="1100,600" size="100,100">&lt;&lt;run F.CPRandomPlayer()&gt;&gt;
+&lt;&lt;run T.showChara = C[&#39;player&#39;]&gt;&gt;</tw-passagedata><tw-passagedata pid="50" name="DesignPlayerShow" tags="" position="1225,600" size="100,100">&lt;&lt;showChara&gt;&gt;
 &lt;&lt;dashline&gt;&gt;
 [[返回|DesignPlayer]]
 [[重摇|DesignPlayerShow]]
-&lt;&lt;link [[决定|MainLoop]]&gt;&gt;&lt;&lt;run F.CPdetermine()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="42" name="DesignPlayerDetermine" tags="" position="225,600" size="100,100"></tw-passagedata><tw-passagedata pid="43" name="mapmove" tags="" position="350,600" size="100,100">&lt;&lt;return &quot;返回&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="44" name="Msg_Spots_academyLevel_animalHouse" tags="" position="475,600" size="100,100">你位于动物小屋内</tw-passagedata><tw-passagedata pid="45" name="Msg_Spots_academyLevel_auditorium" tags="" position="600,600" size="100,100">你位于学院礼堂</tw-passagedata><tw-passagedata pid="46" name="Msg_Spots_academyLevel_broadcastRoom" tags="" position="725,600" size="100,100">你位于广播室内</tw-passagedata><tw-passagedata pid="47" name="Msg_Spots_academyLevel_canteen" tags="" position="850,600" size="100,100">你正位于食堂</tw-passagedata><tw-passagedata pid="48" name="Msg_Spots_academyLevel_changingRoom" tags="" position="975,600" size="100,100">你正位于更衣室内</tw-passagedata><tw-passagedata pid="49" name="Msg_Spots_academyLevel_classroomBuilding" tags="" position="1100,600" size="100,100">你位于教学楼</tw-passagedata><tw-passagedata pid="50" name="Msg_Spots_academyLevel_dormitory" tags="" position="1225,600" size="100,100">你正站在学院层宿舍门口
+&lt;&lt;link [[决定|MainLoop]]&gt;&gt;&lt;&lt;run F.CPdetermine()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="51" name="DesignPlayerDetermine" tags="" position="100,725" size="100,100"></tw-passagedata><tw-passagedata pid="52" name="mapmove" tags="" position="225,725" size="100,100">&lt;&lt;return &quot;返回&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="53" name="Msg_Spots_academyLevel_animalHouse" tags="" position="350,725" size="100,100">你位于动物小屋内</tw-passagedata><tw-passagedata pid="54" name="Msg_Spots_academyLevel_auditorium" tags="" position="475,725" size="100,100">你位于学院礼堂</tw-passagedata><tw-passagedata pid="55" name="Msg_Spots_academyLevel_broadcastRoom" tags="" position="600,725" size="100,100">你位于广播室内</tw-passagedata><tw-passagedata pid="56" name="Msg_Spots_academyLevel_canteen" tags="" position="725,725" size="100,100">你正位于食堂</tw-passagedata><tw-passagedata pid="57" name="Msg_Spots_academyLevel_changingRoom" tags="" position="850,725" size="100,100">你正位于更衣室内</tw-passagedata><tw-passagedata pid="58" name="Msg_Spots_academyLevel_classroomBuilding" tags="" position="975,725" size="100,100">你位于教学楼</tw-passagedata><tw-passagedata pid="59" name="Msg_Spots_academyLevel_dormitory" tags="" position="1100,725" size="100,100">你正站在学院层宿舍门口
     &lt;&lt;link &quot;进入&quot;&gt;&gt;
         &lt;&lt;set T.jumpMove = {mapId:&quot;dorm&quot;,coord:[6,3], allowjump:true}&gt;&gt;
         &lt;&lt;run Com.Check(&quot;0-move-jump&quot;);&gt;&gt;
-    &lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="51" name="Msg_Spots_academyLevel_gym" tags="" position="100,725" size="100,100">你位于学院体育馆内</tw-passagedata><tw-passagedata pid="52" name="Msg_Spots_academyLevel_library" tags="" position="225,725" size="100,100">你正位于图书馆内</tw-passagedata><tw-passagedata pid="53" name="Msg_Spots_academyLevel_medicalRoom" tags="" position="350,725" size="100,100">你位于校医室</tw-passagedata><tw-passagedata pid="54" name="Msg_Spots_academyLevel_office" tags="" position="475,725" size="100,100">&lt;&lt;if $flag.scenePhase == &quot;start&quot;&gt;&gt;&lt;&lt;office_firstVisit&gt;&gt;
-    &lt;&lt;else&gt;&gt;&lt;&lt;office_normalVisit&gt;&gt;
-    &lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="55" name="Msg_Spots_academyLevel_office_firstVisit" tags="widget" position="600,725" size="100,100">&lt;&lt;widget &quot;office_firstVisit&quot;&gt;&gt;
-        &lt;&lt;run F.creatHeadMaster()&gt;&gt;
-        &lt;&lt;set $tc = &quot;Alisa&quot;&gt;&gt;
-        &lt;&lt;run F.summonChara()&gt;&gt;
-        *事件文本
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="56" name="Msg_Spots_academyLevel_office_normalVisit" tags="" position="725,725" size="100,100">&lt;&lt;widget &quot;office_normalVisit&quot;&gt;&gt;
+    &lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="60" name="Msg_Spots_academyLevel_gym" tags="" position="1225,725" size="100,100">你位于学院体育馆内</tw-passagedata><tw-passagedata pid="61" name="Msg_Spots_academyLevel_library" tags="" position="100,850" size="100,100">你正位于图书馆内</tw-passagedata><tw-passagedata pid="62" name="Msg_Spots_academyLevel_medicalRoom" tags="" position="225,850" size="100,100">你位于校医室</tw-passagedata><tw-passagedata pid="63" name="Msg_Spots_academyLevel_office" tags="" position="350,850" size="100,100">&lt;&lt;office_normalVisit&gt;&gt;</tw-passagedata><tw-passagedata pid="64" name="Msg_Spots_academyLevel_office_normalVisit" tags="widget" position="475,850" size="100,100">&lt;&lt;widget &quot;office_normalVisit&quot;&gt;&gt;
         你位于学院层的学园长办公区域
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="57" name="Msg_Spots_academyLevel_road" tags="" position="850,725" size="100,100">你站在学院层的走道上。&lt;&lt;Get_Msg_Map_neighbor&gt;&gt;</tw-passagedata><tw-passagedata pid="58" name="Msg_Spots_academyLevel_shop" tags="" position="975,725" size="100,100">你位于学院层的小商店内。</tw-passagedata><tw-passagedata pid="59" name="Msg_Spots_academyLevel_square" tags="" position="1100,725" size="100,100">你正位于学院广场上</tw-passagedata><tw-passagedata pid="60" name="Msg_Spots_academyLevel_swimmingPool" tags="" position="1225,725" size="100,100">你位于学院泳池内</tw-passagedata><tw-passagedata pid="61" name="Msg_Spots_academyLevel_videoHall" tags="" position="100,850" size="100,100">你正位于放映厅内</tw-passagedata><tw-passagedata pid="62" name="Msg_Spots_dorm_domRoom" tags="" position="225,850" size="100,100">你来到一间普通的房间</tw-passagedata><tw-passagedata pid="63" name="Msg_Spots_dorm_domRoom_preview" tags="" position="350,850" size="100,100">&lt;&lt;= T.neighbordir.delete(T.neighbordir[0])&gt;&gt;边是&lt;&lt;= T.neighborCoor.delete(T.neighborCoor[0])&gt;&gt;的房间。(待做房间归属和访问许可)</tw-passagedata><tw-passagedata pid="64" name="Msg_Spots_dorm_yourRoom" tags="" position="475,850" size="100,100">你正位于你自己的房间里。</tw-passagedata><tw-passagedata pid="65" name="Msg_Spots_dorm_road" tags="" position="600,850" size="100,100">你站在宿舍的走廊上。&lt;&lt;Get_Msg_Map_neighbor&gt;&gt;</tw-passagedata><tw-passagedata pid="66" name="Msg_Spots_dorm_gate" tags="" position="725,850" size="100,100">你正位于宿舍的大门处。
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="65" name="Msg_Spots_academyLevel_road" tags="" position="600,850" size="100,100">你站在学院层的走道上。&lt;&lt;Get_Msg_Map_neighbor&gt;&gt;</tw-passagedata><tw-passagedata pid="66" name="Msg_Spots_academyLevel_shop" tags="" position="725,850" size="100,100">你位于学院层的小商店内。</tw-passagedata><tw-passagedata pid="67" name="Msg_Spots_academyLevel_square" tags="" position="850,850" size="100,100">你正位于学院广场上</tw-passagedata><tw-passagedata pid="68" name="Msg_Spots_academyLevel_swimmingPool" tags="" position="975,850" size="100,100">你位于学院泳池内</tw-passagedata><tw-passagedata pid="69" name="Msg_Spots_academyLevel_videoHall" tags="" position="1100,850" size="100,100">你正位于放映厅内</tw-passagedata><tw-passagedata pid="70" name="Msg_Spots_dorm_domRoom" tags="" position="1225,850" size="100,100">你来到一间普通的房间</tw-passagedata><tw-passagedata pid="71" name="Msg_Spots_dorm_domRoom_preview" tags="" position="100,975" size="100,100">&lt;&lt;= T.neighbordir.delete(T.neighbordir[0])&gt;&gt;边是&lt;&lt;= T.neighborCoor.delete(T.neighborCoor[0])&gt;&gt;的房间。(待做房间归属和访问许可)</tw-passagedata><tw-passagedata pid="72" name="Msg_Spots_dorm_road" tags="" position="225,975" size="100,100">你站在宿舍的走廊上。&lt;&lt;Get_Msg_Map_neighbor&gt;&gt;</tw-passagedata><tw-passagedata pid="73" name="Msg_Spots_dorm_gate" tags="" position="350,975" size="100,100">你正位于宿舍的大门处。
     &lt;&lt;link &quot;出门&quot;&gt;&gt;
         &lt;&lt;set T.jumpMove = {mapId:&quot;academyLevel&quot;,coord:[4,4], allowjump:true}&gt;&gt;
         &lt;&lt;run Com.Check(&quot;0-move-jump&quot;);&gt;&gt;
-    &lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="67" name="SystemOption" tags="system" position="850,850" size="100,100">&lt;&lt;link &#39;Back&#39; &#39;Start&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="68" name="StoryDisplayTitle" tags="" position="975,850" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
+    &lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="74" name="Msg_Spots_dorm_yourRoom" tags="" position="475,975" size="100,100">&lt;&lt;if Flag.firstVisitYourRoom == true&gt;&gt;
+        &lt;&lt;run Dialogs.set({tp:&#39;Welcome&#39;,nm:&#39;FirstWake&#39;})&gt;&gt;
+    &lt;&lt;else&gt;&gt;
+        &lt;&lt;yourRoom_normalVisit&gt;&gt;
+    &lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="75" name="Msg_Spots_dorm_yourRoom_first_visit" tags="widget" position="600,975" size="100,100">&lt;&lt;widget &quot;yourRoom_firstVisit&quot;&gt;&gt;
+    &lt;&lt;stop&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="76" name="Msg_Spots_dorm_yourRoom_normal_visit" tags="widget" position="725,975" size="100,100">&lt;&lt;widget &quot;yourRoom_normalVisit&quot;&gt;&gt;
+        &lt;&lt;you&gt;&gt;正位于自己的房间里。
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="77" name="Welcome_FirstWake" tags="" position="850,975" size="100,100">&quot;陌生的天花板&quot;,&lt;&lt;you&gt;&gt;从床上坐起来，揉了揉自己的后脑勺。
+昨天写下最后一个字后，&lt;&lt;you&gt;&gt;正打算将信封重新封好，却突然感到眼前一黑，醒来时便已经在这了。
+&lt;&lt;you&gt;&gt;现在位于的房间宽敞而明亮，茶几椅子电脑桌一应俱全，还有一个不小的独卫，全然不似&lt;&lt;you&gt;&gt;之前逼仄的出租公寓隔间。
+从单人床上起来洗漱完成，&lt;&lt;you&gt;&gt;听到开着的电视机里传来晨间新闻：
+&lt;fr&gt;
+&lt;div id=&quot;italic&quot;&gt;
+    &quot;鉴于数年不断的人口负增长，日前由XXX大会投票一致通过的《生育促进法案》于今日正式开始实行&lt;br&gt;
+    以任何形式阻止生育的行为，包括体外射精、购买或生产销售计生用品、堕胎等等，都将视为违法犯罪行为。&lt;br&gt;
+    违反者将判处……&quot;
+&lt;/div&gt;
+&lt;fr&gt;
+个人终端的震响打断了&lt;&lt;you&gt;&gt;的观看。
+&lt;&lt;you&gt;&gt;拿起终端，看到：&quot;请按以下路线前往学园长办公室报到，教师。&quot;
+&lt;&lt;set Flag.firstVisitYourRoom = false&gt;&gt;
+&lt;fr&gt;
+&lt;&lt;set V.location.mapId = &quot;academyLevel&quot;&gt;&gt;
+&lt;&lt;set V.location.coord = [8,4]&gt;&gt;
+&lt;&lt;run V.location.spotid = &quot;office&quot;&gt;&gt;
+&lt;&lt;run V.location.printname = &quot;学园长办公区域&quot;&gt;&gt;
+&lt;&lt;= Kojo.put(&quot;Alisa&quot;,{type:&quot;event&quot;,id:&quot;firstMeet&quot;})&gt;&gt;</tw-passagedata><tw-passagedata pid="78" name="SystemOption" tags="system" position="975,975" size="100,100">&lt;&lt;link &#39;Back&#39; &#39;Start&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="79" name="StoryDisplayTitle" tags="" position="1100,975" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
    EraFacility
-&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="69" name="StoryInit" tags="" position="1100,850" size="100,100">&lt;&lt;run
+&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="80" name="StoryInit" tags="" position="1225,975" size="100,100">&lt;&lt;run
    game.InitStory()
 
    console.log(&#39;scEra version: &#39; + scEra.version)
    slog(&#39;log&#39;,&#39;This is the end of StoryInit...&#39;)
-&gt;&gt;</tw-passagedata><tw-passagedata pid="70" name="Start" tags="nosave" position="1225,850" size="100,100">&lt;&lt;run
+&gt;&gt;</tw-passagedata><tw-passagedata pid="81" name="Start" tags="nosave" position="100,1100" size="100,100">&lt;&lt;run
    slog(&#39;log&#39;,&#39;Loading Titlescreen...&#39;);
 &gt;&gt;
 
@@ -12555,7 +13070,7 @@ EraFacility
 &lt;&lt;link &#39;开发者模式&#39;&gt;&gt;&lt;&lt;run Config.debug = true;  DebugBar.init(); DebugBar.start() &gt;&gt;&lt;&lt;/link&gt;&gt;
 　
 &lt;&lt;link &#39;快速重启&#39;&gt;&gt;&lt;&lt;run Engine.restart()&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="71" name="MapEditor" tags="nobar" position="100,975" size="100,100">&lt;&lt;set _mapsizeX = 12&gt;&gt;
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="82" name="MapEditor" tags="nobar" position="225,1100" size="100,100">&lt;&lt;set _mapsizeX = 12&gt;&gt;
 &lt;&lt;set _mapsizeY = 32&gt;&gt;
 &lt;&lt;set _placemode = 0&gt;&gt;
 &lt;&lt;set _destroymode = 0&gt;&gt;
@@ -12691,7 +13206,7 @@ $(&#39;#checkbox--placemode&#39;).on(&#39;change&#39;,()=&gt;{
 
 
 &lt;&lt;/script&gt;&gt;
-&lt;&lt;/done&gt;&gt;</tw-passagedata><tw-passagedata pid="72" name="PassageHeader" tags="" position="225,975" size="100,100">&lt;&lt;run
+&lt;&lt;/done&gt;&gt;</tw-passagedata><tw-passagedata pid="83" name="PassageHeader" tags="" position="350,1100" size="100,100">&lt;&lt;run
     $passage = passage(); $tags = tags($passage);
     if($tags.has(&#39;title&#39;,&#39;nobar&#39;)){
         UIBar.stow();
@@ -12708,37 +13223,39 @@ $(&#39;#checkbox--placemode&#39;).on(&#39;change&#39;,()=&gt;{
        $(&#39;#story-header&#39;).removeClass(&#39;hidden&#39;) 
     }
 &gt;&gt;
-/*这里是header. 每个页面都会运行。&lt;br&gt;*/</tw-passagedata><tw-passagedata pid="73" name="StoryCaption" tags="" position="350,975" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
+/*这里是header. 每个页面都会运行。&lt;br&gt;*/</tw-passagedata><tw-passagedata pid="84" name="StoryCaption" tags="" position="475,1100" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
 EraFacility beta 0.0.1&lt;br&gt;
 &lt;a url=&#39;https://github.com/emicoto/_scEra&#39;&gt;github&lt;/a&gt;&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
 
 /* 这里显示目前操作角色的信息 */
 &lt;&lt;if $system.showHeaderInf&gt;&gt;
-    &lt;&lt;HeaderShowTime&gt;&gt;
-    &lt;&lt;HeaderShowMoney&gt;&gt;
+    &lt;&lt;sideBarShowTime&gt;&gt;
+    &lt;&lt;sideBarShowMoney&gt;&gt;
     &lt;&lt;dashline&gt;&gt;
 &lt;&lt;/if&gt;&gt;
+&lt;&lt;sidebarShowChara&gt;&gt;
+&lt;&lt;dashline&gt;&gt;
 &lt;&lt;sidebarMap&gt;&gt;
 &lt;&lt;SideBarIpad&gt;&gt;
 &lt;div id=&#39;random_tips&#39;&gt;
 &lt;/div&gt;
 &lt;div id=&#39;update_note&#39;&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="74" name="PassageFooter" tags="" position="475,975" size="100,100">/*这里是footer。每个页面都会运行。&lt;br&gt;*/
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="85" name="PassageFooter" tags="" position="600,1100" size="100,100">/*这里是footer。每个页面都会运行。&lt;br&gt;*/
 &lt;div id=&quot;customOverlayContainer&quot; class=&quot;customOverlayContainer no-numberify hidden&quot; onclick=&quot;F.closeOverlay()&quot;&gt;
 	&lt;div id=&quot;customOverlay&quot; class=&quot;customOverlay hidden&quot; onclick=&quot;event.stopPropagation()&quot;&gt;
 		&lt;div id=&quot;customOverlayTitle&quot;&gt;&lt;/div&gt;
 		&lt;div id=&quot;customOverlayContent&quot;&gt;&lt;/div&gt;
 	&lt;/div&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="75" name="PassageReady" tags="" position="600,975" size="100,100">&lt;&lt;run
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="86" name="PassageReady" tags="" position="725,1100" size="100,100">&lt;&lt;run
     _passageready = true;
     if($lastsession !== $passage)
       $lastsession = $passage;
 &gt;&gt;
 这里会在读取文本前执行。
-因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="76" name="PassageDone" tags="" position="725,975" size="100,100">这里是会在渲染结束时执行。
-因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="77" name="StoryHeader" tags="" position="850,975" size="100,100">/*顶部的标题栏。&lt;br&gt;
-&lt;&lt;test2&gt;&gt;*/</tw-passagedata><tw-passagedata pid="78" name="StoryFooter" tags="" position="975,975" size="100,100">/*底部的菜单栏。*/</tw-passagedata><tw-passagedata pid="79" name="DialogTest" tags="" position="1100,975" size="100,100">&lt;&lt;set _count to 0&gt;&gt;
+因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="87" name="PassageDone" tags="" position="850,1100" size="100,100">这里是会在渲染结束时执行。
+因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="88" name="StoryHeader" tags="" position="975,1100" size="100,100">/*顶部的标题栏。&lt;br&gt;
+&lt;&lt;test2&gt;&gt;*/</tw-passagedata><tw-passagedata pid="89" name="StoryFooter" tags="" position="1100,1100" size="100,100">/*底部的菜单栏。*/</tw-passagedata><tw-passagedata pid="90" name="DialogTest" tags="" position="1225,1100" size="100,100">&lt;&lt;set _count to 0&gt;&gt;
 ready to dialog.
 &lt;span id=&#39;counter&#39;&gt;_count&lt;/span&gt;
 
@@ -12749,7 +13266,7 @@ ready to dialog.
       &lt;&lt;run Dialogs.set({tp:&#39;Test&#39;,nm:&#39;Chapter&#39;})&gt;&gt;
       &lt;&lt;stop&gt;&gt;
    &lt;&lt;/if&gt;&gt;
-&lt;&lt;/repeat&gt;&gt;</tw-passagedata><tw-passagedata pid="80" name="TestStart" tags="" position="1225,975" size="100,100">&lt;div id=&#39;test&#39;&gt;&lt;/div&gt;
+&lt;&lt;/repeat&gt;&gt;</tw-passagedata><tw-passagedata pid="91" name="TestStart" tags="" position="100,1225" size="100,100">&lt;div id=&#39;test&#39;&gt;&lt;/div&gt;
 &lt;&lt;if $mode is &#39;normal&#39;&gt;&gt;
 多了些什么东西吗？&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
@@ -12781,7 +13298,7 @@ ready to dialog.
 &lt;&lt;link &#39;测试段落&#39; &#39;Test&#39;&gt;&gt;
 &lt;&lt;/link&gt;&gt;&lt;br&gt;
 
-[[next|MainLoop]]</tw-passagedata><tw-passagedata pid="81" name="Test" tags="" position="100,1100" size="100,100">一个测试用段落。&lt;br&gt;
+[[next|MainLoop]]</tw-passagedata><tw-passagedata pid="92" name="Test" tags="" position="225,1225" size="100,100">一个测试用段落。&lt;br&gt;
 看看能不能正常显示。&lt;br&gt;
 
 &lt;&lt;if $mode is &quot;event&quot;&gt;&gt;
@@ -12793,7 +13310,7 @@ ready to dialog.
 &lt;&lt;link &#39;back&#39; &#39;Start&#39;&gt;&gt;
 &lt;&lt;/link&gt;&gt;
 &lt;&lt;link &#39;switch&#39; $passage&gt;&gt;
-&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="82" name="Test:EN" tags="" position="225,1100" size="100,100">a test passage.&lt;br&gt;
+&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="93" name="Test:EN" tags="" position="350,1225" size="100,100">a test passage.&lt;br&gt;
 see if it can be displayed normally.&lt;br&gt;
 
 &lt;&lt;if $mode is &quot;event&quot;&gt;&gt;
@@ -12803,11 +13320,11 @@ see if it can be displayed normally.&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
 
 &lt;&lt;link &#39;back&#39; &#39;Start&#39;&gt;&gt;
-&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="83" name="Test:Before" tags="" position="350,1100" size="100,100">&lt;&lt;run 
+&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="94" name="Test:Before" tags="" position="475,1225" size="100,100">&lt;&lt;run 
    console.log(&#39;Test:Before is running.&#39;)
 &gt;&gt;
 &lt;&lt;=lan(&#39;测试前置&#39;,&#39;test before&#39;)&gt;&gt;&lt;br&gt;
-&lt;&lt;test &gt;&gt;</tw-passagedata><tw-passagedata pid="84" name="Widget" tags="widget" position="475,1100" size="100,100">&lt;&lt;widget &quot;test&quot;&gt;&gt;
+&lt;&lt;test &gt;&gt;</tw-passagedata><tw-passagedata pid="95" name="Widget" tags="widget" position="600,1225" size="100,100">&lt;&lt;widget &quot;test&quot;&gt;&gt;
    &lt;&lt;if $mode is &quot;event&quot;&gt;&gt;
       &lt;&lt;set $test to &quot;event&quot;&gt;&gt;
       &lt;&lt;script&gt;&gt;slog(&#39;log&#39;, &#39;test in event&#39;, V.test, T.runningTitle)&lt;&lt;/script&gt;&gt;
@@ -12820,18 +13337,18 @@ see if it can be displayed normally.&lt;br&gt;
 &lt;&lt;widget &quot;test2&quot;&gt;&gt;
    a general widget.&lt;br&gt;
    ???
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="85" name="A CSV" tags="csv" position="600,1100" size="100,100">No., Name, Age, Job, Salary
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="96" name="A CSV" tags="csv" position="725,1225" size="100,100">No., Name, Age, Job, Salary
 1, John, 24, Engineer, 10000
 2, Mary, 23, Designer, 15000
 3, Bob, 25, Engineer, 20000
 4, Alice, 26, Engineer, 25000
-5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="86" name="A Table" tags="table" position="725,1100" size="100,100">@Salary
+5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="97" name="A Table" tags="table" position="850,1225" size="100,100">@Salary
 #No., Name, Age, Job, Salary
 1, John, 24, Engineer, 10000
 2, Mary, 23, Designer, 15000
 3, Bob, 25, Engineer, 20000
 4, Alice, 26, Engineer, 25000
-5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="87" name="A Xml" tags="xml" position="850,1100" size="100,100">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="98" name="A Xml" tags="xml" position="975,1225" size="100,100">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;bookstore&gt;
    &lt;book&gt;
       &lt;title lang=&quot;en&quot;&gt;Harry Potter&lt;/title&gt;
@@ -12841,10 +13358,10 @@ see if it can be displayed normally.&lt;br&gt;
       &lt;title lang=&quot;en&quot;&gt;Learning XML&lt;/title&gt;
       &lt;price&gt;39.95&lt;/price&gt;
    &lt;/book&gt;
-&lt;/bookstore&gt;</tw-passagedata><tw-passagedata pid="88" name="testpage::Before" tags="" position="975,1100" size="100,100">&lt;&lt;run console.log(1)&gt;&gt;</tw-passagedata><tw-passagedata pid="89" name="testpage" tags="" position="1100,1100" size="100,100">passage
-[[back|testpage]]</tw-passagedata><tw-passagedata pid="90" name="testpage::After" tags="" position="1225,1100" size="100,100">&lt;&lt;run console.log(2)&gt;&gt;</tw-passagedata><tw-passagedata pid="91" name="Test_Chapter::Before" tags="" position="100,1225" size="100,100">&lt;&lt;set $event.exit to &#39;Start&#39;&gt;&gt;
+&lt;/bookstore&gt;</tw-passagedata><tw-passagedata pid="99" name="testpage::Before" tags="" position="1100,1225" size="100,100">&lt;&lt;run console.log(1)&gt;&gt;</tw-passagedata><tw-passagedata pid="100" name="testpage" tags="" position="1225,1225" size="100,100">passage
+[[back|testpage]]</tw-passagedata><tw-passagedata pid="101" name="testpage::After" tags="" position="100,1350" size="100,100">&lt;&lt;run console.log(2)&gt;&gt;</tw-passagedata><tw-passagedata pid="102" name="Test_Chapter::Before" tags="" position="225,1350" size="100,100">&lt;&lt;set $event.exit to &#39;Start&#39;&gt;&gt;
 &lt;&lt;set $test to &#39;abc&#39;&gt;&gt;
-&lt;&lt;run console.log(&#39;a test before:&#39;, $event, $test)&gt;&gt;</tw-passagedata><tw-passagedata pid="92" name="Test_Chapter" tags="" position="225,1225" size="100,100">下课后，科林被教导主任叫到会客室。
+&lt;&lt;run console.log(&#39;a test before:&#39;, $event, $test)&gt;&gt;</tw-passagedata><tw-passagedata pid="103" name="Test_Chapter" tags="" position="350,1350" size="100,100">下课后，科林被教导主任叫到会客室。
 然后一进去就看到里面坐着的是父亲威尔·埃德瑞，以及埃里克的父亲洛伦斯·霍尔森，
 本区教会的巢司长与礼司长、唯一的主母供仪与圣女队的领头供仪，
 世界银行的银行长，以及格伦特一等学院的院长，大学部的校长。
@@ -12871,7 +13388,7 @@ see if it can be displayed normally.&lt;br&gt;
 
 银行长望向了教会，教会巢司长便说：“教会愿意帮你们抵消5亿债务，但科林，你必须成为供仪为教会与信众们服务，至少12年。”
 “而我花了一亿买下了你的监管权，”霍尔森公爵说道，“以后我就是你的教夫，亦是你的直属债权人，你身上依然有一亿的债务。哦，对了，我的儿子埃里克也共有这份权利。”
-#:{ &quot;type&quot;:&quot;endPhase&quot;}</tw-passagedata><tw-passagedata pid="93" name="Test_Chapter_ep1" tags="" position="350,1225" size="100,100">这是一个新的章节。
+#:{ &quot;type&quot;:&quot;endPhase&quot;}</tw-passagedata><tw-passagedata pid="104" name="Test_Chapter_ep1" tags="" position="475,1350" size="100,100">这是一个新的章节。
 看看内容。
 做点选项看看。
 
@@ -12880,9 +13397,10 @@ see if it can be displayed normally.&lt;br&gt;
 &lt;&lt;select &#39;B Choice&#39;&gt;&gt;
 &lt;&lt;/selection&gt;&gt;
 
-#:{ &quot;type&quot;:&quot;selectEnd&quot;}</tw-passagedata><tw-passagedata pid="94" name="Test_Chapter_ep1:sp1" tags="" position="475,1225" size="100,100">选择了A， 准备返回上一个选择节点。
-#:{ &quot;type&quot;:&quot;return&quot;}</tw-passagedata><tw-passagedata pid="95" name="Test_Chapter_ep1:sp2" tags="" position="600,1225" size="100,100">选择了B，准备跳转到另一个地方。
-#:{ &quot;type&quot;:&quot;jump&quot;, &quot;target&quot;:&quot;Test_Chapter&quot;, &quot;phase&quot;:1}</tw-passagedata><tw-passagedata pid="96" name="Test_Chapter:sp1" tags="" position="725,1225" size="100,100">&lt;&lt;run Dialogs.clear(2)&gt;&gt;
+#:{ &quot;type&quot;:&quot;selectEnd&quot;}</tw-passagedata><tw-passagedata pid="105" name="Test_Chapter_ep1:sp1" tags="" position="600,1350" size="100,100">选择了A， 准备返回上一个选择节点。
+#:{ &quot;type&quot;:&quot;return&quot;}</tw-passagedata><tw-passagedata pid="106" name="Test_Chapter_ep1:sp2" tags="" position="725,1350" size="100,100">选择了B，准备跳转到另一个地方。
+#:{ &quot;type&quot;:&quot;jump&quot;, &quot;target&quot;:&quot;Test_Chapter&quot;, &quot;phase&quot;:1}
+1</tw-passagedata><tw-passagedata pid="107" name="Test_Chapter:sp1" tags="" position="850,1350" size="100,100">&lt;&lt;run Dialogs.clear(2)&gt;&gt;
 &lt;fr&gt;
 这是一个途中跳转过来的新分支。
 将会清除最后两个step的内容。

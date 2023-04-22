@@ -33,7 +33,6 @@ export type basekey =
 	| "hydration"
 	| "nutrition"
 	| "clean"
-	| "drug"
 	| "alcohol"
 	| "stress"
 	| "libido";
@@ -49,9 +48,8 @@ export type palamkey =
 	| "depress"
 	| "resist"
 	| "favo"
-	| "uncomfort"
-	| "eager"
-	| "angry"
+	| "deference"
+	| "hypno"
 	| "satisfy"
 	| "superior"
 	//ecstacy track
@@ -195,4 +193,4 @@ export type expkey =
 	| "train"
 	| "sadic";
 
-export type markkey = "hypno" | "ecstacy" | "surrend" | "pain" | "fear" | "humiliate" | "mortify" | "resist";
+export type markkey = "hypno" | "ecstacy" | "surrend" | "deference" | "pain" | "fear" | "humiliate" | "mortify" | "resist"| "hypno";

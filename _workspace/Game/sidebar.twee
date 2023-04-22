@@ -26,10 +26,12 @@ EraFacility beta 0.0.1<br>
 
 /* 这里显示目前操作角色的信息 */
 <<if $system.showHeaderInf>>
-    <<HeaderShowTime>>
-    <<HeaderShowMoney>>
+    <<sideBarShowTime>>
+    <<sideBarShowMoney>>
     <<dashline>>
 <</if>>
+<<sidebarShowChara>>
+<<dashline>>
 <<sidebarMap>>
 <<SideBarIpad>>
 <div id='random_tips'>

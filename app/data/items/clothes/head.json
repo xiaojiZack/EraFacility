@@ -1,1 +1,18 @@
-[]
+[
+    {
+		"name": ["耳机","headset"],
+		"des": [
+			"物品说明"
+		],
+		"group": "clothes",
+		"category": "head",
+        "gender":"f",
+		"tags": ["basic"],
+        "price": 0,
+        "color": [],
+        "cover":{
+            "face":[3,3]
+        },
+        "allure":0.01
+	}
+]

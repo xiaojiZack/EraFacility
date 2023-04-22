@@ -65,14 +65,14 @@ function updateLocation(){
     let board = Boards.getBoard(V.location.mapId);
     V.location.spotid = board[coord[0]][coord[1]];
     V.location.printname = worldMap[V.location.mapId][V.location.spotid].name;
-    refrashSideBarMap();
+    F.refrashSideBar();
 }
 
-function refrashSideBarMap(){
-    if (document.getElementById("sidebarMap"))
-        new Wikifier(null, `<<replace #sidebarMap>> <<sidebarMap>><</replace>>`);
-    //$("#siderbarMap").remove();
-}
+// function refrashSideBarMap(){
+//     if (document.getElementById("sidebarMap"))
+//         new Wikifier(null, `<<replace #sidebarMap>> <<sidebarMap>><</replace>>`);
+//     //$("#siderbarMap").remove();
+// }
 
 
 function createJumpMoveComs(){

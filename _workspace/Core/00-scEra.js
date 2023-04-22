@@ -470,7 +470,7 @@
 	    Wikifier: { value: scEra.wikifier },
 	    V: { get: () => scEra.state.variables },
 	    T: { get: () => scEra.state.temporary },
-	    C: { get: () => M.Creatures.classObj.MyChara.data },
+	    C: { get: () => scEra.state.variables.chara },
 	    Flag: {
 	      get: () => scEra.state.variables.flag
 	    }

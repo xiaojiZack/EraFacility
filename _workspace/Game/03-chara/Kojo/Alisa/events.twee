@@ -1,0 +1,26 @@
+:: Kojo_Alisa_event_firstMeet::Before
+    <<run F.creatHeadMaster()>>
+    <<set $tc = "Alisa">>
+    <<set Flag.firstVisitOffice = false>>
+
+:: Kojo_Alisa_event_firstMeet
+    你按照路线来到了一栋门口挂着"学园长办公区"的建筑前。
+    与其说是某种"办公区",更像是一栋大别墅。<br>
+    进入建筑，你看到许多已经拆掉的外卖盒与快递包装随意地堆在玄关附近，厨房和餐厅内部也是一片狼藉。<br>
+    顺着楼梯来到二楼，一路上你看见许多衣物都被扔在地上。
+    最终你站在了一间房门前，里面隐约传出了像是男大学生宿舍常有的敲击键盘的声音。<br>
+    <fr>
+    你尝试敲了敲门，里面激烈的键盘敲击声随即戛然而止。随后是一阵悉悉索索的响声。<br>
+    <<selection replace>>
+        <<select '开门'>>
+            你尝试推开门，但只能把门推开一条小缝隙。
+            门后有门链作为保险。<br>
+            当你想透过门缝看看里面的时候，<span class="red">有什么东西从门缝里飞出来砸到了你脸上。</span> 
+            <<sourceGet "player" "pain" 2000>>
+            <<sourceGet "Alisa" "resist" 2000>>
+            "变态。"你只好老实等着。
+        <<select '老实等着'>>
+    <</selection>>
+    <fr>
+    
+    <<changeLoc "dorm" 4 4>>

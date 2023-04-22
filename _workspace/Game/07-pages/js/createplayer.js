@@ -23,7 +23,7 @@ F.CPchangeBouns = function(value){
 F.CPRandomPlayer = function(){
     const design = V.playerdesign;
     MyChara.new("player",design).initChara(design);
-    const player = MyChara.data["player"]
+    const player = C["player"]
     player.birthday[1] = design.BirthdayM?design.BirthdayM:1;
     player.birthday[2] = design.BirthdayD?design.BirthdayD:1;
     CPRandomVirginity(player,design.SexExp);
@@ -113,6 +113,11 @@ F.CPdetermine = function(){
     V.location.chara = [];
     
     V.system.showSideBarMap = true;
+    V.system.showSideBarshowChara= true;
+    V.system.showSideBarBaseBar = true
     V.system.showSideBarTitle = false;
     V.system.showHeaderInf = true;
+
+    Flag.firstVisitYourRoom = true;
+    Flag.firstVisitOffice = true;
 }

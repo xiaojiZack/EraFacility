@@ -16,5 +16,18 @@
 		"ears": "耳饰",
 		"chest": "乳饰",
 		"bottom": "插件"
+	},
+	"revealsTags":{
+		"abdomen":"露出肚子",
+		"anus":"露出菊穴",
+		"breasts":"露出胸部",
+		"butts":"露出屁股",
+		"genital":"露出性器",
+		"no bra":"没穿胸罩",
+		"no pangci":"没穿胖次",
+		"private":"露出下腹",
+		"see bra":"露出胸罩",
+		"see pangci":"露出胖次",
+		"thighs":"露出股间"
 	}
 }

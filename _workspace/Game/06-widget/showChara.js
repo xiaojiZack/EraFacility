@@ -9,29 +9,29 @@ F.initSCTrait = function(){
     console.log(TransTrait) 
     
     let order = ["性格","堕落","体质","心智","SM倾向","行为模式","其他"];
-    T.printtext = [];
+    T.printText = [];
     
     for (let i in order){
         let key = order[i];
         if (TransTrait[key]){
-            let text = ((Config.debug || T.showChara.cid == "player" || key=="性格")?`<div>`:'<div class="blur">')+
+            let text = ((T.showChara.flag.showTrait || T.showChara.cid == "player" || key=="性格")?`<div>`:'<div class="blur">')+
             `${key}:`;
             for (let T in TransTrait[key]){
                 let Tname = TransTrait[key][T];
                 text= text+`[${Tname}]`;
             }
-            T.printtext.push(text+'</div>');
+            T.printText.push(text+'</div>');
         }
     }
 }
 
 F.initSCBaseBar = function(){
-    T.printtext = [];
+    T.printText = [];
     for(let i in D.basekey){
         let key = D.basekey[i];
         let cnname = D.basicNeeds[key]?D.basicNeeds[key][0]:D.basicPalam[key][0];
         let color = F.RGBdec2hex(D.basecolor[key][0],D.basecolor[key][1],D.basecolor[key][2]);
-        T.printtext.push(
+        T.printText.push(
             `<div class="SCBaseBar">
             ${cnname}:
             <<=F.Progressbar({
@@ -50,10 +50,10 @@ F.initSCBaseBar = function(){
 }
 
 F.initSCExp = function(){
-    T.printtext = [];
+    T.printText = [];
     for (let i in D.exp){
         let expname = (T.showChara.exp[i].aware?D.exp[i][0]:'??')+"经验";
-        T.printtext.push(
+        T.printText.push(
             `<div>`
             +`${expname}:${(T.showChara.exp[i].aware?T.showChara.exp[i].aware:0)}`
             +`</div>`
@@ -62,10 +62,10 @@ F.initSCExp = function(){
 }
 
 F.initSCSbl = function(){
-    T.printtext = [];
+    T.printText = [];
     for (let i in T.showChara.sbl){
-        T.printtext.push(
-            ((Config.debug || T.showChara.cid == "player")?`<div>`: `<div class = "blur">`)
+        T.printText.push(
+            ((T.showChara.flag.showSbl || T.showChara.cid == "player")?`<div>`: `<div class = "blur">`)
             +`${D.sbl[i][0]}:Lv.${T.showChara.sbl[i]}`
             +`</div>`
         )
@@ -73,8 +73,8 @@ F.initSCSbl = function(){
 }
 
 F.SCchangeDiv = function(pagename){
-    const allpages = ['SCbox1','SCbox2','SCbox3','SCbox4','SCbox5'];
-    const allbutton = ['Divbutton1','Divbutton2','Divbutton3','Divbutton4','Divbutton5']
+    const allpages = ['SCbox1','SCbox2','SCbox3','SCbox4'];
+    const allbutton = ['Divbutton1','Divbutton2','Divbutton3','Divbutton4']
     for (let i of allpages){
         var hidepage = document.getElementById(i);
         hidepage.style.display = "none";
@@ -92,7 +92,7 @@ F.SCchangeDiv = function(pagename){
 F.initSCBody = function(){
     const c = T.showChara;
     const sexorgan = D.sexorgan;
-    T.printtext = [];
+    T.printText = [];
     for (let o of sexorgan){
         let oname = D.bodyDict[o];
         if (c.body[o]){
@@ -122,26 +122,26 @@ F.initSCBody = function(){
                 ${organ.vessel.current}ml
                 </div>`:``)
             +`</div>`;
-            T.printtext.push(text);
+            T.printText.push(text);
         }
     }
 }
 
 F.initSCVirginity = function(){
     const virginity = T.showChara.virginity;
-    T.printtext = [];
+    T.printText = [];
     for (let key in virginity){
         let record = virginity[key];
         if (record.length==0) continue;
-        T.printtext.push(
+        T.printText.push(
             `${D.VirginityDict[key]}:${record[2]}被${record[0]}夺走了。[${record[1]}]`
         )
     }
-    if (T.printtext.length == 0) T.printtext.push('还没有任何初体验')
+    if (T.printText.length == 0) T.printText.push('还没有任何初体验')
 }
 
 F.initSCEquip = function(){
-    T.printtext = [];
+    T.printText = [];
     const equip = T.showChara.equip;
     for (let equipStyle in D.equipSlot){
         let text = D.equipSlot[equipStyle]+":"
@@ -156,12 +156,12 @@ F.initSCEquip = function(){
                 text = text + `${equip[equipStyle].name[0]}`;
             }
         }
-        T.printtext.push(text)
+        T.printText.push(text)
     }
 }
 
 F.initVagueEquipDescribe = function(){
-    T.printtext = [];
+    T.printText = [];
     const equip = T.showChara.equip;
     const reveals = T.showChara.reveals;
     
@@ -180,46 +180,63 @@ F.initVagueEquipDescribe = function(){
                 }
                 if (clothReveals[layer].expose==2 && revealsDetail[layer].expose<3){
                     revealsDetail[layer].expose=2;
-                    index=Object.keys(clothReveals).indexOf(layer);
+                    let index=Object.keys(clothReveals).indexOf(layer);
                     revealsDetail[layer].cover=Object.keys(clothReveals)[index-1];
-                    revealsDetail[layer].layer = layer;
+                    revealsDetail[layer].layer = key;
                 }
                 if (clothReveals[layer].expose==1 && revealsDetail[layer].expose<2){
                     revealsDetail[layer].expose=1;
-                    index=Object.keys(clothReveals).indexOf(layer);
+                    let index=Object.keys(clothReveals).indexOf(layer);
                     revealsDetail[layer].cover=Object.keys(clothReveals)[index-1];
-                    revealsDetail[layer].layer = layer;
+                    revealsDetail[layer].layer = key;
                 } 
             }
         }
     })
     console.log(revealsDetail)
-    if(Object.keys(clothcover).length == 0) T.printtext.push(draw([
+    if(Object.keys(clothcover).length == 0) T.printText.push(draw([
         `${T.showChara.name}什么都没穿。`,
-        `${T.showChara.name}正一丝不挂。`
+        `${T.showChara.name}全裸中。`
     ]))
     else{
         Object.keys(revealsDetail).forEach((layer)=>{
-            if (revealsDetail[layer].expose==3){
-                T.printtext.push(draw([
-                    `${T.showChara.name}穿着${equip[layer].name[0]}。`,
+            if (revealsDetail[layer].expose==3 && !['innerBt','innerUp'].has(layer)){
+                T.printText.push(draw([
+                    `穿着${equip[layer].name[0]}。`,
+                    `${T.showChara.name}正穿着${equip[layer].name[0]}。`,
                     `${T.showChara.name}今天的${D.equipSlot[layer]}是${equip[layer].name[0]}。`
+                ]))
+            }
+            if (revealsDetail[layer].expose == 3 && layer=="innerBt"){
+                T.printText.push(draw([
+                    `可以直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
+                    `${T.showChara.name}的${equip[layer].name[0]}正露在外面。`,
+                    `下半身直接露出了${equip[layer].name[0]}。`,
+                    `${T.showChara.name}的下身由于没有其他衣物的遮挡，可以看见今天的内裤是${equip[layer].name[0]}`
+                ]))
+            }
+            if (revealsDetail[layer].expose == 3 && layer=="innerUp"){
+                T.printText.push(draw([
+                    `可以直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
+                    `${T.showChara.name}的${equip[layer].name[0]}正露在外面。`,
+                    `上半身露出了${equip[layer].name[0]}。`,
+                    `${T.showChara.name}的上身由于没有其他衣物的遮挡，可以看见今天的内衣是${equip[layer].name[0]}`
                 ]))
             }
             if (revealsDetail[layer].expose==2){
                 let coverClothName = equip[revealsDetail[layer].cover].name[0]
-                T.printtext.push(draw([
-                    `透过${coverClothName},似乎可以看到${equip[layer].name[0]}`,
-                    `${equip[layer].name[0]}在${coverClothName}下若隐若现。`,
-                    `在${D.bodyDict[revealsDetail[layer].layer]}处，好像能看见${T.showChara.name}的${equip[layer].name[0]}。`
+                T.printText.push(draw([
+                    `透过${coverClothName},可以清楚地看到${equip[layer].name[0]}`,
+                    `在${coverClothName}下能直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
+                    `在${D.bodyDict[revealsDetail[layer].layer]}处，${T.showChara.name}的${equip[layer].name[0]}清晰可见。`
                 ]))
             }
             if (revealsDetail[layer].expose==1){
                 let coverClothName = equip[revealsDetail[layer].cover].name[0]
-                T.printtext.push(draw([
-                    `透过${coverClothName},可以清楚地看到${equip[layer].name[0]}`,
-                    `在${coverClothName}下能直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
-                    `在${D.bodyDict[revealsDetail[layer].layer]}处，${T.showChara.name}的${equip[layer].name[0]}清晰可见。`
+                T.printText.push(draw([
+                    `透过${coverClothName},似乎可以看到${equip[layer].name[0]}`,
+                    `${equip[layer].name[0]}在${coverClothName}下若隐若现。`,
+                    `在${D.bodyDict[revealsDetail[layer].layer]}处，好像能看见${T.showChara.name}的${equip[layer].name[0]}。`
                 ]))
             }
         })
@@ -227,19 +244,19 @@ F.initVagueEquipDescribe = function(){
 }
 
 F.initSCPalam = function(group = D.palam){
-    T.printtext = [];
+    T.printText = [];
     const palam = T.showChara.palam
     for (let key of group){
-        T.printtext.push(
+        T.printText.push(
             `<div class="SCPalamBar">`+
             `<div>
-            ${D.palam[key][0]}:
+            ${D.palam[key][0]}Lv.${palam[key][0]}:
             </div>
             <div>
             <<=F.Progressbar({
                 id:'Palamprogress${key}',
-                value:${palam[key][0]},
-                max:${palam[key][1]},
+                value:${palam[key][1]},
+                max:${S.palamLv[palam[key][0]+1]},
                 color:"#fff",
                 backColor:"#333",
                 width:"120px",
@@ -250,12 +267,21 @@ F.initSCPalam = function(group = D.palam){
     }
 }
 
+F.generalPalamDescribe = function(group = D.palam){
+    T.printText = [];
+    const palam = T.showChara.palam
+    for (let key of group){
+        let sentence = D.palamDescribe[key][palam[key][0]][1].replace("tc",T.showChara.name);
+        T.printText.push(sentence)
+    }
+}
+
 F.initSCMark = function(){
-    T.printtext = [];
+    T.printText = [];
     let m = T.showChara.mark;
     for (let i in m){
-        T.printtext.push(
-            ((Config.debug || T.showChara.cid == "player")?
+        T.printText.push(
+            ((T.showChara.flag.showMark || T.showChara.cid == "player")?
             "<div>":`<div class = "blur">`)+
             `${D.mark[i][0]}:
             Lv.${m[i].lv}

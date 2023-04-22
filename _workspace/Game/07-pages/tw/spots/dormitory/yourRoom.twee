@@ -1,0 +1,39 @@
+:: Msg_Spots_dorm_yourRoom
+    
+    <<if Flag.firstVisitYourRoom == true>>
+        <<run Dialogs.set({tp:'Welcome',nm:'FirstWake'})>>
+    <<else>>
+        <<yourRoom_normalVisit>>
+    <</if>>
+
+:: Msg_Spots_dorm_yourRoom_first_visit[widget]
+    <<widget "yourRoom_firstVisit">>
+    <<stop>>
+    <</widget>>
+
+:: Msg_Spots_dorm_yourRoom_normal_visit[widget]
+    <<widget "yourRoom_normalVisit">>
+        <<you>>正位于自己的房间里。
+    <</widget>>
+
+:: Welcome_FirstWake
+"陌生的天花板",<<you>>从床上坐起来，揉了揉自己的后脑勺。
+昨天写下最后一个字后，<<you>>正打算将信封重新封好，却突然感到眼前一黑，醒来时便已经在这了。
+<<you>>现在位于的房间宽敞而明亮，茶几椅子电脑桌一应俱全，还有一个不小的独卫，全然不似<<you>>之前逼仄的出租公寓隔间。
+从单人床上起来洗漱完成，<<you>>听到开着的电视机里传来晨间新闻：
+<fr>
+<div id="italic">
+    "鉴于数年不断的人口负增长，日前由XXX大会投票一致通过的《生育促进法案》于今日正式开始实行<br>
+    以任何形式阻止生育的行为，包括体外射精、购买或生产销售计生用品、堕胎等等，都将视为违法犯罪行为。<br>
+    违反者将判处……"
+</div>
+<fr>
+个人终端的震响打断了<<you>>的观看。
+<<you>>拿起终端，看到："请按以下路线前往学园长办公室报到，教师。"
+<<set Flag.firstVisitYourRoom = false>>
+<fr>
+<<set V.location.mapId = "academyLevel">>
+<<set V.location.coord = [8,4]>>
+<<run V.location.spotid = "office">>
+<<run V.location.printname = "学园长办公区域">>
+<<= Kojo.put("Alisa",{type:"event",id:"firstMeet"})>>

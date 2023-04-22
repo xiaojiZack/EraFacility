@@ -4,7 +4,7 @@ export * from "./utils";
 
 import { Dialogs } from "./main";
 import { InitDialogMain } from "./initFunc";
-import { converTxt, flow, setMsg, resetMsg, clearMsg, errorView } from "./utils";
+import { converTxt, flow, setMsg, resetMsg, clearMsg, errorView, clearComment } from "./utils";
 
 const module = {
 	name: "Dialogs",
@@ -24,6 +24,7 @@ const module = {
 			error: errorView,
 			resetMsg,
 			clearMsg,
+			clearComment,
 		},
 	},
 	Init: ["InitDialogMain"],

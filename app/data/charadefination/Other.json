@@ -1,6 +1,78 @@
 {
-	"liquidType": ["cum", "juice", "milk", "rub", "slime", "nectar", "philter", "fertility", "energiser", "birthControl","narcosis"],
+	"liquidType": {
+		"cum":"精液", 
+		"lovejuice":"爱液", 
+		"milk":"乳汁", 
+		"rub":"润滑液", 
+		"slime":"粘液", 
+		"nectar":"花蜜", 
+		"philter":"媚药", 
+		"fertility":"排卵促进剂", 
+		"energiser":"营养剂", 
+		"birthControl":"避孕药",
+		"narcosis":"麻醉药"
+	},
 	
+	"liquidPlace":["mouth","breasts","thighs","belly","back","anus","penis"],
+
+	"liquidDescribe":{
+		"mouth":[
+			[0,"tc的口腔内目前没有奇怪的液体。"],
+			[10,"tc的嘴里有一股lq的味道。"],
+			[50,"tc嘴里残留着不少lq。"],
+			[120,"lq挂在tc的嘴角边上,呛着tc不停咳嗽。"],
+			[200,"tc的嘴里满是lq，含不下去的lq正从嘴边流出来"],
+			[300,"tc不断地呕吐出lq"]
+		],
+		"breasts":[
+			[0,"tc的胸部洗的很干净。"],
+			[10,"有几滴lq残留在tc的胸上。"],
+			[50,"tc的胸上流淌着几股lq。"],
+			[120,"粘稠的lq从tc的胸部下坠，拉出了几道粗丝。"],
+			[200,"tc的胸部覆满了lq，在灯光下反射出淫秽的光泽。"],
+			[400,"tc的胸部像是奶油一样覆盖了厚厚的一层lq。"]
+		],
+		"thighs":[
+			[0,"tc的股间干干净净的。"],
+			[10,"几滴lq粘在tc的股间。"],
+			[50,"粘稠的lq粘在tc的大腿之间，在股间拉出几缕淫靡的丝线。"],
+			[120,"两三股lq正顺着tc的大腿流下。"],
+			[200,"tc的股间垂下了几条粘稠的lq，在脚步汇成淫靡的液池。"],
+			[400,"tc的股间像是水龙头一般流下lq，在身下堆成一座小山"]
+		],
+		"belly":[
+			[0,"tc的肚子洗的干干净净的。"],
+			[10,"几滴lq在tc的肚子上闪闪发光。"],
+			[40,"tc的肚子上以肚脐为中心盛着一些lq。"],
+			[80,"tc的肚子上洒满了浓厚的lq。"],
+			[140,"tc的肚子上粘满了lq。"],
+			[300,"tc像是刚从满是lq的池子里捞上来一样，肚子上覆盖了一层浓厚的lq。"]
+		],
+		"back":[
+			[0,"tc的香背很干净。"],
+			[10,"几滴lq挂在tc的背上。"],
+			[40,"一些lq黏在tc的背上。"],
+			[100,"一大股lq濡湿了tc的后背。"],
+			[200,"tc的背上不停地流下lq。"],
+			[400,"lq在tc背上粘了厚厚一层。"]
+		],
+		"anus":[
+			[0,"tc的屁股很干净。"],
+			[10,"tc的屁股里夹着几滴lq。"],
+			[40,"tc的屁股挂着一些黏糊糊的lq。"],
+			[160,"lq不断地从tc的屁股滴在地上。"],
+			[400,"tc像是挂着尾巴一样从屁股里垂下几条由lq组成的粗丝。"],
+			[600,"tc的屁股正不断地流下lq，在地上汇成一大片水渍。"]
+		],
+		"penis":[
+			[0,"tc的阴茎很干爽。"],
+			[10,"几滴lq把tc的鸡巴搞得湿湿的。"],
+			[80,"tc的阴茎上黏糊糊地有一层lq。"],
+			[180,"tc的阴茎像是半化的雪糕，垂挂着lq。"],
+			[300,"tc的阴茎上糊满了lq，流出粗粗的一根线连着地面，拖出一道痕迹。"]
+		]
+	},
+
 	"virginity": ["kiss", "oral", "penis", "anal", "analsex", "vigina", "viginasex", "handholding", "footjob"],
 
 	"scarType": ["kissmark", "scar", "whip", "wound", "pen", "bruise", "tattoo", "band"],

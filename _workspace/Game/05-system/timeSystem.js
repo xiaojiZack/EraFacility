@@ -33,11 +33,12 @@ F.passtime = function (time) {
 	//时间变化时的处理
 	F.timeEffects(time);
 	F.timeProcess(time);
-
+    F.refrashSideBar();
 	return "";
 };
 
 DefineMacros("passtime", F.passtime);
+
 
 F.timeEffects = function (t, mode) {
 	const { pc, date, flag, time } = V;

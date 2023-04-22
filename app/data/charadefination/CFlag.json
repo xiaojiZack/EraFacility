@@ -23,7 +23,16 @@
 
 		"touchLv",
 		"getResistance",
-		"getHypnosis"
+		"getHypnosis",
+
+		"showTrait",
+		"showSbl",
+		"showExp",
+		"showEquip",
+		"showBody",
+		"showVirginity",
+		"showMark",
+		"showPalam"
 	],
 
 	"tsv": [

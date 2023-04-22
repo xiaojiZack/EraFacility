@@ -177,7 +177,7 @@ class Dialogs {
 		const config = S.msg.config;
 		const { type = "end", exit = S.defaultExit, exitButton = "Next Step" } = config;
 
-		console.log("nextScene", type, config, e, V.selectId);
+		console.log("nextScene", type, "config",config, "e",e, "selectId",V.selectId);
 
 		switch (type) {
 			case "return":

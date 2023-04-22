@@ -7,30 +7,31 @@
 7. source和exp用于升级sbl
 8. palam变化申请来源，com、event、sbl、equip、tatoo、drug、palam
 9. palam效果
-    angry：angry source, 降低surrend palam，较高时减少order
-    depress： depress source， 较高时降低san， 较高时降低order,较高时增长stress
+    angry：打算删除
+    depress： depress source， 较高时降低san，mood， 较高时降低order,较高时增长stress
     eager：拟与lust合并
-    ecstacy：对应source，满了之后触发sj/caocui， 保持较高时叠加lust增长,较高时降低san恢复，较高时降低stamina恢复，较高时叠加libido增长，高满时降低awareness，与ecstacy mark联动。
+    ecstacy：对应source，较高时触发“绝顶”状态， 保持较高时叠加lust增长,较高时降低san恢复，较高时降低stamina恢复，较高时叠加libido增长，较高时叠加surrend，高满时降低awareness，与ecstacy mark联动。
     esA/B/C/V/M/W/U: 对应source，满后触发对应部位gc，保持较高时叠加lust增长,较高时降低san恢复，较高时降低stamina恢复，较高时叠加libido增长。
-    favo: favo source, 降低resist palam，提高order
-    fear：fear source， 降低angry palam，较高时减少order， 与fear mark联动
-    humiliate：humiliate source， 降低superior， 提高surrend，提高angry， 较高时提高depress，humiliate mark联动
+    favo: favo source, 降低resist palam，提高order，随时间增加flag.favo 较高时增长mood
+    fear：fear source， 降低resist palam，较高时减少order， 与fear mark联动
+    humiliate：humiliate source， 降低superior， 提高surrend，提高resist， 较高时提高stress，depress，humiliate mark联动
     lust：lust source， 较高时增长libido， 较高时提高order, 降低satisfy
-    mortify：mortify source， 较高时降低order，
+    mortify：mortify source， 提高surrend，提高resist，较高时降低order，
     paA/B/C/V/M/W/U: 对应部位source，若有相关特性，提高对应es
-    pain：pain source， 提高angry，提高depress，提高surrend，提高fear，降低san，降低stamina，较高时降低awareness，联动pain mark
-    resist：resist source， 降低order， 降低resist palam，resist mark联动
+    pain：pain source， 提高resist，提高depress，提高surrend，提高fear，降低san，降低stamina，较高时降低awareness，联动pain mark
+    resist：resist source， 降低order， 降低favo palam，降低surrender palam， resist mark联动，随时间降低flag.favo
     satisfy: satisfy source, 降低labido，降低lust，降低stress
-    superior：superior source， 降低surrend palam, 较高时降低order
-    surrend: surrend source, 降低superior，较高时增加order，与surrend mark联动
+    superior：superior source， 降低surrend palam, 较高时降低deference 较高时降低order
+    surrend: surrend source, 降低高superior，较高时增加order，与surrend mark联动
     uncomfort:打算删除
+    deference：新增，表示为“恭顺”，感受到对主人的恭敬顺从，降低resist，降低高superior，较高时增加order
     新增：hypno，较高时提高order， 
 10. mark效果，
     scstacy，提高order，当lust低于某值时持续增长lust
     fear，提高order，当fear低于某值时持续增长fear
     humiliate,提高order，当superior高于某值时持续降低superior
     hypno，当hypno低于某值时持续增长hypno
-    mortify, 提高order
+    mortify, 提高order，降低superior最大值
     pain, 提高order，
     resist,降低order，当resist低于某值时持续增长resist
     surrend，提高order，当surrend低于某值时持续增长surrend

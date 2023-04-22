@@ -14,3 +14,19 @@ F.updateLocationChara = function(){
             V.location.chara.push(cid)
     }
 }
+
+/**
+ * 绕过指令系统，仅仅改变坐标位置
+ * @param {*} mapId 
+ * @param {*} coord 
+ */
+F.changeLocation = function(mapId,x,y){
+    let loc = V.location;
+    loc.mapId = mapId;
+    loc.coord = [x,y];
+    let board = Boards.getBoard(V.location.mapId);
+    V.location.spotid = board[x][y];
+    V.location.printname = worldMap[V.location.mapId][V.location.spotid].name;
+    return ""
+}
+DefineMacros("changeLoc", F.changeLocation)

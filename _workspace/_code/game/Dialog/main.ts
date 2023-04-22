@@ -246,7 +246,7 @@ export class Dialogs {
 
 		let config = dialog.config || {};
 		let txt = converTxt(dialog.text);
-
+		
 		//add to history
 		this.history.push(txt);
 
@@ -307,7 +307,7 @@ export class Dialogs {
 			delete T.afterselect;
 			return;
 		}
-
+		console.log(this.msg)
 		T.msgId++;
 		let dialog = this.msg.logs[T.msgId];
 
@@ -330,7 +330,7 @@ export class Dialogs {
 		const config = this.config;
 		const { type = "end", exit = this.msg.exit, exitButton = this.msg.next } = config;
 
-		console.log("nextScene", type, config, e, V.selectId);
+		console.log("nextScene", type, "config",config, "e",e, "selectid",V.selectId);
 
 		switch (type) {
 			case "return":
@@ -395,6 +395,7 @@ export class Dialogs {
 
 		setTimeout(() => {
 			if (config.target && !e.fullTitle.includes(config.target)) {
+				e.fullTitle = config.target;
 				this.before(config.target);
 			} else {
 				e.fullTitle = this.combineTitle(e);

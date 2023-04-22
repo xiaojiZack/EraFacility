@@ -56,12 +56,14 @@
 .SCTrait{
     display: grid;
     grid-template-rows: auto auto auto auto;
+    grid-column: 1/span 4;
     text-align: left;
 }
 
 .SCTrait-blur{
     display: grid;
     grid-template-rows: auto auto auto auto;
+    grid-column: 1/span 4;
     text-align: left;
     filter: blur(10px);
 }
@@ -157,6 +159,14 @@
     gap: 5px;
     grid-column: span 4;
     filter: blur(3px);
+}
+
+.SCMarkBox{
+    display: grid;
+    grid-template-columns: auto auto auto auto;
+    padding: 5px;
+    gap: 5px;
+    grid-column: span 4;
 }
 
 .SCPalamBar{

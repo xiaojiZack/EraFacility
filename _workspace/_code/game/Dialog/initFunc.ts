@@ -20,7 +20,7 @@ export function InitDialogMain() {
 	scEra.newPsg("DialogMain", html);
 
 	$(document).on("dialog:set", function (event, data) {
-		console.log(event, data);
+		console.log("执行事件",event, data);
 		Dialogs.before();
 	});
 }

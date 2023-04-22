@@ -201,3 +201,7 @@
 .blur{
     filter: blur(10px);
 }
+
+.red{
+    color: red;
+}

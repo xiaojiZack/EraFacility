@@ -16,7 +16,7 @@ export class MyChara extends Chara{
     static new(CharaId: string, obj): MyChara {
 		//create a new character and add to database
 		let chara = new MyChara(CharaId, obj).Init(obj).initChara(obj);
-		MyChara.data[CharaId] = chara;
+		C[CharaId] = chara;
 		return chara;
 	}
     initChara(obj) {
@@ -30,6 +30,7 @@ export class MyChara extends Chara{
 		this.initFlag();
 		this.initLiquid();
         this.initSituAbility();
+		this.initKojo();
 		this.initLocation(obj);
 		if (obj.stats) {
 			this.Stats(obj.stats);
@@ -66,6 +67,22 @@ export class MyChara extends Chara{
 		});
 		return this;
 	}
+	initKojo() {
+		this.kojo = this.cid;
+		return this;
+	}
+	initLiquid() {
+		this.liquid = {};
+		D.liquidPlace.forEach((alpha) => {
+			let i = alpha.toLowerCase();
+			this.liquid[i] = {};
+			Object.keys(D.liquidType).forEach((key) => {
+				this.liquid[i][key] = 0;
+			});
+			this.liquid[i].total = 0;
+		});
+		return this;
+	}
 	initReveals() {
 		this.reveals = {};
 
@@ -86,6 +103,7 @@ export class MyChara extends Chara{
 		this.reveals.parts = Object.keys(this.reveals.detail);
 		this.reveals.tags = {}; 
 		this.reveals.cloth={};
+		this.reveals.clothSumUp={};
 		this.reveals.parts.forEach((k)=>{
 			this.reveals.cloth[k] = {};
 			Object.keys(D.equipSlot).forEach((layer)=>{
@@ -149,6 +167,7 @@ export class MyChara extends Chara{
 			//search according to the cover relationship from clothcover
 			this.CalvisibleAndTouchable(k, clothcover,{expose:3,block:3});
 		})
+		this.CalClothReveals();
 		this.CalRevealsLevel();
 		
 	}
@@ -166,6 +185,42 @@ export class MyChara extends Chara{
 		}
 		this.reveals.detail[skin]=VT;
 	}
+
+	CalClothReveals(){
+		const reveals = this.reveals;
+    
+		const clothcover = [
+			"cover","head","face","ears","hands","neck","outfitUp","outfitBt","feet","innerUp","legs","innerBt","chest","bottom"
+		]
+		//衣物的可见性组合
+		const revealsDetail = {};
+		clothcover.forEach((layer)=>{
+			for (const key of Object.keys(reveals.cloth)){
+				const clothReveals=reveals.cloth[key];
+				if (Object.keys(clothReveals).includes(layer)){
+					revealsDetail[layer] = revealsDetail[layer]?revealsDetail[layer]:{expose:0}
+					if (clothReveals[layer].expose==3) {
+						revealsDetail[layer].expose=3;
+					}
+					if (clothReveals[layer].expose==2 && revealsDetail[layer].expose<3){
+						revealsDetail[layer].expose=2;
+						let index=Object.keys(clothReveals).indexOf(layer);
+						revealsDetail[layer].cover=Object.keys(clothReveals)[index-1];
+						revealsDetail[layer].layer = layer;
+					}
+					if (clothReveals[layer].expose==1 && revealsDetail[layer].expose<2){
+						revealsDetail[layer].expose=1;
+						let index=Object.keys(clothReveals).indexOf(layer);
+						revealsDetail[layer].cover=Object.keys(clothReveals)[index-1];
+						revealsDetail[layer].layer = layer;
+					} 
+				}
+			}
+		})
+
+		this.reveals.clothSumUp = revealsDetail;
+	}
+
 	CalRevealsLevel(){
 	//cal skin reveals and expose value
 	//total 2000
@@ -178,11 +233,14 @@ export class MyChara extends Chara{
 		if (this.reveals.detail["genital"].expose == 0 && !this.equip.tags.includes("pangci"))
 			tags["no pangci"] = 3;
 		else tags["no pangci"] = 0;
+		tags["see pangci"] = this.equip.tags.includes("pangci")?this.reveals.clothSumUp['innerBt'].expose:0;
+
 		if (this.reveals.detail["breasts"].expose == 0 && !this.equip.tags.includes("bra"))
 			tags["no bra"] = 3;
-		else tags["no bra"] = 0;
-		tags ["see pangci"] = this.equip.tags.includes["pangci"]?this.reveals.cloth["genital"]["innerBt"].expose:0
-		tags ["see bra"] = this.equip.tags.includes["bra"]?this.reveals.cloth["breasts"]["innerBt"].expose:0
+		else {
+			tags["no bra"] = 0;
+		}
+		tags["see bra"] = this.equip.tags.includes("bra")?this.reveals.clothSumUp['innerUp'].expose:0;
 		if (this.gender == "male"){
 			tags["see bra"] = 0;
 			tags["no bra"] = 0;

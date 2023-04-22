@@ -1,0 +1,64 @@
+:: sidebarMap[widget]
+    <<widget 'sidebarMap'>>
+        <<if $system.showSideBarMap>>
+            <div id="sidebarMap">
+                <<run F.sidebarMap()>>
+                <<print T.printText.join('')>>
+            </div>
+        <</if>>
+    <</widget>>
+
+:: sidebarBaseBar[widget]
+    <<widget 'sidebarBaseBar'>>
+        <<if $system.showSideBarBaseBar>>
+            <<set _showChara = C['player']>>
+            <<run F.sidebarBaseBar()>>
+            <div id="sidebarBaseBarContainer">
+                <<print T.printText.join('')>>
+            </div>
+        <</if>>
+    <</widget>>
+
+:: sidebarBaseDescribe[widget]
+    <<widget 'sidebarBaseDescribe'>>
+    <<run
+        let level = 0;
+        let rate = T.showChara.base[_args[0]][0]/T.showChara.base[_args[0]][1];
+        while(rate<D.basicDescribe[_args[0]][level][0])
+            level += 1;
+        T.discribe = D.basicDescribe[_args[0]][0][1];
+    >>
+        _discribe
+    <</widget>>
+
+:: sidebarEquipDescribe[widget]
+    <<widget 'sidebarEquipDescribe'>>
+        <<run F.sideBarEquipDescribe()>>
+        <<print T.tags.join("")>>
+    <</widget>>
+
+:: sidebarLiquidDescribe[widget]
+    <<widget 'sidebarLiquidDescribe'>>
+        <<run F.sidebarLiquidDescribe()>>
+        <<print T.printText.join("")>>
+    <</widget>>
+
+:: sidebarShowChara[widget]
+    <<widget 'sidebarShowChara'>>
+        <<if $system.showSideBarshowChara>>
+            <div id = "sidebarShowChara">
+                <<if $tc=="">>
+                    <<set _showChara = C['player']>>
+                    _showChara.name
+                <<else>>
+                    <<set _showChara = C[$tc]>>
+                    _showChara.name
+                <</if>>
+                <<sidebarBaseBar>>
+                <<run F.sideBarGeneralPalam(D.mentalpalam)>>
+                <<print T.printText.join('<br>')>>
+                <<sidebarEquipDescribe>>
+                <<sidebarLiquidDescribe>>
+            </div>
+        <</if>>
+    <</widget>>

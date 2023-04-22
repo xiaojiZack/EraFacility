@@ -15,6 +15,8 @@ S.gameConfig = {
 	showAllCommand: 0,
 	showOrder: 0,
 	showSideBarMap: false,
+	showSideBarshowChara: false,
+	showSideBarBaseBar: false,
 	showSideBarTitle: true,
 	showHeaderInf:false,
 };
@@ -38,7 +40,7 @@ S.gameVars = {
 		total: 0,
 		now: 0,
 	},
-	chara: M.Creatures.classObj.MyChara.data,
+	chara: [],
 	player: {
 		name: "",
 	},
@@ -51,10 +53,10 @@ S.gameVars = {
 	tc: "",
 };
 
-S.startyear = 4066;
+S.startyear = 2050;
 
 //time setting. year, month, day, weekday, time(minute)
-S.date = [4066, 3, 14, 1, 1120];
+S.date = [2050, 3, 14, 1, 1120];
 
 //default exit link after event
 S.defaultExit = "MainLoop";

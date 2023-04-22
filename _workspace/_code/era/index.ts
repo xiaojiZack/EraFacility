@@ -52,9 +52,8 @@ $(document).one("Era:start", () => {
 		Wikifier: { value: scEra.wikifier },
 		V: { get: () => scEra.state.variables },
 		T: { get: () => scEra.state.temporary },
-		//C: { get: () => scEra.state.variables.chara },
-		//不知道为什么C与MyChara.data并不指向同一个对象
-		C: { get: () => M.Creatures.classObj.MyChara.data },
+		C: { get: () => scEra.state.variables.chara },
+		//C: { get: () => M.Creatures.classObj.MyChara.data },
 		Flag: {
 			get: () => scEra.state.variables.flag,
 		},

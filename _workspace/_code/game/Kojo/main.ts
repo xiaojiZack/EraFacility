@@ -22,6 +22,8 @@ interface customAction {
 	setting?: string | string[]; // optiona, action tag, and setting tag, default is "Kojo"
 	actPart?: string[]; // optional, which part of the body will be used to interact with the target
 	targetPart?: string[]; // optional, which part to interact with
+	qEffect?: Array<[string,any]>; //常见动作效果，如保持palam，随时间增减palam
+	effect?:()=>any;// 详细动作效果
 }
 
 interface charaEvent {
@@ -49,6 +51,9 @@ export interface Kojo {
 	counter?: Array<any>; // counter action. same as action, but will be triggered by counter
 	sleeptime?: number; // sleep time, default 22
 	wakeuptime?: number; // wake up time, default 6
+	////
+	update?: (arg, ...args) => any; //载入存档或更新kojo时的更新方法
+	callNameList?: Dict<[string, string]>; //对不同人物的称呼，前为人物id，后为称呼名
 }
 /**
  * @name Kojo
@@ -154,6 +159,7 @@ export class Kojo {
 	 */
 	static has(cid, { type, id = "", dif = "", check }) {
 		let title = Kojo.title(cid, type, id, dif);
+		console.log("try get Kojo Title",title);
 		if (dif) {
 			dif = `:${dif}`;
 		}
@@ -176,8 +182,11 @@ export class Kojo {
 	 * Kojo.put("charaID", {type:"Com", id:"Talk"}) // return the story passage text from :: Kojo_CharaID_Com_Talk
 	 */
 	static put(cid, { type, id, dif, noTag }: any) {
+		if (type == "event"){
+			return `<<= Dialogs.set({tp:'Kojo_${cid}_event',nm:'${id}'})>>`
+		}
 		let title = Kojo.title(cid, type, id, dif);
-
+		console.log("try put Kojo", title)
 		if (dif) {
 			dif = `:${dif}`;
 		}
@@ -185,7 +194,6 @@ export class Kojo {
 			title = `Msg_${id}${dif}`;
 		}
 		if (!title) return;
-
 		let retext: any = "";
 
 		T.noMsg = 0;
@@ -210,11 +218,10 @@ export class Kojo {
 
 		//计算有效文本长度;
 		//console.log(title, retext.text);
-		let txt = checkTxtWithCode(retext.text);
+		let txt_length = checkTxtWithCode(retext.text);
 		//console.log(title, txt, txt.length);
-
 		//有内容的话长度怎么也不会少于2字吧
-		if (txt.length > 1) {
+		if (txt_length > 1) {
 			retext = retext.text;
 
 			let matcher = [`<<nameTag '${cid}'>>`, `<<nameTag "${cid}">>`];
@@ -250,6 +257,7 @@ export class Kojo {
 		this.home = "void";
 		this.relation = {};
 		this.counter = [];
+		this.callNameList = {};
 	}
 	Intro(str) {
 		this.intro = str;
@@ -379,6 +387,30 @@ export class Kojo {
 			this.preset.push([name, objs]);
 		}
 		return this;
+	}
+
+
+	/**
+	 * @name Kojo.SetUpdate
+	 * @description
+	 * 建立更新方法，应对读档时人物kojo变化与原版不一致的问题
+	 * @example
+	 * Kojo.SetUpdate(update:()=>true||false)
+	 */
+	SetUpdate(method){
+		this.update = method;
+		return this
+	}
+	/**
+	 * @name Kojo.AddCallName
+	 * @description
+	 * 新增称呼，并会去除掉旧称呼
+	 * @example
+	 * Kojo.SetUpdate(["playerid","主人"])
+	 */
+	CallName(obj){
+		this.callNameList[obj[0]] = obj[1];
+		return this
 	}
 }
 

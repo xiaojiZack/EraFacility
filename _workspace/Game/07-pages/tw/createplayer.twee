@@ -2,16 +2,33 @@
 <<set _seeBegin = true>>
 <div id='select_see_or_not'>
 想看序章吗？<br>
-<<choice [[是|Foreword]]>><br>
+<<choice [[是|playForeword]]>><br>
 <<choice [[否|DesignPlayer]]>>
 </div>
 
-:: Foreword
-[[创建人物|DesignPlayer]]
+:: Foreword_Foreword
+由于以cat-PTG为首的人工智能浪潮出现,许多行业纷纷加入成本更为低廉的"机器换人"大军。<br>
+社会在过去几年中就已经陷入了大量人力岗位完全被替代的困境。<br>
+大量人口失业，与之而来的消费力下行、生活信心低迷等等因素更是加剧了生育率快速下滑。<br>
+养老金危机、少子化危机、医保空虚……接踵而至<br>
+但作为失业大军的一员，这与你有什么关系呢?
+<fr>
+好吧，至少你现在面前就有一份工作。<br>
+————从门缝里塞进来的来历不明的信封，本以为是哪里来的小广告。但是一看到到上面写着你的名字，你还是忍不住好奇心还是打开了。
+<fr>
+似乎是一份求职表格。在现在这个隐私权形同虚设的时代里竟然还有求职表格，令人惊讶。<br>
+伴随表格的是一张小卡片，上面歪歪扭扭地写着“明天上班,'老师'”。<br>
+尽管觉得可能是某种恶作剧，但考虑到你快要交不起的房租，你决定--
+[[填写表格|DesignPlayer]]
+[[填写表格|DesignPlayer]]
+[[我莫得选择|DesignPlayer]]
+
+:: playForeword
+<<run Dialogs.set({tp:'Foreword',nm:'Foreword', exit:'DesignPlayer'})>>
 
 :: DesignPlayer:Before
 <<set $playerdesign={
-    name:"我",
+    name:"你",
     gender:"male",
     species:"human",
     BirthdayM:9,BirthdayD:1,
@@ -22,7 +39,7 @@
 <<run F.InitNewGame()>>
 
 :: DesignPlayer
-称呼:<<textbox "$playerdesign.name" "我" >><br>
+称呼:<<textbox "$playerdesign.name" "你" >><br>
 性别:<<radiobutton "$playerdesign.gender" "male" autocheck>>男性 <<radiobutton "$playerdesign.gender" "female" autocheck>>女性<br>
 生日:
 <<=F.Listbox({id:"BirthdayM",opt:Array.from(Array(12).keys(),n=>n+1), def:9, on:'F.DPset(this.id,parseInt(this.value))'})>>月
@@ -44,7 +61,7 @@
 
 :: DesignPlayerShow:Before
 <<run F.CPRandomPlayer()>>
-<<run T.showChara = MyChara.data['player']>>
+<<run T.showChara = C['player']>>
 
 :: DesignPlayerShow
 <<showChara>>

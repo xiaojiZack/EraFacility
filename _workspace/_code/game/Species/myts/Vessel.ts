@@ -14,7 +14,6 @@ export type Produce = {
 }
 
 export const fullLv = 4;
-export const liquidType = ['lovejuice','cum','milk'];
 
 export interface OrganVessel{
     capacity:number;

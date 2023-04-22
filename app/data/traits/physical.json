@@ -224,7 +224,7 @@
 		"name": ["成瘾体质","EasyAddict"],
 		"group": "quaility",
 		"des": ["药物代谢有点慢"],
-		"sourceEffect": [["drug",1.5,"lose"]],
+		"sourceEffect": [],
 		"order": 0,
 		"rate":0.05
 	},
@@ -232,7 +232,7 @@
 		"name": ["不易成瘾","HardAddict"],
 		"group": "quaility",
 		"des": ["药物代谢比较快"],
-		"sourceEffect": [["drug",0.5,"lose"]],
+		"sourceEffect": [],
 		"order": 0,
 		"rate":0.05
 	}
