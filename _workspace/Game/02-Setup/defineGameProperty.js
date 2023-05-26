@@ -40,7 +40,7 @@ S.gameVars = {
 		total: 0,
 		now: 0,
 	},
-	chara: [],
+	chara: {},
 	player: {
 		name: "",
 	},

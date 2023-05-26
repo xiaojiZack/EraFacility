@@ -91,7 +91,9 @@ export class Kojo {
 		if (!cid) return;
 		//当角色口上与角色id不一致时
 		//when the cid is not the same as kojo id
-		if (C[cid].kojo !== cid) cid = C[cid].kojo;
+		if (C[cid]){
+			if (C[cid].kojo !== cid) cid = C[cid].kojo;
+		}
 
 		let data = Kojo.data[cid];
 		if (!data) return;

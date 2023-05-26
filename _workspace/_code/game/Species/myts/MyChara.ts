@@ -2,12 +2,18 @@ import { Dict, sblkey } from "_code/game/types/base";
 import { Chara } from "../Characters";
 declare var D: typeof window.D;
 declare var C: typeof window.C;
+declare class Kojo{
+	static get(string):any
+}
 declare class Items {
 	static getByName(arg0: string, equip: any): any
 }
 export interface MyChara extends Chara{
     schedule:any;
 	location?:any;
+	kojoPatch?:any;
+	kojoData:any;
+	todo:any;
 }
 
 
@@ -16,8 +22,10 @@ export class MyChara extends Chara{
     static new(CharaId: string, obj): MyChara {
 		//create a new character and add to database
 		let chara = new MyChara(CharaId, obj).Init(obj).initChara(obj);
-		C[CharaId] = chara;
-		return chara;
+		let newchara = new MyChara(CharaId, {});
+		Object.assign(newchara, chara);
+		C[CharaId] = newchara;
+		return newchara;
 	}
     initChara(obj) {
 		this.initMark();
@@ -31,7 +39,9 @@ export class MyChara extends Chara{
 		this.initLiquid();
         this.initSituAbility();
 		this.initKojo();
+		this.loadKojo();
 		this.initLocation(obj);
+		this.initTodo();
 		if (obj.stats) {
 			this.Stats(obj.stats);
 		}
@@ -69,6 +79,17 @@ export class MyChara extends Chara{
 	}
 	initKojo() {
 		this.kojo = this.cid;
+		this.kojoPatch = {}; //口上的修改补丁
+		return this;
+	}
+	loadKojo(){
+		if (this.cid =='player') return this;
+		let newKojo = clone(Kojo.get(this.kojo));
+		this.kojoData = newKojo.update(newKojo, this.kojoPatch);
+		return this
+	}
+	initTodo() {
+		this.todo = '';
 		return this;
 	}
 	initLiquid() {

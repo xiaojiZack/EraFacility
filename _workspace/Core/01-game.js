@@ -621,6 +621,12 @@
 	  findspot(x, y) {
 	    return Boards.getBoard(this.id)[x][y];
 	  }
+	  findcoor(spotId) {
+	    if (Boards.get(this.id).mapdata[spotId]) {
+	      return Boards.get(this.id).mapdata[spotId][0];
+	    }
+	    return false;
+	  }
 	}
 	const typeTags = {
 	  building: ["\u5BA4\u5185"],
@@ -1369,11 +1375,11 @@
 	addModule(modules$3);
 
 	class Items$1 {
-	  static newId(group, name, cate) {
+	  static newId(group, name, category, cate) {
 	    if (cate) {
 	      return `${cate}_${name[1].replace(/\s/g, "") || name[0]}`;
 	    } else {
-	      return `${group}_${name[1] || name[0]}`;
+	      return `${group}__${category}-${name[1] || name[0]}`;
 	    }
 	  }
 	  static getByName(group, name) {
@@ -1389,8 +1395,8 @@
 	    return Array.from(Db.Items[itemGroup]).find((item) => item[0] === Itemid);
 	  }
 	  constructor(obj = {}) {
-	    const { group, category } = obj;
-	    this.id = Items$1.newId(group, category);
+	    const { group, name, category } = obj;
+	    this.id = Items$1.newId(group, name, category);
 	    for (let key in obj) {
 	      if (key == "sourceMethod" || key == "source") {
 	        continue;
@@ -3179,6 +3185,129 @@
 	  return total;
 	};
 
+	class CharaTag {
+	  static get(tagId) {
+	    let Tag = new CharaTag(tagId, {});
+	    Object.assign(Tag, CharaTag.data[tagId]);
+	    return Tag;
+	  }
+	  static new(TagId, obj = {}) {
+	    let Tag = new CharaTag(TagId, obj);
+	    this.data[TagId] = Tag;
+	    return Tag;
+	  }
+	  constructor(tagName, obj) {
+	    this.name = tagName;
+	    this.inf = obj.inf ? obj.inf : {};
+	    this.type = obj.type ? obj.type : [];
+	    this.visiable = obj.visiable ? obj.visiable : false;
+	    if (obj.describe)
+	      this.describe = obj.describe;
+	    if (obj.dot)
+	      this.dot = obj.dot;
+	    if (obj.checkSource)
+	      this.checkSource = obj.checkSource;
+	    if (obj.derive)
+	      this.derive = obj.derive;
+	    return this;
+	  }
+	  set(id, value) {
+	    this[id] = value;
+	    return this;
+	  }
+	  setTrigger(callback) {
+	    this.trigger = callback;
+	    return this;
+	  }
+	}
+	class CharaTagManager {
+	  constructor() {
+	    this.data = [];
+	    return this;
+	  }
+	  has(tagId) {
+	    this.data.forEach((tag) => {
+	      if (tag.name == tagId)
+	        return tag;
+	    });
+	    return false;
+	  }
+	  add(tagId, obj) {
+	    let newTag = CharaTag.get(tagId);
+	    for (let existtag of this.data) {
+	      if (existtag.name == tagId)
+	        return this;
+	    }
+	    if (obj) {
+	      Object.keys(obj).forEach((key) => {
+	        newTag.set(key, obj[key]);
+	      });
+	    }
+	    this.data.push(newTag);
+	    if (newTag.derive) {
+	      newTag.derive.forEach((derive) => {
+	        this.add(derive);
+	      });
+	    }
+	    return this;
+	  }
+	  del(tag) {
+	    if (this.data.has(tag.name) != false) {
+	      this.data.delete(tag);
+	      if (tag.derive) {
+	        tag.derive.forEach((derive) => {
+	          this.del(this.has(derive));
+	        });
+	      }
+	    }
+	    return this;
+	  }
+	  update(chara) {
+	    Object.values(CharaTag.data).forEach((tag) => {
+	      if (tag.trigger) {
+	        if (tag.trigger(chara) == true) {
+	          this.add(tag.name);
+	        }
+	      }
+	    });
+	    this.data.forEach((tag) => {
+	      if (tag.type.has("keep")) ;
+	      if (tag.type.has("palam")) {
+	        let flag = true;
+	        Object.keys(tag.checkSource).forEach((key) => {
+	          let realV;
+	          if (key in D.basekey) {
+	            realV = chara.base[key][0];
+	          }
+	          if (key in D.palam) {
+	            realV = chara.palam[key][0] + 1;
+	          }
+	          switch (tag.checkSource[key].type) {
+	            case ">":
+	              flag = flag && realV > tag.checkSource[key].value;
+	              break;
+	            case ">=":
+	              flag = flag && realV >= tag.checkSource[key].value;
+	              break;
+	            case "<":
+	              flag = flag && realV < tag.checkSource[key].value;
+	              break;
+	            case "<=":
+	              flag = flag && realV <= tag.checkSource[key].value;
+	              break;
+	            case "=":
+	              flag = flag && realV == tag.checkSource[key].value;
+	              break;
+	          }
+	        });
+	        if (!flag)
+	          this.del(tag);
+	      }
+	    });
+	  }
+	}
+	CharaTag.data = {};
+
 	class MyCreature extends Creature {
 	  static newId(species) {
 	    const len = Object.keys(MyCreature.data).length;
@@ -3201,11 +3330,13 @@
 	    this.appearance = {};
 	    this.body = {};
 	    this.bodysize = 1;
+	    this.basesource = {};
 	    this.source = {};
 	    this.state = [];
 	    this.tsv = {};
 	    this.abl = {};
 	    this.sbl = {};
+	    this.tags = new CharaTagManager();
 	  }
 	  Init(obj = {}) {
 	    const { name = "", gender = "" } = obj;
@@ -3288,6 +3419,18 @@
 	    });
 	    this.equip["bottom"] = [];
 	    this.equip.tags = [];
+	    return this;
+	  }
+	  initBase() {
+	    this.base = {};
+	    Object.keys(D.basicNeeds).forEach((key) => {
+	      this.base[key] = [1e3, 1e3];
+	      this.basesource[key] = 0;
+	    });
+	    Object.keys(D.basicPalam).forEach((key) => {
+	      this.base[key] = [0, 1200];
+	      this.basesource[key] = 0;
+	    });
 	    return this;
 	  }
 	  randomTrait() {
@@ -3604,8 +3747,10 @@
 	class MyChara extends Chara {
 	  static new(CharaId, obj) {
 	    let chara = new MyChara(CharaId, obj).Init(obj).initChara(obj);
-	    C[CharaId] = chara;
-	    return chara;
+	    let newchara = new MyChara(CharaId, {});
+	    Object.assign(newchara, chara);
+	    C[CharaId] = newchara;
+	    return newchara;
 	  }
 	  initChara(obj) {
 	    this.initMark();
@@ -3619,7 +3764,9 @@
 	    this.initLiquid();
 	    this.initSituAbility();
 	    this.initKojo();
+	    this.loadKojo();
 	    this.initLocation(obj);
+	    this.initTodo();
 	    if (obj.stats) {
 	      this.Stats(obj.stats);
 	    }
@@ -3657,6 +3804,18 @@
 	  }
 	  initKojo() {
 	    this.kojo = this.cid;
+	    this.kojoPatch = {};
+	    return this;
+	  }
+	  loadKojo() {
+	    if (this.cid == "player")
+	      return this;
+	    let newKojo = clone(Kojo.get(this.kojo));
+	    this.kojoData = newKojo.update(newKojo, this.kojoPatch);
+	    return this;
+	  }
+	  initTodo() {
+	    this.todo = "";
 	    return this;
 	  }
 	  initLiquid() {
@@ -3879,6 +4038,76 @@
 	  "5": 1400
 	};
 
+	const _Task = class {
+	  constructor(obj) {
+	    const {
+	      id,
+	      name,
+	      placement = "",
+	      setting = [],
+	      tags = [],
+	      actpart = [],
+	      targetpart = [],
+	      type = [],
+	      preset = "",
+	      stopable = false,
+	      precheck = (arg) => {
+	        return true;
+	      },
+	      effect = (arg) => {
+	      },
+	      endeffect = (arg) => {
+	      }
+	    } = obj;
+	    this.id = id;
+	    this.name = name;
+	    this.actpart = actpart;
+	    this.placement = placement;
+	    this.setting = setting;
+	    this.tags = tags;
+	    this.targetpart = targetpart;
+	    this.type = type;
+	    this.stopable = stopable;
+	    this.precheck = precheck;
+	    this.effect = effect;
+	    this.endeffect = endeffect;
+	    this.preset = preset;
+	    return this;
+	  }
+	  static new(obj) {
+	    const id = obj.id;
+	    const newTask = new _Task(obj);
+	    _Task.data[id] = newTask;
+	    return newTask;
+	  }
+	  static get(id) {
+	    return _Task.data[id];
+	  }
+	  execute(chara) {
+	    return this.effect(chara);
+	  }
+	  break(chara) {
+	    if (this.stopable) {
+	      return this.endeffect(chara);
+	    } else
+	      return false;
+	  }
+	  effect(callback) {
+	    this.effect = callback;
+	    return this;
+	  }
+	  endeffect(callback) {
+	    this.endeffect = callback;
+	    return this;
+	  }
+	  stopable(flag) {
+	    this.stopable = flag;
+	    return this;
+	  }
+	};
+	let Task = _Task;
+	Task.data = {};
+
 	const module$2 = {
 	  name: "Creatures",
 	  version: "1.0.0",
@@ -3901,7 +4130,11 @@
 	    MyOrgans,
 	    MySpecies,
 	    MyCreature,
-	    MyChara
+	    MyChara,
+	    CharaTag,
+	    OrganVessel,
+	    CharaTagManager,
+	    Task
 	  },
 	  func: {
 	    GenerateHeight,
@@ -5063,8 +5296,10 @@ Com.listUp();
 	  static get(cid, type) {
 	    if (!cid)
 	      return;
-	    if (C[cid].kojo !== cid)
-	      cid = C[cid].kojo;
+	    if (C[cid]) {
+	      if (C[cid].kojo !== cid)
+	        cid = C[cid].kojo;
+	    }
 	    let data = _Kojo.data[cid];
 	    if (!data)
 	      return;

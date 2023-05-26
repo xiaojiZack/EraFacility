@@ -3,15 +3,16 @@ function KojoInstall(obj){
         charaname,
         color,
         intro,
+        schedule=[],
         sleeptime,
         wakeuptime,
         home,
-        present = [],
+        preset = [],
         action = [],
         relation = [],
         events = [],
         filter = ()=>{return 1},
-        update = ()=>{},
+        update = (kojo, patch={})=>{return kojo},
         callname = []
     } = obj;
     let newKojo = Kojo.set(charaname,color)
@@ -19,17 +20,21 @@ function KojoInstall(obj){
     .SleepTime(sleeptime)
     .WakeupTime(wakeuptime)
     .Home(home);
-    for (let Sets of present){
-        newKojo.Preset(Sets[0],Sets[1]);
+    for (let Sets of preset){
+        newKojo = newKojo.Preset(Sets[0],Sets[1]);
     }
     for (let entrys of relation){
-        newKojo.Relation(entrys[0],entrys[1],entrys[2]);
+        newKojo = newKojo.Relation(entrys[0],entrys[1],entrys[2]);
     }
     for (let entrys of action){
-        newKojo.Action(entrys);
+        newKojo = newKojo.Action(entrys);
     }
     for (let entrys of events){
-        newKojo.Event(entrys);
+        newKojo = newKojo.Event(entrys);
+    }
+    for (let entrys of schedule){
+        let action = entrys.shift()
+        newKojo = newKojo.Schedule(action,entrys)
     }
     newKojo.Filter=filter;
     newKojo.update = update;

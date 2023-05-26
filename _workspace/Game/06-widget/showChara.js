@@ -1,7 +1,7 @@
 F.initSCTrait = function(){
     const TransTrait = [];
-    for (let i in T.showChara.traits){
-        let trait = Trait.set("trait",T.showChara.traits[i]);
+    for (let i in V.showChara.traits){
+        let trait = Trait.set("trait",V.showChara.traits[i]);
         const groupname = D.TraitGroup[trait.group];
         if (TransTrait[groupname]) {TransTrait[groupname].push(trait.name[0])}
         else {TransTrait[groupname] = [trait.name[0]]};
@@ -14,7 +14,7 @@ F.initSCTrait = function(){
     for (let i in order){
         let key = order[i];
         if (TransTrait[key]){
-            let text = ((T.showChara.flag.showTrait || T.showChara.cid == "player" || key=="性格")?`<div>`:'<div class="blur">')+
+            let text = ((V.showChara.flag.showTrait || V.showChara.cid == "player" || key=="性格")?`<div>`:'<div class="blur">')+
             `${key}:`;
             for (let T in TransTrait[key]){
                 let Tname = TransTrait[key][T];
@@ -36,14 +36,14 @@ F.initSCBaseBar = function(){
             ${cnname}:
             <<=F.Progressbar({
                 id:'baseprogress${key}',
-                value:${T.showChara.base[key][0]},
-                max:${T.showChara.base[key][1]},
+                value:${V.showChara.base[key][0]},
+                max:${V.showChara.base[key][1]},
                 color:'${color}',
                 backColor:"#333",
                 width:"130px",
                 height:"10px"
                 })>>`+
-            ((Config.debug && T.showChara.cid !== "player")?`${T.showChara.base[key][0]}/${T.showChara.base[key][1]}`:``)+
+            ((Config.debug && V.showChara.cid !== "player")?`${V.showChara.base[key][0]}/${V.showChara.base[key][1]}`:``)+
             `</div>`
         )
     }
@@ -52,10 +52,10 @@ F.initSCBaseBar = function(){
 F.initSCExp = function(){
     T.printText = [];
     for (let i in D.exp){
-        let expname = (T.showChara.exp[i].aware?D.exp[i][0]:'??')+"经验";
+        let expname = (V.showChara.exp[i].aware?D.exp[i][0]:'??')+"经验";
         T.printText.push(
             `<div>`
-            +`${expname}:${(T.showChara.exp[i].aware?T.showChara.exp[i].aware:0)}`
+            +`${expname}:${(V.showChara.exp[i].aware?V.showChara.exp[i].aware:0)}`
             +`</div>`
         )
     }
@@ -63,10 +63,10 @@ F.initSCExp = function(){
 
 F.initSCSbl = function(){
     T.printText = [];
-    for (let i in T.showChara.sbl){
+    for (let i in V.showChara.sbl){
         T.printText.push(
-            ((T.showChara.flag.showSbl || T.showChara.cid == "player")?`<div>`: `<div class = "blur">`)
-            +`${D.sbl[i][0]}:Lv.${T.showChara.sbl[i]}`
+            ((V.showChara.flag.showSbl || V.showChara.cid == "player")?`<div>`: `<div class = "blur">`)
+            +`${D.sbl[i][0]}:Lv.${V.showChara.sbl[i]}`
             +`</div>`
         )
     }
@@ -90,7 +90,7 @@ F.SCchangeDiv = function(pagename){
 }
 
 F.initSCBody = function(){
-    const c = T.showChara;
+    const c = V.showChara;
     const sexorgan = D.sexorgan;
     T.printText = [];
     for (let o of sexorgan){
@@ -128,7 +128,7 @@ F.initSCBody = function(){
 }
 
 F.initSCVirginity = function(){
-    const virginity = T.showChara.virginity;
+    const virginity = V.showChara.virginity;
     T.printText = [];
     for (let key in virginity){
         let record = virginity[key];
@@ -142,7 +142,7 @@ F.initSCVirginity = function(){
 
 F.initSCEquip = function(){
     T.printText = [];
-    const equip = T.showChara.equip;
+    const equip = V.showChara.equip;
     for (let equipStyle in D.equipSlot){
         let text = D.equipSlot[equipStyle]+":"
         if (equipStyle == "bottom"){ //插件额外处理 TODO
@@ -162,8 +162,8 @@ F.initSCEquip = function(){
 
 F.initVagueEquipDescribe = function(){
     T.printText = [];
-    const equip = T.showChara.equip;
-    const reveals = T.showChara.reveals;
+    const equip = V.showChara.equip;
+    const reveals = V.showChara.reveals;
     
     const clothcover = [
         "cover","head","face","ears","hands","neck","outfitUp","outfitBt","feet","innerUp","legs","innerBt","chest","bottom"
@@ -195,40 +195,40 @@ F.initVagueEquipDescribe = function(){
     })
     console.log(revealsDetail)
     if(Object.keys(clothcover).length == 0) T.printText.push(draw([
-        `${T.showChara.name}什么都没穿。`,
-        `${T.showChara.name}全裸中。`
+        `${V.showChara.name}什么都没穿。`,
+        `${V.showChara.name}全裸中。`
     ]))
     else{
         Object.keys(revealsDetail).forEach((layer)=>{
             if (revealsDetail[layer].expose==3 && !['innerBt','innerUp'].has(layer)){
                 T.printText.push(draw([
                     `穿着${equip[layer].name[0]}。`,
-                    `${T.showChara.name}正穿着${equip[layer].name[0]}。`,
-                    `${T.showChara.name}今天的${D.equipSlot[layer]}是${equip[layer].name[0]}。`
+                    `${V.showChara.name}正穿着${equip[layer].name[0]}。`,
+                    `${V.showChara.name}今天的${D.equipSlot[layer]}是${equip[layer].name[0]}。`
                 ]))
             }
             if (revealsDetail[layer].expose == 3 && layer=="innerBt"){
                 T.printText.push(draw([
-                    `可以直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
-                    `${T.showChara.name}的${equip[layer].name[0]}正露在外面。`,
+                    `可以直接看到${V.showChara.name}的${equip[layer].name[0]}。`,
+                    `${V.showChara.name}的${equip[layer].name[0]}正露在外面。`,
                     `下半身直接露出了${equip[layer].name[0]}。`,
-                    `${T.showChara.name}的下身由于没有其他衣物的遮挡，可以看见今天的内裤是${equip[layer].name[0]}`
+                    `${V.showChara.name}的下身由于没有其他衣物的遮挡，可以看见今天的内裤是${equip[layer].name[0]}`
                 ]))
             }
             if (revealsDetail[layer].expose == 3 && layer=="innerUp"){
                 T.printText.push(draw([
-                    `可以直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
-                    `${T.showChara.name}的${equip[layer].name[0]}正露在外面。`,
+                    `可以直接看到${V.showChara.name}的${equip[layer].name[0]}。`,
+                    `${V.showChara.name}的${equip[layer].name[0]}正露在外面。`,
                     `上半身露出了${equip[layer].name[0]}。`,
-                    `${T.showChara.name}的上身由于没有其他衣物的遮挡，可以看见今天的内衣是${equip[layer].name[0]}`
+                    `${V.showChara.name}的上身由于没有其他衣物的遮挡，可以看见今天的内衣是${equip[layer].name[0]}`
                 ]))
             }
             if (revealsDetail[layer].expose==2){
                 let coverClothName = equip[revealsDetail[layer].cover].name[0]
                 T.printText.push(draw([
                     `透过${coverClothName},可以清楚地看到${equip[layer].name[0]}`,
-                    `在${coverClothName}下能直接看到${T.showChara.name}的${equip[layer].name[0]}。`,
-                    `在${D.bodyDict[revealsDetail[layer].layer]}处，${T.showChara.name}的${equip[layer].name[0]}清晰可见。`
+                    `在${coverClothName}下能直接看到${V.showChara.name}的${equip[layer].name[0]}。`,
+                    `在${D.bodyDict[revealsDetail[layer].layer]}处，${V.showChara.name}的${equip[layer].name[0]}清晰可见。`
                 ]))
             }
             if (revealsDetail[layer].expose==1){
@@ -236,7 +236,7 @@ F.initVagueEquipDescribe = function(){
                 T.printText.push(draw([
                     `透过${coverClothName},似乎可以看到${equip[layer].name[0]}`,
                     `${equip[layer].name[0]}在${coverClothName}下若隐若现。`,
-                    `在${D.bodyDict[revealsDetail[layer].layer]}处，好像能看见${T.showChara.name}的${equip[layer].name[0]}。`
+                    `在${D.bodyDict[revealsDetail[layer].layer]}处，好像能看见${V.showChara.name}的${equip[layer].name[0]}。`
                 ]))
             }
         })
@@ -245,7 +245,7 @@ F.initVagueEquipDescribe = function(){
 
 F.initSCPalam = function(group = D.palam){
     T.printText = [];
-    const palam = T.showChara.palam
+    const palam = V.showChara.palam
     for (let key of group){
         T.printText.push(
             `<div class="SCPalamBar">`+
@@ -269,19 +269,25 @@ F.initSCPalam = function(group = D.palam){
 
 F.generalPalamDescribe = function(group = D.palam){
     T.printText = [];
-    const palam = T.showChara.palam
+    const palam = V.showChara.palam
     for (let key of group){
-        let sentence = D.palamDescribe[key][palam[key][0]][1].replace("tc",T.showChara.name);
+        let choose
+        D.palamDescribe[key].forEach((tmp)=>{
+            if (tmp[0]<= palam[key][0]){
+                choose = tmp
+            }
+        })
+        let sentence = D.palamDescribe[key][palam[key][0]][1].replace("tc",V.showChara.name);
         T.printText.push(sentence)
     }
 }
 
 F.initSCMark = function(){
     T.printText = [];
-    let m = T.showChara.mark;
+    let m = V.showChara.mark;
     for (let i in m){
         T.printText.push(
-            ((T.showChara.flag.showMark || T.showChara.cid == "player")?
+            ((V.showChara.flag.showMark || V.showChara.cid == "player")?
             "<div>":`<div class = "blur">`)+
             `${D.mark[i][0]}:
             Lv.${m[i].lv}

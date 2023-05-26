@@ -30,6 +30,9 @@ import { MyChara } from "./myts/MyChara";
 import { MyCreature } from "./myts/MyCreature";
 import { MyOrgans } from "./myts/MyOrgans";
 import { MySpecies } from "./myts/MySpecies";
+import { CharaTag, CharaTagManager } from "./myts/Tags";
+import { OrganVessel } from "./myts/Vessel";
+import { Task } from "./myts/Task";
 
 const module = {
 	name: "Creatures",
@@ -54,6 +57,10 @@ const module = {
 		MySpecies,
 		MyCreature,
 		MyChara,
+		CharaTag,
+		OrganVessel,
+		CharaTagManager,
+		Task,
 	},
 	func: {
 		GenerateHeight,

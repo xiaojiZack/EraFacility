@@ -11,7 +11,7 @@
 :: sidebarBaseBar[widget]
     <<widget 'sidebarBaseBar'>>
         <<if $system.showSideBarBaseBar>>
-            <<set _showChara = C['player']>>
+            <<set $showChara = C['player']>>
             <<run F.sidebarBaseBar()>>
             <div id="sidebarBaseBarContainer">
                 <<print T.printText.join('')>>
@@ -23,7 +23,7 @@
     <<widget 'sidebarBaseDescribe'>>
     <<run
         let level = 0;
-        let rate = T.showChara.base[_args[0]][0]/T.showChara.base[_args[0]][1];
+        let rate = V.showChara.base[_args[0]][0]/V.showChara.base[_args[0]][1];
         while(rate<D.basicDescribe[_args[0]][level][0])
             level += 1;
         T.discribe = D.basicDescribe[_args[0]][0][1];
@@ -43,22 +43,29 @@
         <<print T.printText.join("")>>
     <</widget>>
 
+:: sidebarTag[widget]
+    <<widget 'sidebarTag'>>
+        <<run F.sidebarTag()>>
+        <<print T.printText.join("")>>
+    <</widget>>
+
 :: sidebarShowChara[widget]
     <<widget 'sidebarShowChara'>>
         <<if $system.showSideBarshowChara>>
             <div id = "sidebarShowChara">
                 <<if $tc=="">>
-                    <<set _showChara = C['player']>>
-                    _showChara.name
+                    <<set $showChara = C['player']>>
+                    $showChara.name
                 <<else>>
-                    <<set _showChara = C[$tc]>>
-                    _showChara.name
+                    <<set $showChara = C[$tc]>>
+                    $showChara.name
                 <</if>>
                 <<sidebarBaseBar>>
                 <<run F.sideBarGeneralPalam(D.mentalpalam)>>
                 <<print T.printText.join('<br>')>>
                 <<sidebarEquipDescribe>>
                 <<sidebarLiquidDescribe>>
+                <<sidebarTag>>
             </div>
         <</if>>
     <</widget>>

@@ -30,21 +30,21 @@ F.sidebarMap = function() {
 }
 
 F.sidebarBaseBar = function(){
-    if (V.tc != "") T.showChara = C[V.tc]
-    else T.showChara = C[V.pc]
+    if (V.tc != "") V.showChara = C[V.tc]
+    else V.showChara = C[V.pc]
     T.printText = [];
     for(let i in D.basekey){
         let key = D.basekey[i];
         let color = F.RGBdec2hex(D.basecolor[key][0],D.basecolor[key][1],D.basecolor[key][2]);
         let cnname = D.basicNeeds[key]?D.basicNeeds[key][0]:D.basicPalam[key][0];
-        if (T.showChara.base[key][0]){
+        if (V.showChara.base[key][0]){
             T.printText.push(
                 `<div {line-height:6px; }><div class="sidebarBaseDescribe">${cnname}:<<sidebarBaseDescribe "${key}">></div>`+
                 `<div class="sidBarBaseBar">
                 <<=F.Progressbar({
                     id:'sidebarbaseprogress${key}',
-                    value:${T.showChara.base[key][0]},
-                    max:${T.showChara.base[key][1]},
+                    value:${V.showChara.base[key][0]},
+                    max:${V.showChara.base[key][1]},
                     color:'${color}',
                     backColor:"#333",
                     width:"150px",
@@ -59,10 +59,16 @@ F.sidebarBaseBar = function(){
 
 F.sideBarGeneralPalam = function(group){
     T.printText = [];
-    const palam = T.showChara.palam
+    const palam = V.showChara.palam
     for (let key of group){
         if (!palam[key][0]==0){
-            let sentence = D.palamDescribe[key][palam[key][0]][1].replace("tc",T.showChara.name);
+            let choose
+            D.palamDescribe[key].forEach((tmp)=>{
+                if (tmp[0]<= palam[key][0]){
+                    choose = tmp
+                }
+            })
+            let sentence = choose[1].replace("tc",V.showChara.name);
             T.printText.push(`<span class="sidebarPalamDescribe">`+ sentence +`</span>`)
         }
     }
@@ -70,7 +76,7 @@ F.sideBarGeneralPalam = function(group){
 
 F.sideBarEquipDescribe = function(){
     T.tags = [`<div class="sidebarEquipDescribe">`];
-    let chara = T.showChara;
+    let chara = V.showChara;
     Object.keys(chara.reveals.clothSumUp).forEach((layer)=>{
         let equip = chara.equip[layer];
         if (chara.reveals.clothSumUp[layer].expose>1){
@@ -93,7 +99,7 @@ F.sideBarEquipDescribe = function(){
 
 F.sidebarLiquidDescribe = function(){
     T.printText = [`<div class="sidebarLiquidDescribe">`];
-    let cLiquid = T.showChara.liquid;
+    let cLiquid = V.showChara.liquid;
     for (let place in cLiquid){
         let placename = D.bodyDict[place];
         let liquids = cLiquid[place];
@@ -113,12 +119,24 @@ F.sidebarLiquidDescribe = function(){
             sentence = D.liquidDescribe[place][count][0][1];
         }
 
-        sentence = sentence.replace("tc",T.showChara.name);
+        sentence = sentence.replace("tc",V.showChara.name);
         sentence = sentence.replace("lq",lqWord);
         T.printText.push(sentence)
     }
     T.printText.push(`</div>`);
 
+}
+
+F.sidebarTag = function(){
+    T.printText = [`<div class="sidebarTag">`];
+    let tags = V.showChara.tags.data;
+    tags.forEach((tag)=>{
+        if (tag.visiable){
+            let sentence = '['+tag.name+']'
+            T.printText.push(sentence)
+        }
+    })
+    T.printText.push('</div>');
 }
 
 F.refrashSideBarTime = function(){

@@ -8,10 +8,10 @@
         let color = F.RGBdec2hex(D.basecolor[key][0],D.basecolor[key][1],D.basecolor[key][2]);
         T.printText.push(
             `${cnname}:
-            <progress value=${T.showChara.base[key][0]} max=${T.showChara.base[key][0]}
+            <progress value=${V.showChara.base[key][0]} max=${V.showChara.base[key][0]}
             color = ${color}>
             </progress>
-            ${T.showChara.base[key][0]}/${T.showChara.base[key][0]}
+            ${V.showChara.base[key][0]}/${V.showChara.base[key][0]}
             `
         )
     }

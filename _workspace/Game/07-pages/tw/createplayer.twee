@@ -61,7 +61,7 @@
 
 :: DesignPlayerShow:Before
 <<run F.CPRandomPlayer()>>
-<<run T.showChara = C['player']>>
+<<run V.showChara = C['player']>>
 
 :: DesignPlayerShow
 <<showChara>>

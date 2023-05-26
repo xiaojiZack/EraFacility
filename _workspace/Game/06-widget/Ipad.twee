@@ -27,7 +27,7 @@
         <<closeButton>>
     <</widget>>
     <<widget "IpadTest">>
-        <<set _showChara=C['player']>>
+        <<set $showChara=C['player']>>
         <<showChara>>
     <</widget>>
 

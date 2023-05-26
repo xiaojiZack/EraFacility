@@ -14,10 +14,13 @@ import { GenerateHeight, GenerateWeight, RandomBodysize, RandomBreastssize, Rand
 import { Creature } from "../Creature";
 import { MyOrgans } from "./MyOrgans";
 import { MySpecies } from "./MySpecies";
+import { CharaTagManager } from "./Tags";
 
 export interface MyCreature extends Creature{
     body: Dict<MyOrgans | bodypartInfo>;
     r?:MySpecies;
+	tags:CharaTagManager;
+	basesource: Dict<number>;
 }
 
 export class MyCreature extends Creature{
@@ -45,11 +48,13 @@ export class MyCreature extends Creature{
 		this.appearance = {};
 		this.body = {};
 		this.bodysize = 1;
+		this.basesource = {};
 		this.source = {};
 		this.state = [];
 		this.tsv = {};
 		this.abl = {};
 		this.sbl = {};
+		this.tags = new CharaTagManager();
 	}
     Init(obj = {} as MyCreature) {
 		const { name = "", gender = "" } = obj;
@@ -135,6 +140,18 @@ export class MyCreature extends Creature{
 		//特殊处理
 		this.equip["bottom"] = [];
 		this.equip.tags = [];
+		return this;
+	}
+	initBase() {
+		this.base = {};
+		Object.keys(D.basicNeeds).forEach((key) => {
+			this.base[key] = [1000, 1000];
+			this.basesource[key] = 0;
+		});
+		Object.keys(D.basicPalam).forEach((key) => {
+			this.base[key] = [0, 1200];
+			this.basesource[key] = 0
+		});
 		return this;
 	}
 	randomTrait(){

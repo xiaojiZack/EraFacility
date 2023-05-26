@@ -29,7 +29,6 @@ F.timeProcess = function (t) {
 
 F.passtime = function (time) {
 	V.time.total += time;
-
 	//时间变化时的处理
 	F.timeEffects(time);
 	F.timeProcess(time);
@@ -40,19 +39,24 @@ F.passtime = function (time) {
 DefineMacros("passtime", F.passtime);
 
 
-F.timeEffects = function (t, mode) {
+F.timeEffects = function (t) {
 	const { pc, date, flag, time } = V;
 
 	if (date.time + t >= 1380) flag.daychange = true; //先不加到现在时间，瞅瞅过23点没。
 
 	//根据在场角色进行source处理
-	let charas = V.location.chara;
-	charas.forEach((cid) => {
+	//let charas = V.location.chara;
+    let charas = C;
+	V.timeEventList.update(t);
+	Object.keys(charas).forEach((cid) => {
 		const chara = C[cid];
-		//角色自主行动
-		F.charaAction(chara, cid);
-		//衣服穿着和持续行动带来的source变动
-		F.trackCheck(chara, cid);
+        for (let Vt =1; Vt<=t;Vt++){
+            //角色自主行动
+			
+            F.charaAction(chara, cid, Vt);
+            //衣服穿着和持续行动带来的source变动
+            F.trackCheck(chara, cid);
+        }
 		F.sourceCheck(chara, cid);
 		F.sourceUp(chara, cid);
 	});
@@ -62,60 +66,4 @@ F.timeEffects = function (t, mode) {
 };
 
 
-class TimeEventList{
-    constructor(){
-        this.event = [];
-        return this;
-    }
-    append(charaid, eventid, time, args=[]){
-        this.event.append([charaid,eventid,time,args]);
-        this.sort();
-        return this;
-    }
-    delete(record){
-        this.event.delete(record);
-        this.sort();
-    }
-    sort(){
-        this.event.sort(function(x,y){
-            return x[3]-y[3];
-        })
-        return this;
-    }
-    update(passTime){
-        this.event.forEach((record)=>{
-            record[3] -= passTime;
-        })
-    }
-    getHasHappend(getNumber = 1){
-        let records = [];
-        this.event.forEach((record)=>{
-            if (record[3]<0 && records.length<getNumber)
-                records.push(record)
-        })
-        return records;
-    }
-    getBycharaId(charaId, checklist = []){
-        let records = [];
-        let events = checklist?checklist:this.event; //如果没有指定范围，则查找所有时间戳.
 
-        events.forEach((record)=>{
-            if (record[0]==charaId){
-                records.append(record);
-            }
-        })
-        return records;
-    }
-    getByeventId(eventId, checklist = []){
-        let records = [];
-        let events = checklist?checklist:this.event; //如果没有指定范围，则查找所有时间戳.
-        events.forEach((record)=>{
-            if (record[1]==eventId){
-                records.append(record);
-            }
-        })
-        return records;
-    }
-}
-
-V.timeEventList = new TimeEventList();

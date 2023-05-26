@@ -32,11 +32,11 @@
     <<widget 'showCharaBase'>>
     <div id='SCbaseBox' class="SCBaseConter">
         <div id="SCname">
-            _showChara.name
+            $showChara.name
             <<script>>
-                if (T.showChara.gender == "female") T.gendercoin = "♀";
+                if (V.showChara.gender == "female") T.gendercoin = "♀";
                 else{
-                    if (T.showChara.gender == "male") T.gendercoin = "♂";
+                    if (V.showChara.gender == "male") T.gendercoin = "♂";
                     else T.gendercoin = "";}
             <</script>>
             &nbsp;_gendercoin
@@ -65,7 +65,7 @@
 
 :: ShowCharaBody[widget]
     <<widget 'ShowCharaBody'>>
-        <<if (T.showChara.flag.showBody || T.showChara.cid == "player")>>
+        <<if (V.showChara.flag.showBody || V.showChara.cid == "player")>>
             <div class='SCBody'>
                 <<run F.initSCBody()>>
                 <<print T.printText.join('')>>
@@ -83,7 +83,7 @@
     <<widget 'ShowCharaVirginity'>>
         <div class='SCDashline'><<dashline>></div>
         <<run F.initSCVirginity()>>
-        <<if (T.showChara.flag.showVirginity || T.showChara.cid == "player")>>
+        <<if (V.showChara.flag.showVirginity || V.showChara.cid == "player")>>
             <div>
                 <<print T.printText.join('<br>')>>
             </div>
@@ -96,7 +96,7 @@
     <<widget 'ShowCharaExp'>>
         <div class = 'SCDashline'><<dashline>></div>
         <<run F.initSCExp()>>
-        <<if !T.showChara.flag.showExp and _showChara.cid !== "player">>
+        <<if !V.showChara.flag.showExp and $showChara.cid !== "player">>
             <div class='SCExp-blur'>
                 <<print T.printText.join('')>>
             </div>
@@ -119,28 +119,28 @@
 :: ShowCharaApp[widget]
     <<widget 'ShowCharaApp'>>
         <div class='SCAppBox'>
-            <div>身高 <<=_showChara.appearance.height/10>>cm </div>
-            <div>体重 <<=_showChara.appearance.weight>>kg </div>
-            <div>胸围 <<=_showChara.appearance.bust/10>>cm</div>
-            <div>[<<=D.breastSize[T.showChara.body.breasts.sizeLv]>>]</div>
-            <div>腰围 <<=_showChara.appearance.waist/10>>cm</div>
-            <div>臀围 <<=_showChara.appearance.hip/10>>cm</div>
-            <div>肤色: <<=_showChara.appearance.skincolor>> </div>
-            <div>瞳色: <<=_showChara.appearance.eyecolor>> </div>
-            <div>发色: <<=_showChara.appearance.haircolor>> </div>
-            <div>发型: <<=_showChara.appearance.hairstyle>> </div>
+            <div>身高 <<=$showChara.appearance.height/10>>cm </div>
+            <div>体重 <<=$showChara.appearance.weight>>kg </div>
+            <div>胸围 <<=$showChara.appearance.bust/10>>cm</div>
+            <div>[<<=D.breastSize[V.showChara.body.breasts.sizeLv]>>]</div>
+            <div>腰围 <<=$showChara.appearance.waist/10>>cm</div>
+            <div>臀围 <<=$showChara.appearance.hip/10>>cm</div>
+            <div>肤色: <<=$showChara.appearance.skincolor>> </div>
+            <div>瞳色: <<=$showChara.appearance.eyecolor>> </div>
+            <div>发色: <<=$showChara.appearance.haircolor>> </div>
+            <div>发型: <<=$showChara.appearance.hairstyle>> </div>
         </div>    
     <</widget>>
 
 :: ShowCharaEquip[widget]
     <<widget 'ShowCharaEquip'>>
-        <<if (T.showChara.flag.showEquip || T.showChara.cid == "player")>>
+        <<if (V.showChara.flag.showEquip || V.showChara.cid == "player")>>
             <div class='SCDashline'><<dashline>></div>
             <<run F.initSCEquip()>>
             <div>
                 <<print T.printText.join('<br>')>>
                 <br>
-                暴露值:<<=T.showChara.reveals.reveal>>
+                暴露值:<<=V.showChara.reveals.reveal>>
             </div>
         <<else>>
             <div class='SCDashline'><<dashline>></div>
@@ -148,7 +148,7 @@
             <<run F.initVagueEquipDescribe()>>
             <<print T.printText.join("")>>
             <br>
-            暴露值:<<=T.showChara.reveals.reveal>>
+            暴露值:<<=V.showChara.reveals.reveal>>
             </div>
         <</if>>
     <</widget>>
@@ -158,7 +158,7 @@
         <div class='SCDashline'><<dashline>></div>
         <div class="SCPalamBox">
             <div class="SCPalamtype">[心理]</div>
-            <<if (T.showChara.flag.showPalam || T.showChara.cid == "player")>>
+            <<if (V.showChara.flag.showPalam || V.showChara.cid == "player")>>
                 <<run F.initSCPalam(D.mentalpalam)>>
                 <<print T.printText.join('')>>
             <<else>>
@@ -167,14 +167,14 @@
             <</if>>
         </div>
         <div class="SCPalamBox">
-            <<if (T.showChara.flag.showPalam || T.showChara.cid == "player")>>
+            <<if (V.showChara.flag.showPalam || V.showChara.cid == "player")>>
                 <div class="SCPalamtype">[快感]</div>
                 <<run F.initSCPalam(D.ecstacypalam)>>
                 <<print T.printText.join('')>>
             <</if>>
         </div>
         <div class="SCPalamBox">
-            <<if (T.showChara.flag.showPalam || T.showChara.cid == "player")>>
+            <<if (V.showChara.flag.showPalam || V.showChara.cid == "player")>>
                 <div class="SCPalamtype">[痛楚]</div>
                 <<run F.initSCPalam(D.painpalam)>>
                 <<print T.printText.join('')>>
@@ -184,12 +184,12 @@
 
 :: ShowCharaLocation[widget]
     <<widget 'ShowCharaLocation'>>
-        <<if (Config.debug && T.showChara.cid !== "player")>>
+        <<if (Config.debug || V.showChara.cid !== "player")>>
         <div>
-        当前位置:<<=worldMap[T.showChara.location.mapId].name[0]>>
+        当前位置:<<=worldMap[V.showChara.location.mapId].name[0]>>
         -
-        <<run T.spotid = worldMap[T.showChara.location.mapId].findspot(T.showChara.location.coord[0],T.showChara.location.coord[1])>>
-        <<= worldMap[T.showChara.location.mapId][T.spotid].name>>
+        <<run T.spotid = worldMap[V.showChara.location.mapId].findspot(V.showChara.location.coord[0],V.showChara.location.coord[1])>>
+        <<= worldMap[V.showChara.location.mapId][T.spotid].name>>
         </div>
         <</if>>
     <</widget>>

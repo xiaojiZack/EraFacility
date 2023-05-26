@@ -457,6 +457,14 @@ export class Boards extends GameMap {
 	public findspot(x: number,y: number){
 		return Boards.getBoard(this.id)[x][y];
 	}
+
+	//根据spotid找到坐标，如果有多个，则取第一个
+	public findcoor(spotId:string){
+		if (Boards.get(this.id).mapdata[spotId]){
+			return Boards.get(this.id).mapdata[spotId][0];
+		}
+		return false;
+	}
 }
 
 //-------------------->> Configure Spots Type and Tags  <<--------------------

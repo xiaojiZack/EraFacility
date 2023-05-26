@@ -4,7 +4,7 @@ F.showIpadCharalist = function(){
     Object.keys(C).forEach((cid)=>{
         let temptext = "";
         let chara = C[cid];
-        temptext += `<div class="IpadCharaButton"><<button '${chara.name}'>><<set T.showChara = C['${chara.cid}']>>
+        temptext += `<div class="IpadCharaButton"><<button '${chara.name}'>><<set V.showChara = C['${chara.cid}']>>
             <<replace #customOverlayContent>><<showChara>><</replace>>
             <</button>></div>`
         console.log(chara);

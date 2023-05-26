@@ -13,9 +13,10 @@ let kojoCard = {
     sleeptime: 22,
     wakeuptime: 8,
     //日程表:动作,地点,日期,开始时间,结束时间,持续时间,几率
-    scheduler: [
-        ["Act_game","home","all",8,22,14,100],
-        ["sleep","home","all",22,8,10,100]
+    schedule: [
+        // ["Act_game","home","all",8,22,14,100],
+        // ["sleep","home","all",22,8,10,100]
+        ["test","home","all",0,24,24,100]
     ],
     //服装设置
     preset: preset,
@@ -29,18 +30,18 @@ let kojoCard = {
     callname:[
         ["player","你"]
     ],
-    update:()=>{}
+    update:(kojo, patch)=>{return kojo}
 }
 
 /**
  * Action 设定
  */
-kojoCard.actions = [
+kojoCard.action = [
     {
-        id:"game",
+        id:"playgame",
         name:"打游戏",
-        type:"Interact",
-        tags:["alone"],
+        type:"self",
+        tags:["videoGame"],
         placement:"academyLevel_office",
         setting:["kojo"],
         actPart:["hands"],
@@ -88,10 +89,8 @@ kojoCard.preset = [
 /**
  * update 设定
  */
-kojoCard.update= function(){
-    let chara = C[kojoCard.charaname];
-    if (chara.flag.changeEquip){
-        kojoCard.preset=chara.flag.changeEquip;
-    }
+kojoCard.update= function(kojo, patch){
+    return kojo
 }
+
 KojoInstall(kojoCard)

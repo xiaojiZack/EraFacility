@@ -15,7 +15,8 @@
         "obj":{
             "type":"academy",
             "xy":[13,13],
-            "name":["学院层"]
+            "name":["学院层"],
+            "entry":["dormitory"]
         },
         "mapdata":"academyLevel.json",
         "movetime": 300

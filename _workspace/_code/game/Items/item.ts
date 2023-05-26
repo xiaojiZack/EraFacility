@@ -45,11 +45,11 @@ export interface Items {
 
 export class Items {
 	public static data: Items[];
-	public static newId(group: string, name: string, cate?: string) {
+	public static newId(group: string, name: Array<string>, category:string, cate?: string) {
 		if (cate) {
 			return `${cate}_${name[1].replace(/\s/g, "") || name[0]}`;
 		} else {
-			return `${group}_${name[1] || name[0]}`;
+			return `${group}__${category}-${name[1] || name[0]}`;
 		}
 	}
 	public static getByName(group: ItemGroup, name: string): Items | undefined {
@@ -68,8 +68,8 @@ export class Items {
 		return Array.from(Db.Items[itemGroup]).find((item: Items) => item[0] === Itemid) as Items;
 	}
 	constructor(obj = {} as Items) {
-		const { group, category } = obj;
-		this.id = Items.newId(group, category);
+		const { group, name, category } = obj;
+		this.id = Items.newId(group, name, category);
 		for (let key in obj) {
 			if (key == "sourceMethod" || key == "source") {
 				continue;
