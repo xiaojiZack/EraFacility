@@ -1,4 +1,5 @@
 F.timeProcess = function (t) {
+	console.log('F.timeProcess')
 	const date = V.date;
 
 	date.time += t;
@@ -40,6 +41,7 @@ DefineMacros("passtime", F.passtime);
 
 
 F.timeEffects = function (t) {
+	console.log('F.timeEffect()')
 	const { pc, date, flag, time } = V;
 
 	if (date.time + t >= 1380) flag.daychange = true; //先不加到现在时间，瞅瞅过23点没。
@@ -49,6 +51,7 @@ F.timeEffects = function (t) {
     let charas = C;
 	V.timeEventList.update(t);
 	Object.keys(charas).forEach((cid) => {
+		console.log('在场角色推算', cid)
 		const chara = C[cid];
         for (let Vt =1; Vt<=t;Vt++){
             //角色自主行动

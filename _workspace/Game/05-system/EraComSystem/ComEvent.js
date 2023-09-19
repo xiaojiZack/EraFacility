@@ -49,7 +49,7 @@ if (window.Com) {
 				html += `<<link '>>'>>><<set $T.charaListIndex to ${T.charaListIndexEnd}>>><<run Com.updateScene()>>><</link>>　`;
 			html += "<br>";
 		}
-		if (chara.length==0 || !chara.includes(V.tc)) V.tc ="";
+		if (chara.length==0 || !V.location.chara.includes(V.tc)) V.tc ="";
 		new Wikifier(null, `<<replace #location>>${html}<</replace>>`);
 		new Wikifier(null, `<<replace #sidebarShowChara>><<sidebarShowChara>><</replace>>`)
 	};

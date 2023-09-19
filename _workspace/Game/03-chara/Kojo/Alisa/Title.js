@@ -16,7 +16,7 @@ let kojoCard = {
     schedule: [
         // ["Act_game","home","all",8,22,14,100],
         // ["sleep","home","all",22,8,10,100]
-        ["test","home","all",0,24,24,100]
+        ["sleep","home","all",0,20,20,100]
     ],
     //服装设置
     preset: preset,

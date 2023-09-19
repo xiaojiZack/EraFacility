@@ -20,7 +20,7 @@
         2.新增tag
         3.删除tag
         4.tags派生tag
-        5.
+        5.添加tag触发函数、删除tag触发函数、保持tag触发函数？
  */
 
 import { Dict } from "../../types";
@@ -39,6 +39,8 @@ export interface CharaTag{
     checkSource?:Dict<{value:number, type:string}>;
     derive?:string[];
     trigger?:(any)=>any
+    addTrigger:(any?)=>any
+    delTrigger:(any?)=>(any)
 }
 
 export class CharaTag{
@@ -46,9 +48,15 @@ export class CharaTag{
 
     static get(tagId){
         //copy the data from database
-		let Tag = new CharaTag(tagId, {});
-		Object.assign(Tag, CharaTag.data[tagId]);
-		return Tag;
+        if (Object.keys(CharaTag.data).has(tagId)){
+            let Tag = new CharaTag(tagId, {});
+            Object.assign(Tag, CharaTag.data[tagId]);
+            return Tag;
+        }
+        else{
+            console.error('不存在预设tag模板', tagId);
+            return new CharaTag(tagId, {})
+        }
     }
     static new(TagId: string, obj={}): CharaTag {
 		let Tag = new CharaTag(TagId, obj);
@@ -65,6 +73,8 @@ export class CharaTag{
         if(obj.dot) this.dot = obj.dot;
         if(obj.checkSource) this.checkSource = obj.checkSource;
         if(obj.derive) this.derive = obj.derive
+        this.addTrigger = (chara)=>{}
+        this.delTrigger = (chara)=>{}
         return this;
     } 
 
@@ -75,6 +85,16 @@ export class CharaTag{
 
     setTrigger(callback){
         this.trigger = callback;
+        return this;
+    }
+    //用于在加入时触发某些东西，比如口上
+    setAddTrigger(callback){
+        this.addTrigger = callback;
+        return this;
+    }
+
+    setDelTrigger(callback){
+        this.delTrigger = callback;
         return this;
     }
 
@@ -88,13 +108,20 @@ export class CharaTagManager{
         return this;
     }
     has(tagId){
-        this.data.forEach(tag=>{
-            if (tag.name == tagId) return tag
-        })
+        for (let tag of this.data){
+            if (tag.name == tagId) {return true}
+        }
         return false
     }
 
-    add(tagId, obj?:Dict<any>){
+    find(tagId){
+        for (let tag of this.data){
+            if (tag.name == tagId) {return tag}
+        }
+        return false
+    }
+
+    add(tagId, chara, obj?:Dict<any>){
         let newTag = CharaTag.get(tagId);
         for (let existtag of this.data){
             if (existtag.name == tagId) return this
@@ -102,25 +129,32 @@ export class CharaTagManager{
         if (obj){
             Object.keys(obj).forEach(key=>{
                 newTag.set(key,obj[key])
+                newTag.addTrigger(chara)
             })
         }
         this.data.push(newTag)
 
         if (newTag.derive){
-            newTag.derive.forEach(derive=>{
-                this.add(derive)
-            })
+            for (let deriveTag of newTag.derive){
+                this.add(deriveTag, chara, obj)
+            }
         }
 
         return this
     }
 
-    del(tag){
-        if (this.data.has(tag.name)!=false){
+    del(tag, chara){
+        if (typeof(tag) == typeof("")){
+            this.data.forEach(owntag => {
+                tag = owntag.name == tag ? owntag:tag;
+            });
+        }
+        if (this.data.has(tag)){
+            tag.delTrigger(chara)
             this.data.delete(tag)
             if (tag.derive){
                 tag.derive.forEach(derive=>{
-                    this.del(this.has(derive))
+                    this.del(this.has(derive), chara)
                 })
             }
         }
@@ -128,19 +162,20 @@ export class CharaTagManager{
     }
 
     /**
-     * 检查当前人物的tag，检查是否有增减
+     * 检查当前人物的tag，根据tag自身维持条件和触发条件检查是否有增减
      */
     update(chara){
         //自动派生
         Object.values(CharaTag.data).forEach(tag=>{
             if(tag.trigger) {
-                if (tag.trigger(chara) == true){
-                    this.add(tag.name)
+                if (tag.trigger(chara)){
+                    this.add(tag.name,chara)
                 }
             }
         })
 
         this.data.forEach(tag=>{
+            console.log('tag检测',tag,tag.type)
             if (tag.type.has('keep')){
                 //持续型
             }
@@ -148,7 +183,7 @@ export class CharaTagManager{
                 let flag = true
                 Object.keys(tag.checkSource).forEach(key=>{
                     let realV
-                    if (key in D.basekey){
+                    if (D.basekey.has(key)){
                         realV = chara.base[key][0]
                     }
                     if (key in D.palam){
@@ -173,8 +208,9 @@ export class CharaTagManager{
                         default:
                             break;
                     }
+                    console.log('tag持续测试',tag.name, flag, realV, tag.checkSource[key].value)
                 })
-                if (!flag) this.del(tag)
+                if (!flag) this.del(tag, chara)
             }
         })
     }

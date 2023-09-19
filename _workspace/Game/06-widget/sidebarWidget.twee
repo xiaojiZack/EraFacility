@@ -26,7 +26,7 @@
         let rate = V.showChara.base[_args[0]][0]/V.showChara.base[_args[0]][1];
         while(rate<D.basicDescribe[_args[0]][level][0])
             level += 1;
-        T.discribe = D.basicDescribe[_args[0]][0][1];
+        T.discribe = D.basicDescribe[_args[0]][level][1];
     >>
         _discribe
     <</widget>>

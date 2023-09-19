@@ -3187,9 +3187,14 @@
 
 	class CharaTag {
 	  static get(tagId) {
-	    let Tag = new CharaTag(tagId, {});
-	    Object.assign(Tag, CharaTag.data[tagId]);
-	    return Tag;
+	    if (Object.keys(CharaTag.data).has(tagId)) {
+	      let Tag = new CharaTag(tagId, {});
+	      Object.assign(Tag, CharaTag.data[tagId]);
+	      return Tag;
+	    } else {
+	      console.error("\u4E0D\u5B58\u5728\u9884\u8BBEtag\u6A21\u677F", tagId);
+	      return new CharaTag(tagId, {});
+	    }
 	  }
 	  static new(TagId, obj = {}) {
 	    let Tag = new CharaTag(TagId, obj);
@@ -3209,6 +3214,10 @@
 	      this.checkSource = obj.checkSource;
 	    if (obj.derive)
 	      this.derive = obj.derive;
+	    this.addTrigger = (chara) => {
+	    };
+	    this.delTrigger = (chara) => {
+	    };
 	    return this;
 	  }
 	  set(id, value) {
@@ -3219,6 +3228,14 @@
 	    this.trigger = callback;
 	    return this;
 	  }
+	  setAddTrigger(callback) {
+	    this.addTrigger = callback;
+	    return this;
+	  }
+	  setDelTrigger(callback) {
+	    this.delTrigger = callback;
+	    return this;
+	  }
 	}
 	class CharaTagManager {
 	  constructor() {
@@ -3226,13 +3243,22 @@
 	    return this;
 	  }
 	  has(tagId) {
-	    this.data.forEach((tag) => {
-	      if (tag.name == tagId)
-	        return tag;
-	    });
+	    for (let tag of this.data) {
+	      if (tag.name == tagId) {
+	        return true;
+	      }
+	    }
 	    return false;
 	  }
-	  add(tagId, obj) {
+	  find(tagId) {
+	    for (let tag of this.data) {
+	      if (tag.name == tagId) {
+	        return tag;
+	      }
+	    }
+	    return false;
+	  }
+	  add(tagId, chara, obj) {
 	    let newTag = CharaTag.get(tagId);
 	    for (let existtag of this.data) {
 	      if (existtag.name == tagId)
@@ -3241,22 +3267,29 @@
 	    if (obj) {
 	      Object.keys(obj).forEach((key) => {
 	        newTag.set(key, obj[key]);
+	        newTag.addTrigger(chara);
 	      });
 	    }
 	    this.data.push(newTag);
 	    if (newTag.derive) {
-	      newTag.derive.forEach((derive) => {
-	        this.add(derive);
-	      });
+	      for (let deriveTag of newTag.derive) {
+	        this.add(deriveTag, chara, obj);
+	      }
 	    }
 	    return this;
 	  }
-	  del(tag) {
-	    if (this.data.has(tag.name) != false) {
+	  del(tag, chara) {
+	    if (typeof tag == "string") {
+	      this.data.forEach((owntag) => {
+	        tag = owntag.name == tag ? owntag : tag;
+	      });
+	    }
+	    if (this.data.has(tag)) {
+	      tag.delTrigger(chara);
 	      this.data.delete(tag);
 	      if (tag.derive) {
 	        tag.derive.forEach((derive) => {
-	          this.del(this.has(derive));
+	          this.del(this.has(derive), chara);
 	        });
 	      }
 	    }
@@ -3265,18 +3298,19 @@
 	  update(chara) {
 	    Object.values(CharaTag.data).forEach((tag) => {
 	      if (tag.trigger) {
-	        if (tag.trigger(chara) == true) {
-	          this.add(tag.name);
+	        if (tag.trigger(chara)) {
+	          this.add(tag.name, chara);
 	        }
 	      }
 	    });
 	    this.data.forEach((tag) => {
+	      console.log("tag\u68C0\u6D4B", tag, tag.type);
 	      if (tag.type.has("keep")) ;
 	      if (tag.type.has("palam")) {
 	        let flag = true;
 	        Object.keys(tag.checkSource).forEach((key) => {
 	          let realV;
-	          if (key in D.basekey) {
+	          if (D.basekey.has(key)) {
 	            realV = chara.base[key][0];
 	          }
 	          if (key in D.palam) {
@@ -3299,9 +3333,10 @@
 	              flag = flag && realV == tag.checkSource[key].value;
 	              break;
 	          }
+	          console.log("tag\u6301\u7EED\u6D4B\u8BD5", tag.name, flag, realV, tag.checkSource[key].value);
 	        });
 	        if (!flag)
-	          this.del(tag);
+	          this.del(tag, chara);
 	      }
 	    });
 	  }
@@ -4519,7 +4554,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	    this.source = () => {
 	    };
 	    this.order = () => {
-	      return 0;
+	      return F.usualComOrder(this.tags);
 	    };
 	  }
 	  Check(callback) {
@@ -4636,12 +4671,14 @@ ${ctx(use, parts, reverse)}<</switch>>
 	Com.resetScene = function() {
 	  V.target = C[V.tc];
 	  V.player = C[V.pc];
+	  F.refrashSideBar();
 	  Com.updateScene();
 	  Com.listUp();
 	  Com.updateMenu();
 	  return "";
 	};
 	Com.next = function() {
+	  console.log("next", T.msg);
 	  if (T.msgId < T.msg.length && T.msg[T.msgId].has("<<selection", "<<linkreplace") && !T.selectwait) {
 	    T.msg[T.msgId] += "<<unset _selectwait>><<set _onselect to 1>>";
 	    T.selectwait = 1;
@@ -4664,6 +4701,8 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  T.orderGoal = Com.globalOrder(id) + com.order();
 	  T.comAble = Com.globalCheck(id) && com.check();
 	  console.log("reason", T.reason);
+	  if (!T.msg)
+	    T.msg = [];
 	  T.msgId = 0;
 	  T.comPhase = "before";
 	  let txt = "";
@@ -4674,7 +4713,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  Com.hide();
 	  Com.shownext();
 	  if (V.system.showOrder && T.order) {
-	    P.msg(`\u914D\u5408\u5EA6\u68C0\u6D4B\uFF1A${T.order}\uFF1D${T.comorder}/${T.orderGoal}<br><<dashline>>`);
+	    P.msg(`\u914D\u5408\u5EA6\u68C0\u6D4B\uFF1A${T.order}\uFF1D${T.orderGoal}<br><<dashline>>`);
 	  }
 	  P.msg(
 	    `${Story.get("Command::Before").text}<<run Com.next()>><<if _noMsg>><<unset _noMsg>><<else>><<dashline>><</if>>`
@@ -4703,6 +4742,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  Com.Event(id);
 	};
 	Com.Event = function(id, next) {
+	  console.log("Com.Event()", id, T.orderGoal);
 	  const com = Com.data[id];
 	  const resetHtml = `<<run Com.reset()>>`;
 	  let txt = "", type = "Com";
@@ -4716,11 +4756,11 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  if (T.comCancel) {
 	    P.msg(resetHtml);
 	  } else if (T.comAble) {
-	    if (T.orderGoal === 0 || V.system.debug || T.orderGoal > 0 && T.comorder >= T.orderGoal || (com == null ? void 0 : com.forceAble) && T.comorder + S.ignoreOrder >= T.orderGoal) {
+	    if (T.orderGoal <= 0 || V.system.debug || T.orderGoal > 0 && T.comorder >= T.orderGoal || (com == null ? void 0 : com.forceAble) && T.comorder + S.ignoreOrder >= T.orderGoal) {
 	      T.passtime = com.time;
 	      if (T.comorder < T.orderGoal && !V.system.debug) {
 	        T.msg.push(
-	          `\u914D\u5408\u5EA6\u4E0D\u8DB3\uFF1A${T.order}\uFF1D${T.comorder}/${T.orderGoal}<br>${(com == null ? void 0 : com.forceAble) ? "<<run Com.next()>>" : ""}<br>`
+	          `\u914D\u5408\u5EA6\u4E0D\u8DB3\uFF1A${T.order}\uFF1D${T.orderGoal}<br>${(com == null ? void 0 : com.forceAble) ? "<<run Com.next()>>" : ""}<br>`
 	        );
 	        if (Kojo.has(V.pc, { type, id, dif: "Force", check: 1 })) {
 	          txt = Kojo.put(V.pc, { type, id, dif: "Force" });
@@ -4738,7 +4778,9 @@ ${ctx(use, parts, reverse)}<</switch>>
 	      if (txt.includes("Kojo.put"))
 	        txt = F.convertKojo(txt);
 	      P.msg(txt);
-	      P.msg(`<<run Com.data['${id}'].source(); F.passtime(T.passtime); Com.After()>>`, 1);
+	      P.msg(`<<run Com.data['${id}'].source();>>`, 1);
+	      P.msg(`<<run F.passtime(T.passtime);>>`, 1);
+	      P.msg(`<<run Com.After()>>`, 1);
 	      if (Kojo.has(V.pc, { type, id, dif: "After", check: 1 })) {
 	        txt = `<br><<set _comPhase to 'after'>>` + Kojo.put(V.pc, { type, id, dif: "After" });
 	        if (txt.includes("Kojo.put"))
@@ -4750,7 +4792,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	      }
 	      P.msg("<<run Com.endEvent()>>", 1);
 	    } else {
-	      P.msg(`\u914D\u5408\u5EA6\u4E0D\u8DB3\uFF1A${T.order}\uFF1D${T.comorder}/${T.orderGoal}<br><<run F.passtime(1); >>`);
+	      P.msg(`\u914D\u5408\u5EA6\u4E0D\u8DB3\uFF1A${T.order}\uFF1D${T.orderGoal}<br><<run F.passtime(1); >>`);
 	      P.msg(resetHtml, 1);
 	    }
 	  } else {

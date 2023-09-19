@@ -14,9 +14,9 @@
     esA/B/C/V/M/W/U: 对应source，满后触发对应部位gc，保持较高时叠加lust增长,较高时降低san恢复，较高时降低stamina恢复，较高时叠加libido增长。
     favo: favo source, 降低resist palam，提高order，随时间增加flag.favo 较高时增长mood
     fear：fear source， 降低resist palam，较高时减少order， 与fear mark联动
-    humiliate：humiliate source， 降低superior， 提高surrend，提高resist， 较高时提高stress，depress，humiliate mark联动
+    humiliate：humiliate source，屈辱 降低superior， 提高surrend，提高resist， 较高时提高stress，depress，humiliate mark联动
     lust：lust source， 较高时增长libido， 较高时提高order, 降低satisfy
-    mortify：mortify source， 提高surrend，提高resist，较高时降低order，
+    mortify：mortify source，羞耻 提高surrend，提高resist，较高时降低order，
     paA/B/C/V/M/W/U: 对应部位source，若有相关特性，提高对应es
     pain：pain source， 提高resist，提高depress，提高surrend，提高fear，降低san，降低stamina，较高时降低awareness，联动pain mark
     resist：resist source， 降低order， 降低favo palam，降低surrender palam， resist mark联动，随时间降低flag.favo

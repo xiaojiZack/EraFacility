@@ -160,6 +160,7 @@ F.refrashSideBarMap=function(){
 }
 
 F.refrashSideBar = function(){
+    console.log('F.refrashSideBar')
     F.refrashSideBarChara();
     F.refrashSideBarTime();
     F.refrashSideBarMoney();

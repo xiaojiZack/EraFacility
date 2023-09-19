@@ -88,7 +88,7 @@ export class Com {
 
 		//cooperation order
 		this.order = () => {
-			return 0;
+			return F.usualComOrder(this.tags) ;
 		};
 	}
 	Check(callback) {

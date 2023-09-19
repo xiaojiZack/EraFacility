@@ -31,3 +31,18 @@ Task.new({
 	}
 })
 
+Task.new({
+   id:'sleep',
+   name:"睡觉",
+   placement:'home',
+   effect: (chara)=>{
+      chara.base['awareness'][0] = 100
+      chara.tags.add('睡觉中')
+      chara.todo = "sleep"
+   },
+   endeffect: (chara)=>{
+      chara.base['awareness'][0] = 1000
+      chara.tags.del('睡觉中')
+      chara.todo = ""
+   }
+})

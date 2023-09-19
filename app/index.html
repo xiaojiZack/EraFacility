@@ -5639,9 +5639,14 @@ window.parseXml = function (xml, arrayTags) {
 
 	class CharaTag {
 	  static get(tagId) {
-	    let Tag = new CharaTag(tagId, {});
-	    Object.assign(Tag, CharaTag.data[tagId]);
-	    return Tag;
+	    if (Object.keys(CharaTag.data).has(tagId)) {
+	      let Tag = new CharaTag(tagId, {});
+	      Object.assign(Tag, CharaTag.data[tagId]);
+	      return Tag;
+	    } else {
+	      console.error("\u4E0D\u5B58\u5728\u9884\u8BBEtag\u6A21\u677F", tagId);
+	      return new CharaTag(tagId, {});
+	    }
 	  }
 	  static new(TagId, obj = {}) {
 	    let Tag = new CharaTag(TagId, obj);
@@ -5661,6 +5666,10 @@ window.parseXml = function (xml, arrayTags) {
 	      this.checkSource = obj.checkSource;
 	    if (obj.derive)
 	      this.derive = obj.derive;
+	    this.addTrigger = (chara) => {
+	    };
+	    this.delTrigger = (chara) => {
+	    };
 	    return this;
 	  }
 	  set(id, value) {
@@ -5671,6 +5680,14 @@ window.parseXml = function (xml, arrayTags) {
 	    this.trigger = callback;
 	    return this;
 	  }
+	  setAddTrigger(callback) {
+	    this.addTrigger = callback;
+	    return this;
+	  }
+	  setDelTrigger(callback) {
+	    this.delTrigger = callback;
+	    return this;
+	  }
 	}
 	class CharaTagManager {
 	  constructor() {
@@ -5678,13 +5695,22 @@ window.parseXml = function (xml, arrayTags) {
 	    return this;
 	  }
 	  has(tagId) {
-	    this.data.forEach((tag) => {
-	      if (tag.name == tagId)
-	        return tag;
-	    });
+	    for (let tag of this.data) {
+	      if (tag.name == tagId) {
+	        return true;
+	      }
+	    }
 	    return false;
 	  }
-	  add(tagId, obj) {
+	  find(tagId) {
+	    for (let tag of this.data) {
+	      if (tag.name == tagId) {
+	        return tag;
+	      }
+	    }
+	    return false;
+	  }
+	  add(tagId, chara, obj) {
 	    let newTag = CharaTag.get(tagId);
 	    for (let existtag of this.data) {
 	      if (existtag.name == tagId)
@@ -5693,22 +5719,29 @@ window.parseXml = function (xml, arrayTags) {
 	    if (obj) {
 	      Object.keys(obj).forEach((key) => {
 	        newTag.set(key, obj[key]);
+	        newTag.addTrigger(chara);
 	      });
 	    }
 	    this.data.push(newTag);
 	    if (newTag.derive) {
-	      newTag.derive.forEach((derive) => {
-	        this.add(derive);
-	      });
+	      for (let deriveTag of newTag.derive) {
+	        this.add(deriveTag, chara, obj);
+	      }
 	    }
 	    return this;
 	  }
-	  del(tag) {
-	    if (this.data.has(tag.name) != false) {
+	  del(tag, chara) {
+	    if (typeof tag == "string") {
+	      this.data.forEach((owntag) => {
+	        tag = owntag.name == tag ? owntag : tag;
+	      });
+	    }
+	    if (this.data.has(tag)) {
+	      tag.delTrigger(chara);
 	      this.data.delete(tag);
 	      if (tag.derive) {
 	        tag.derive.forEach((derive) => {
-	          this.del(this.has(derive));
+	          this.del(this.has(derive), chara);
 	        });
 	      }
 	    }
@@ -5717,18 +5750,19 @@ window.parseXml = function (xml, arrayTags) {
 	  update(chara) {
 	    Object.values(CharaTag.data).forEach((tag) => {
 	      if (tag.trigger) {
-	        if (tag.trigger(chara) == true) {
-	          this.add(tag.name);
+	        if (tag.trigger(chara)) {
+	          this.add(tag.name, chara);
 	        }
 	      }
 	    });
 	    this.data.forEach((tag) => {
+	      console.log("tag\u68C0\u6D4B", tag, tag.type);
 	      if (tag.type.has("keep")) ;
 	      if (tag.type.has("palam")) {
 	        let flag = true;
 	        Object.keys(tag.checkSource).forEach((key) => {
 	          let realV;
-	          if (key in D.basekey) {
+	          if (D.basekey.has(key)) {
 	            realV = chara.base[key][0];
 	          }
 	          if (key in D.palam) {
@@ -5751,9 +5785,10 @@ window.parseXml = function (xml, arrayTags) {
 	              flag = flag && realV == tag.checkSource[key].value;
 	              break;
 	          }
+	          console.log("tag\u6301\u7EED\u6D4B\u8BD5", tag.name, flag, realV, tag.checkSource[key].value);
 	        });
 	        if (!flag)
-	          this.del(tag);
+	          this.del(tag, chara);
 	      }
 	    });
 	  }
@@ -6971,7 +7006,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	    this.source = () => {
 	    };
 	    this.order = () => {
-	      return 0;
+	      return F.usualComOrder(this.tags);
 	    };
 	  }
 	  Check(callback) {
@@ -7088,12 +7123,14 @@ ${ctx(use, parts, reverse)}<</switch>>
 	Com.resetScene = function() {
 	  V.target = C[V.tc];
 	  V.player = C[V.pc];
+	  F.refrashSideBar();
 	  Com.updateScene();
 	  Com.listUp();
 	  Com.updateMenu();
 	  return "";
 	};
 	Com.next = function() {
+	  console.log("next", T.msg);
 	  if (T.msgId < T.msg.length && T.msg[T.msgId].has("<<selection", "<<linkreplace") && !T.selectwait) {
 	    T.msg[T.msgId] += "<<unset _selectwait>><<set _onselect to 1>>";
 	    T.selectwait = 1;
@@ -7116,6 +7153,8 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  T.orderGoal = Com.globalOrder(id) + com.order();
 	  T.comAble = Com.globalCheck(id) && com.check();
 	  console.log("reason", T.reason);
+	  if (!T.msg)
+	    T.msg = [];
 	  T.msgId = 0;
 	  T.comPhase = "before";
 	  let txt = "";
@@ -7126,7 +7165,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  Com.hide();
 	  Com.shownext();
 	  if (V.system.showOrder && T.order) {
-	    P.msg(`\u914D\u5408\u5EA6\u68C0\u6D4B\uFF1A${T.order}\uFF1D${T.comorder}/${T.orderGoal}<br><<dashline>>`);
+	    P.msg(`\u914D\u5408\u5EA6\u68C0\u6D4B\uFF1A${T.order}\uFF1D${T.orderGoal}<br><<dashline>>`);
 	  }
 	  P.msg(
 	    `${Story.get("Command::Before").text}<<run Com.next()>><<if _noMsg>><<unset _noMsg>><<else>><<dashline>><</if>>`
@@ -7155,6 +7194,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  Com.Event(id);
 	};
 	Com.Event = function(id, next) {
+	  console.log("Com.Event()", id, T.orderGoal);
 	  const com = Com.data[id];
 	  const resetHtml = `<<run Com.reset()>>`;
 	  let txt = "", type = "Com";
@@ -7168,11 +7208,11 @@ ${ctx(use, parts, reverse)}<</switch>>
 	  if (T.comCancel) {
 	    P.msg(resetHtml);
 	  } else if (T.comAble) {
-	    if (T.orderGoal === 0 || V.system.debug || T.orderGoal > 0 && T.comorder >= T.orderGoal || (com == null ? void 0 : com.forceAble) && T.comorder + S.ignoreOrder >= T.orderGoal) {
+	    if (T.orderGoal <= 0 || V.system.debug || T.orderGoal > 0 && T.comorder >= T.orderGoal || (com == null ? void 0 : com.forceAble) && T.comorder + S.ignoreOrder >= T.orderGoal) {
 	      T.passtime = com.time;
 	      if (T.comorder < T.orderGoal && !V.system.debug) {
 	        T.msg.push(
-	          `\u914D\u5408\u5EA6\u4E0D\u8DB3\uFF1A${T.order}\uFF1D${T.comorder}/${T.orderGoal}<br>${(com == null ? void 0 : com.forceAble) ? "<<run Com.next()>>" : ""}<br>`
+	          `\u914D\u5408\u5EA6\u4E0D\u8DB3\uFF1A${T.order}\uFF1D${T.orderGoal}<br>${(com == null ? void 0 : com.forceAble) ? "<<run Com.next()>>" : ""}<br>`
 	        );
 	        if (Kojo.has(V.pc, { type, id, dif: "Force", check: 1 })) {
 	          txt = Kojo.put(V.pc, { type, id, dif: "Force" });
@@ -7190,7 +7230,9 @@ ${ctx(use, parts, reverse)}<</switch>>
 	      if (txt.includes("Kojo.put"))
 	        txt = F.convertKojo(txt);
 	      P.msg(txt);
-	      P.msg(`<<run Com.data['${id}'].source(); F.passtime(T.passtime); Com.After()>>`, 1);
+	      P.msg(`<<run Com.data['${id}'].source();>>`, 1);
+	      P.msg(`<<run F.passtime(T.passtime);>>`, 1);
+	      P.msg(`<<run Com.After()>>`, 1);
 	      if (Kojo.has(V.pc, { type, id, dif: "After", check: 1 })) {
 	        txt = `<br><<set _comPhase to 'after'>>` + Kojo.put(V.pc, { type, id, dif: "After" });
 	        if (txt.includes("Kojo.put"))
@@ -7202,7 +7244,7 @@ ${ctx(use, parts, reverse)}<</switch>>
 	      }
 	      P.msg("<<run Com.endEvent()>>", 1);
 	    } else {
-	      P.msg(`\u914D\u5408\u5EA6\u4E0D\u8DB3\uFF1A${T.order}\uFF1D${T.comorder}/${T.orderGoal}<br><<run F.passtime(1); >>`);
+	      P.msg(`\u914D\u5408\u5EA6\u4E0D\u8DB3\uFF1A${T.order}\uFF1D${T.orderGoal}<br><<run F.passtime(1); >>`);
 	      P.msg(resetHtml, 1);
 	    }
 	  } else {
@@ -8112,7 +8154,7 @@ D.coverlistB = Object.keys(D.covergroupB);</script>
 		<div id="init-lacking"><p>Browser lacks capabilities required to play.</p><p>Upgrade or switch to another browser.</p></div>
 		<div id="init-loading"><div>Loading&hellip;</div></div>
 	</div>
-	<!-- UUID://B0C16C95-EDFE-48A2-9746-BEADC30CE67C// --><tw-storydata name="EraFacility" startnode="82" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="B0C16C95-EDFE-48A2-9746-BEADC30CE67C" zoom="1" format="SugarCube" format-version="2.36.1" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css"></style><script role="script" id="twine-user-script" type="text/twine-javascript">/* twine-user-script #1: "00-loadfirst.js" */
+	<!-- UUID://B0C16C95-EDFE-48A2-9746-BEADC30CE67C// --><tw-storydata name="EraFacility" startnode="84" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="B0C16C95-EDFE-48A2-9746-BEADC30CE67C" zoom="1" format="SugarCube" format-version="2.36.1" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css"></style><script role="script" id="twine-user-script" type="text/twine-javascript">/* twine-user-script #1: "00-loadfirst.js" */
 //---------------------------------------------------------------------------
 //
 //  setup path
@@ -10112,7 +10154,7 @@ let kojoCard = {
     schedule: [
         // ["Act_game","home","all",8,22,14,100],
         // ["sleep","home","all",22,8,10,100]
-        ["test","home","all",0,24,24,100]
+        ["sleep","home","all",0,20,20,100]
     ],
     //服装设置
     preset: preset,
@@ -10467,6 +10509,21 @@ Task.new({
 	}
 })
 
+Task.new({
+   id:'sleep',
+   name:"睡觉",
+   placement:'home',
+   effect: (chara)=>{
+      chara.base['awareness'][0] = 100
+      chara.tags.add('睡觉中')
+      chara.todo = "sleep"
+   },
+   endeffect: (chara)=>{
+      chara.base['awareness'][0] = 1000
+      chara.tags.del('睡觉中')
+      chara.todo = ""
+   }
+})
 /* twine-user-script #25: "main.js" */
 const { randomInt } = require("crypto");
 
@@ -10482,7 +10539,6 @@ class TimeEventList{
     }
     delete(record){
         this.event = this.event.filter(item=>item!=record)
-        console.log(this.event,record)
         this.sort();
     }
     sort(){
@@ -10531,13 +10587,21 @@ V.timeEventList = new TimeEventList();
 
 //执行对应代办事项
 F.charaAction = function(chara, cid, passTime){
+    console.log('F.charaAction()', cid)
     if(cid == 'player') return;
     const HasHappen = V.timeEventList.getHasHappend(V.timeEventList.event.length)
     HasHappen.forEach(record => {
         if (record[0] == cid){
-            exectionRecord(chara, record);
-            V.timeEventList.delete(record);
-            F.planTask(chara,passTime);
+            if (!chara.tags.has('暂停日程')){
+                exectionRecord(chara, record);
+                V.timeEventList.delete(record);
+                F.planTask(chara,passTime);
+            }
+            else{
+                // 由于暂停日程tag跳过日程行动
+                V.timeEventList.delete(record);
+            }
+            
         }
     });
     if (V.timeEventList.getBycharaId(cid).length == 0){
@@ -10554,7 +10618,7 @@ function exectionRecord(chara, record){
             break;
         case("beginWork"):
             let task = Task.get(args.task);
-            task.effect(chara);
+            task.execute(chara);
             break;
         case("endWork"):
             let endtask = Task.get(args.task);
@@ -10571,8 +10635,9 @@ F.planTask = function(chara,passTime=0){
     let location = chara.location;
     let date = V.date;
     let fixTime = date.time+passTime;
-    if (chara.todo == '跟随'){
+    if (chara.todo == 'follow'){
         //与主人公交互时
+        return 
     }
 
     schedules.forEach((entry)=>{
@@ -10592,7 +10657,6 @@ F.planTask = function(chara,passTime=0){
             else{
                 let obj = {task:entry[0]};
                 V.timeEventList.append(chara.cid, 'beginWork', 1, obj)
-                chara.todo = entry[0];
                 V.timeEventList.append(chara.cid, 'endWork', 
                 60*(schedule.stayhour)-(fixTime-60*fixStarthour), obj)
             }
@@ -10607,6 +10671,9 @@ F.planTask = function(chara,passTime=0){
 }
 
 F.NPCMove = function(chara, place){
+    if (chara.tags.has('不可移动')){
+        return false;
+    }
     let mapid = chara.location.mapId;
     let coord = chara.location.coord;
     let [Tmapid, Tspot] = place.split('_');
@@ -10615,7 +10682,6 @@ F.NPCMove = function(chara, place){
         Tspot = Boards.get(mapid).entries[0];
     }
     let Tcoord = Boards.get(mapid).findcoor(Tspot);
-    console.log(coord,Tcoord, mapid, Tmapid);
     if (coord[0] == Tcoord[0] && coord[1] == Tcoord[1] && mapid == Tmapid){
         //到达目的地
         return true
@@ -10626,13 +10692,35 @@ F.NPCMove = function(chara, place){
         nextcoor = Boards.get(Tmapid).entries[0];
     }
     else{
-        let path = F.findPath(Boards.getBoard(mapid),coord, Tcoord);
+        let path = F.findPath(Boards.getBoard(mapid),
+            {x:coord[0],y:coord[1]}, 
+            {x:Tcoord[0],y:Tcoord[1]});
         nextcoor = path.shift();
         nextmapid = mapid;
     }
+    console.log('NPCMOve', nextcoor)
     chara.location.mapId = nextmapid;
-    chara.coord = nextcoor;
-    
+    chara.location.coord = nextcoor;
+    F.NPC2NewPalace(chara,nextmapid, nextcoor);
+    F.NPCComeIn(chara);
+}
+
+F.NPC2NewPalace = function(chara, mapid, coor){
+    //NPC移动到新位置后，根据场地tag更新部分自身tag
+    let spotid = Boards.get(mapid).findspot(coor[0],coor[1]);
+    let spot = Boards.get(mapid)[spotid]
+    if ('私密' in spot.tags && chara.tags.has('公开')){
+        chara.tags.del('公开',chara);
+    }
+    else if(!('私密' in spot.tags) && !chara.tags.has('公开')){
+        chara.tags.add('公开',chara);
+    }
+}
+
+F.NPCComeIn = function(chara){
+    //NPC进入玩家所在地块，触发口上或事件
+    //跟随不触发本函数
+    //TODO
 }
 /* twine-user-script #26: "ComEvent.js" */
 if (window.Com) {
@@ -10686,7 +10774,7 @@ if (window.Com) {
 				html += `<<link '>>'>>><<set $T.charaListIndex to ${T.charaListIndexEnd}>>><<run Com.updateScene()>>><</link>>　`;
 			html += "<br>";
 		}
-		if (chara.length==0 || !chara.includes(V.tc)) V.tc ="";
+		if (chara.length==0 || !V.location.chara.includes(V.tc)) V.tc ="";
 		new Wikifier(null, `<<replace #location>>${html}<</replace>>`);
 		new Wikifier(null, `<<replace #sidebarShowChara>><<sidebarShowChara>><</replace>>`)
 	};
@@ -10781,20 +10869,407 @@ Com.new("system",{
         }
     )
     .Order(function(){
-        return 0;
-    });
+        return 0; //一般不写此函数，由ComOrder计算
+    })
+    //.Tags
+    //.AlterName
+    //.ForceAble()
 
+Com.new("wait10",{
+    id:"wait10",
+    name:"持续10分钟",
+    tags:[],
+    time:10,
+}).Filter(
+    ()=>{return true}
+).Effect(()=>{})
+
+Com.new("askFollow",{
+    id:"askFollow",
+    name:"命令跟随",
+    tags:[],
+    time:0,
+}).Filter(
+    ()=>{
+    if (V.tc !== ""){
+        if (V.target.tags.has('跟随')){
+            return false
+        }
+        if (V.target.todo != ""){
+            return false
+        }
+        return true
+    }
+    return false
+}
+).Effect(()=>{
+    if (V.tc !== ""){
+        V.target.tags.add('跟随',V.target);
+        V.target.todo = "follow";
+    }
+})
+
+Com.new("offFollow",{
+    id:"offFollow",
+    name:"取消跟随",
+    tags:[],
+    time:0,
+}).Filter(
+    ()=>{
+        if (V.tc !== ""){
+            if (V.target.tags.has('跟随')){
+                return true
+            }
+        }
+        return false
+    }
+).Effect(()=>{
+    V.target.tags.del('跟随',V.target);
+    V.target.todo = "";
+})
 //移动类指令统一生成
 createMoveComs();
 createJumpMoveComs();
-/* twine-user-script #29: "comutils.js" */
+
+let loadCom_test = function(){
+    Com.new("test_insect",{
+        id:"test_insect",
+        name:"插入测试",
+        tags:['性行为','V破处','V插入','V','精液','V内射', '妊娠可能'],
+        time:5,
+    }).Filter(
+        ()=>{
+            if (V.target == null || V.target.body == null) return false
+            if(V.target.body['vagina']){
+                return true
+            }
+            return false
+        }
+    ).Effect(()=>{
+        let extraTags = CheckInsert(V.target, V.player, 'V');
+
+        let t = V.target;
+        let p = V.player;
+        let s = V.target.source;
+
+        addVInsertTags(t,p,"test_insect")
+
+        t.tags.add('插入测试', t);
+        p.tags.add('插入测试(主)', t);
+
+    }).Check(()=>{
+        //插入前检测，如润滑、尺寸
+        if (V.tags.has('V占用')){
+            T.reason = "目标tag: V占用"
+            return false
+        }
+        return true
+    })
+
+    console.log('测试com加载完成');
+}
+
+
+let loadCom_daily = function(){
+    Com.new("chat",{
+        id:"chat",
+        name:"聊天",
+        tags:[],
+        time:5,
+    }).Filter(
+        ()=>{
+            if (V.tc !== ""){
+                if (V.target.tags.has('口占用') || V.player.tags.has('口占用')){
+                    return false
+                }
+                else if (V.target.tags.has('昏迷')){
+                    return false
+                }
+                return true
+            }
+            return false
+        }
+    ).Effect(()=>{
+        let s = V.target.source;
+        s.favo += 50;
+    }).Order(()=>{
+        return 0
+    })
+
+    console.log('日常com加载完成');
+}
+
+
+loadCom_daily()
+loadCom_test()
+/* twine-user-script #29: "comorder.js" */
+/**
+ * 用于计算通用执行度的。
+ * 当指令执行度低于0时，即可被执行。（全局执行度=0）
+ * 根据执行指令带有的tag、人物带有的tag、mark、sexskill决定。
+ * 同时负责返回具体明细T.order。
+ * --------指令tag---------
+ * X:受对应感度影响，常态不同程度的加值
+ * X破处:根据部位加值, 表示此行为可以导致破处
+ * 精液：受精液中毒影响
+ * 饮精：受饮精经验影响
+ * V/A内射：受对应内射中毒影响，常态不同程度的加值,根据插入尺寸、润滑程度进行调整
+ * V/A插入：检查尺寸、润滑
+ * 侍奉：受侍奉等级影响
+ * 妊娠/寄生可能：受苗床中毒影响，以及需要判断生理周期。
+ * 将受束缚：受受虐等级影响，常态大加值。
+ * 施虐：受施虐等级影响，常态0
+ * 兽奸：受兽奸等级影响，常态大加值
+ * 道具：常态小加值
+ * 药物：受药渍等级影响，常态大加值
+ * 露出：受露出癖影响，常态小加值
+ * 苦痛：受受虐癖影响
+ * 性行为：受性瘾影响
+ * 触手：触手中毒，常态大加值
+ * 轮奸：TODO需要额外进行判断
+ * 恐怖: 常态加值
+ * 多重插入:TODO
+ * --------刻印------------
+ * 除反发以外均根据等级减值
+ * --------tag------------
+ * 昏迷：极大减值
+ * 虚弱：小减值
+ * 发情：带有性行为属性时大加值
+ * 心智破碎：大减值
+ * 力竭：小减值
+ * 紧张：小加值
+ * 束缚：大减值（可能要根据束缚类型判断,TODO）
+ * --------其他------------
+ * 顺从等级减值
+ * 抗拒等级加值
+ * 当滥交等级较低时，且好感度不高时，性行为大加值；
+ * 催眠等级减值
+ * 欲望等级加值
+ * favo等级加值
+ * --------人物特质--------
+ * 根据人物特质加减值
+ * --------特殊------------
+ * 慕恋、挚爱、
+ */
+
+F.usualComOrder = function(comTag, Tchara=V.target, chara=C[V.pc]){
+    //-----指令tag------
+    let comOrder = 0;
+    console.log('F.usualComOrder()',comTag,Tchara)
+    if (comTag.has('Alone')) return comOrder
+    if (Tchara == null) return comOrder
+    if (Object.keys(Tchara).length == 0) return comOrder;
+
+    console.log('comorder init part', comOrder)
+    let V = Tchara.body.vagina;
+    let A = Tchara.body.anus;
+    let B = Tchara.body.breasts;
+    let C = Tchara.body.clitoris;
+    let M = Tchara.body.mouth;
+    let W = Tchara.body.urethral;
+    let U = Tchara.body.uetrus;
+    T.order = "";
+
+    console.log('comorder comTag part', comTag, comOrder)
+    if (comTag.has('V')){
+        comOrder += V.sens*5;
+        T.order = T.order-`|V感觉[${V.sens*5}]`
+    }
+    console.log(T.order)
+    if (comTag.has('A')){
+        comOrder -= A.sens*5;
+        T.order = T.order+`|A感觉[${A.sens*5}]`
+    }
+    if (comTag.has('B')){
+        comOrder -= B.sens*5;
+        T.order = T.order+`|B感觉[${B.sens*5}]`
+    }
+    if (comTag.has('C')){
+        comOrder -= C.sens*5;
+        T.order = T.order+`|C感觉[${C.sens*5}]`
+    }
+    if (comTag.has('W')){
+        comOrder -= W.sens*5;
+        T.order = T.order+`|W感觉[${W.sens*5}]`
+    }
+    if (comTag.has('M')){
+        comOrder += M.sens*5;
+        T.order = T.order+`|M感觉[${M.sens*5}]`
+    }
+    if (comTag.has('U')){
+        comOrder -= U.sens*5;
+        T.order = T.order+`|U感觉[${U.sens*5}]`
+    }
+
+    if(CheckVirginity(Tchara,'vagina') && comTag.has('V破处')){
+        comOrder += 20
+        T.order = T.order+`|破处[${20}]`
+    }
+    if(CheckVirginity(Tchara,'anus') && comTag.has('A破处')){
+        comOrder += 5
+        T.order = T.order+`|A破处[${5}]`
+    }
+
+    if(comTag.has('精液')){
+        comOrder += 10 - 5*Tchara.sbl.cumaddic
+        T.order = T.order+`|精液[${10 - 5*Tchara.sbl.cumaddic}]`
+    }
+
+    if(comTag.has('饮精')){
+        comOrder += 10 - 5*Math.floor(Tchara.exp.swallow.total/1000)
+        T.order = T.order+`|饮精[${10 - 5*Math.floor(Tchara.exp.swallow.total/1000)}]`
+    }
+
+    if(comTag.has('V内射')){
+        comOrder += 10 - 5*Tchara.sbl.Vcumpie
+        T.order = T.order+`|V内射[${10 - 5*Tchara.sbl.Vcumpie}]`
+    }
+    if(comTag.has('A内射')){
+        comOrder += 5 - 5*Tchara.sbl.Acumpie
+        T.order = T.order+`|A内射[${10 - 5*Tchara.sbl.Vcumpie}]`
+    }
+    if (!T.insertSize) T.insertSize = CheckPSizeLv(chara);
+    if(comTag.has('V插入')){
+        comOrder += Math.max(5*(3-CheckVLub(Tchara)),0);
+        T.order = T.order+`|V润滑[${Math.max(5*(3-CheckVLub(Tchara)),0)}]`
+        comOrder += 5*Math.max(T.insertSize-CheckVSizeLv(Tchara),0);
+        T.order = T.order+`|V插入尺寸[${5*Math.max(T.insertSize-CheckVSizeLv(Tchara),0)}]`
+    }
+    if(comTag.has('A插入')){
+        comOrder += Math.max(5*(3-CheckALub(Tchara)),0);
+        T.order = T.order+`|A润滑[${Math.max(5*(3-CheckVLub(Tchara)),0)}]`
+        comOrder += 5*Math.max(T.insertSize-CheckASizeLv(Tchara),0);
+        T.order = T.order+`|A插入尺寸[${5*Math.max(T.insertSize-CheckVSizeLv(Tchara),0)}]`
+    }
+    if(comTag.has('侍奉')){
+        comOrder += -Tchara.sbl.serve*2;
+        T.order = T.order+`|侍奉行为[${-Tchara.sbl.serve*2}]`
+    }
+
+    if(comTag.has('妊娠/寄生可能')){
+        //需要根据生理期判断
+        comOrder += 50-20*Tchara.sbl.pergaddic;
+        T.order = T.order+`|妊娠/寄生可能[${50-20*Tchara.sbl.pergaddic}]`
+    }
+
+    if(comTag.has('将受束缚')){
+        comOrder += 10-3*Tchara.sbl.masochism;
+        T.order = T.order+`|将受束缚[${10-3*Tchara.sbl.masochism}]`
+    }
+
+    if(comTag.has('施虐')){
+        comOrder += -3*Tchara.sbl.sadicism;
+        T.order = T.order+`|施虐[${-3*Tchara.sbl.sadicism}]`
+    }
+
+    if(comTag.has('苦痛')){
+        comOrder += -3*Tchara.sbl.masochism;
+        T.order = T.order+`|苦痛[${-3*Tchara.sbl.masochism}]`
+    }
+
+    if(comTag.has('兽奸')){
+        comOrder += 50-20*Tchara.sbl.bestial;
+        T.order = T.order+`|兽奸[${50-20*Tchara.sbl.bestial}]`
+    }
+
+    if(comTag.has('道具')){
+        comOrder += 2;
+        T.order = T.order+`|道具[${2}]`
+    }
+
+    if(comTag.has('药物')){
+        comOrder += 30-15*Tchara.sbl.drugaddic;
+        T.order = T.order+`|药物[${30-15*Tchara.sbl.drugaddic}]`
+    }
+
+    if(comTag.has('露出')){
+        comOrder += 10-5*Tchara.sbl.exhibition;
+        T.order = T.order+`|露出[${10-5*Tchara.sbl.exhibition}]`
+    }
+
+    if(comTag.has('性行为')){
+        comOrder += -2*Math.max(Tchara.palam.lust[0]-3,0);
+        T.order = T.order+`|性行为[${-2*Math.max(Tchara.palam.lust[0]-3,0)}]`
+    }
+
+    if(comTag.has('触手')){
+        comOrder += 50-20*Tchara.sbl.tentacles;
+        T.order = T.order+`|触手[${50-20*Tchara.sbl.tentacles}]`
+    }
+    if(comTag.has('轮奸')){
+        comOrder += 30-10*Tchara.sbl.gangbang;
+        T.order = T.order+`|轮奸[${30-10*Tchara.sbl.gangbang}]`
+    }
+    if(comTag.has('恐怖')){
+        comOrder += 5;
+        T.order = T.order+`|恐怖[${5}]`
+    }
+    console.log('comorder mark part', comOrder)
+    //---------MARK--------
+    let mark = Tchara.mark;
+    Object.keys(mark).forEach((markName)=>{
+        if (markName == "resist"){
+            comOrder += 5*mark[markName].lv;
+        }
+        else{
+            comOrder -= 3*mark[markName].lv;
+        }
+    })
+
+    console.log('comorder tag part', comOrder)
+    //--------Tag-----------
+    let tags = Tchara.tags;
+    if(tags.has('昏迷')){
+        console.log(comOrder)
+        comOrder -= 999;
+    }
+    if(tags.has('虚弱')){
+        comOrder -= 5;
+    }
+    if(tags.has('发情') && comTag.has('性行为')){
+        comOrder -= 10;
+    }
+    if(tags.has('心智破碎')){
+        comOrder -= 50;
+    }
+    if(tags.has('力竭')){
+        comOrder -= 5;
+    }
+    if(tags.has('紧张')){
+        comOrder += 5;
+    }
+    if(tags.has('束缚')){
+        comOrder -= 10;
+    }
+
+    console.log('comorder dev part', comOrder)
+    comOrder -= 5*Tchara.sbl.submissive;
+    comOrder += 5*Tchara.sbl.refuse;
+    if (Tchara.sbl.promscuity && Tchara.palam.favo[0]<4 && comTag.has('性行为')){
+        comOrder += 15;
+    }
+    comOrder -= 5*Tchara.sbl.hypnosis;
+    comOrder -= 5*Tchara.sbl.desire;
+    comOrder -= 2*Tchara.flag.favo;
+
+    console.log('comorder traits part', comOrder)
+    Tchara.traits.forEach((traitname)=>{
+        let trait = Trait.get('trait',traitname);
+        if (trait){
+            comOrder -= trait.order;
+        }
+    })
+    return comOrder
+
+}
+/* twine-user-script #30: "comutils.js" */
 function createMoveComs(){
     let cn_dict = {'N':"北","S":"南","E":"东","W":"西"};
     for (let dir of ['N','E','S','W']){
         let newCom = Com.new("system",{
             id:"0-move-"+dir,
             name:`向${cn_dict[dir]}移动`,
-            tags:[],
+            tags:['Alone'],
             time:5,
         });
         newCom.Set(
@@ -10806,8 +11281,7 @@ function createMoveComs(){
             return moveComCheck(newCom.dir);
         }).Filter(()=>{
             if (V.moveable == false) return false
-            if (V.currentFilter == "常规" || V.currentFilter == "all") return true;
-            return false
+            return !!(V.currentFilter == "常规" || V.currentFilter == "all");
         })
     }
     
@@ -10847,6 +11321,7 @@ function moveComEffect(dir){
         case("W"):V.location.coord[1] = V.location.coord[1]-1;break;
     }
     updateLocation();
+    NPCFollowMove(V.location.mapId,V.location.coord)
     Com.updateMovement();
 }
 
@@ -10858,11 +11333,7 @@ function updateLocation(){
     F.refrashSideBar();
 }
 
-// function refrashSideBarMap(){
-//     if (document.getElementById("sidebarMap"))
-//         new Wikifier(null, `<<replace #sidebarMap>> <<sidebarMap>><</replace>>`);
-//     //$("#siderbarMap").remove();
-// }
+
 
 
 function createJumpMoveComs(){
@@ -10878,6 +11349,7 @@ function createJumpMoveComs(){
         V.location.coord = T.jumpMove.coord;
         T.jumpMove.allowjump = false;
         updateLocation();
+        NPCFollowMove(V.location.mapId,V.location.coord)
         Com.updateMovement();
     }).Check(()=>{
         console.log(T.jumpMove);
@@ -10888,7 +11360,239 @@ function createJumpMoveComs(){
     })
     
 }
-/* twine-user-script #30: "自然派生.js" */
+
+function NPCFollowMove(mapid, coor){
+    Object.keys(V.chara).forEach((cid)=>{
+        let chara = V.chara[cid];
+        if (chara.tags.has('跟随') && cid !== "player"){
+            chara.location.mapId = mapid;
+            Object.assign(chara.location.coord,coor)
+            F.NPC2NewPalace(chara,mapid,coor);
+        }
+    })
+
+}
+
+
+///插入系指令快速函数
+function addVInsertTags(target, player, comid){
+    let t = target;
+    let p = player;
+    t.tags.add('V占用', t, {'inf':{'source':p.cid, 'com':comid}});
+    p.tags.add('C占用', p, {'inf':{'source':t.cid, 'com':comid}});
+    p.tags.add('P插入', p, {'inf':{'source':t.cid, 'com':comid}});
+    t.tags.add('V被插入', t, {'inf':{'source':p.cid, 'com':comid}});
+}
+
+function addAInsertTags(target, player, comid){
+    let t = target;
+    let p = player;
+    t.tags.add('A占用', t, {'inf':{'source':p.cid, 'com':comid}});
+    p.tags.add('C占用', p, {'inf':{'source':t.cid, 'com':comid}});
+    p.tags.add('P插入', p, {'inf':{'source':t.cid, 'com':comid}});
+    t.tags.add('A被插入', t, {'inf':{'source':p.cid, 'com':comid}});
+}
+
+/* twine-user-script #31: "insert_check.js" */
+/**
+ * 插入前相关检查函数
+ * 润滑检查、尺寸检查、处女检查
+ */
+
+function CheckVLub(chara){
+    /**
+     * 检查V的润滑程度，根据人物的liquid.total,返回润滑等级
+     * 润滑等级
+     * ---------------
+     * 100  |   1
+     * 300  |   2
+     * 1000 |   3
+     * 3000 |   4
+     * 8000 |   5
+     */
+    let l = chara.liquid['thighs'].total;
+    if (l<100){return 0};
+    if (l<300){return 1};
+    if (l<1000){return 2};
+    if (l<3000){return 3};
+    if (l<8000){return 4};
+    return 5;
+}
+
+function CheckALub(chara){
+    let l = chara.liquid['auns'].total;
+    if (l<100){return 0};
+    if (l<300){return 1};
+    if (l<1000){return 2};
+    if (l<3000){return 3};
+    if (l<8000){return 4};
+    return 5;
+}
+
+function CheckVSizeLv(chara){
+    if (chara.body['vagina']){
+        return chara.body['vagina'].sizeLv
+    }
+    return false
+    
+}
+
+function CheckASizeLv(chara){
+    if (chara.body['anus']){
+        return chara.body['anus'].sizeLv
+    } 
+    return false
+}
+
+function CheckPSizeLv(chara){
+    if (chara.body['penis']){
+        return chara.body['penis'].sizeLv
+    } 
+    return false
+}
+
+function CheckVirginity(chara, part){
+    /**
+     * 检查处女特征，返回T/F
+     */
+    if(chara.virginity[part]){
+        if (chara.virginity[part].length == 0){
+            return true
+        }
+    }
+    return false
+}
+
+function CheckInsert(target, player, Tpart, insert_size = -1){
+    // 对于插入行为的额外差分的判断，可能用于KOJO上调用差分？
+    let comfort_size_diff = 0
+    let comfort_lub = 3
+    let extraTags = [];
+    if (CheckVirginity(target, Tpart)){
+        if (Tpart == 'V'){
+            extraTags.push('V破处')
+        }
+        else if (Tpart == 'A'){
+            extraTags.push('A破处')
+        }
+    }
+
+    if (insert_size == -1){
+        insert_size = CheckPSizeLv(player)
+    }
+    let accom_size = 0
+    if (Tpart == 'V'){
+        accom_size = CheckVSizeLv(target)
+    }
+    else if(Tpart == 'A'){
+        accom_size = CheckASizeLv(target)
+    }
+
+    if (insert_size - accom_size > comfort_size_diff){
+        extraTags.push('苦痛')
+        extraTags.push('扩张')
+    }
+
+    let lub = 0
+    if (Tpart == 'V'){
+        lub = CheckVLub(target)
+    }
+    else if (Tpart == 'A'){
+        lub = CheckALub(target)
+    }
+    if (lub< comfort_lub + (insert_size-accom_size-comfort_size_diff)){
+        extraTags.push('润滑不足')
+    }
+
+
+    return extraTags
+}
+F.CheckInsert = CheckInsert
+/* twine-user-script #32: "任务相关.js" */
+/* twine-user-script #33: "环境与行为.js" */
+/**
+ * 行为相关tag，一般用于限制人物的行动
+ * 比如与主人公交互时，高好感或者特定情况下暂时取消日程表
+ */
+
+/**
+ * 特殊tag，当被绑缚、插入、昏迷、高快感、高痛苦时自动触发
+ * 可由其他指令及状态触发
+ * 带有此tag时，取消移动相关指令，取消跟随
+ */
+CharaTag.new("不可移动",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+}).setTrigger((chara)=>{
+    let flag = false;
+    flag = (chara.palam['ecstacy'][0]>=5) || flag;
+    flag = (chara.palam['pain'][0]>=5) || flag;
+    flag = (chara.tags.has('昏迷')) || flag;
+    flag = (chara.tags.has('睡觉中')) || flag;
+    return flag;
+})
+
+/**
+ * 特殊tag,通过特别命令让人物跟随玩家
+ * 目前仅能通过指令触发和取消
+ */
+
+CharaTag.new("跟随",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:["暂停日程"],
+}).setTrigger((chara)=>{
+
+})
+
+/**
+ * 特殊tag，暂时取消日程表的执行
+ * 仅能通过其他tag伴生
+ */
+CharaTag.new("暂停日程",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+})
+
+
+/**
+ * TODO
+ * 场地相关，在不带有“私密”特征地块及有他人目击情况下
+ * 给予“公开”tag，用于公开露出、公开性爱、目击性事等。
+ * 需要完善场地系统
+ * 仅通过自身触发
+ */
+
+CharaTag.new("公开",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+}).setTrigger((chara)=>{
+    
+})
+/* twine-user-script #34: "自然派生.js" */
 
 /*
 此处为放置tag数据的地方，自然派生指的是除指令和场景效果外，由于palam自身数值
@@ -10917,174 +11621,2046 @@ CharaTag.new("测试tag",{
             value:1
         }
     },
-    derive:"",
+    derive:[],
 }).setTrigger((chara)=>{
     //自动触发判定
     return false
 })
 
-CharaTag.new("自然消退",{
-    inf:{},
-    type:['keep'], //持续检测类型
-    visiable: true, //是否显示
-    describe:"人物palam自然消退",
-    dot:[
-        {          //效果描述
+let loadTags_basic = function(){
+    CharaTag.new("自然消退",{
+        inf:{},
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"人物palam自然消退",
+        dot:[
+            {          //效果描述
+                source:"lust",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"deference",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"ecstacy",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"esA",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"esB",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"esC",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"esV",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"esM",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"esW",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"esU",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"surrend",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"fear",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"mortify",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"humiliate",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"pain",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"depress",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"resist",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"favo",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"deference",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"satisfy",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"superior",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"hypno",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"paM",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"paB",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"paC",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"paU",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"paV",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"paA",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"paW",
+                value:-1,
+                type:"permin",
+                inf:0
+            },{
+                source:"stamina",
+                value:1,
+                type:"permin",
+                inf:0
+            }
+        ],
+    }).setTrigger((chara)=>{
+        return true
+    })
+
+    CharaTag.new("睡觉中",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"睡觉中",
+        dot:[{          //效果描述
+            source:"health",
+            value:2,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{
+            source:'stamina',
+            value:5,
+            type:"permin",
+            inf:0
+        },{
+            source:'awareness',
+            value:-10,
+            type:"nolarger",
+            inf:100
+        }],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return false
+    })
+    console.log('成功加载基础tag')
+}
+
+let loadTags_palam = function(){
+    CharaTag.new("抑郁Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"抑郁Lv1",
+        dot:[{          //效果描述
+            source:"san",
+            value:-0.5,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{
+            source:"stress",
+            value:1,
+            type:"permin",
+            ing:0
+        }],
+        checkSource:{
+            //持续检测
+            'depress':{
+                type:">",
+                value:2
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['depress'][0]>=4
+    })
+
+    CharaTag.new("抑郁Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"抑郁Lv2",
+        dot:[{          //效果描述
+            source:"san",
+            value:-1,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{
+            source:"stress",
+            value:2,
+            type:"permin",
+            ing:0
+        }],
+        checkSource:{
+            //持续检测
+            'depress':{
+                type:">",
+                value:4
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['depress'][0]>=6
+    })
+
+    CharaTag.new("快感Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"快感Lv1",
+        dot:[{          //效果描述
             source:"lust",
-            value:-1,
-            type:"permin",
-            inf:0
+            value:1,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
         },{
-            source:"deference",
-            value:-1,
-            type:"permin",
-            inf:0
+            source:"san",
+            value:-0.5,
+            type:"nolarger",
+            ing:800
         },{
-            source:"ecstacy",
-            value:-1,
-            type:"permin",
-            inf:0
+            source:"stamina",
+            value:-0.5,
+            type:"nolarger",
+            ing:600
         },{
-            source:"esA",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"esB",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"esC",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"esV",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"esM",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"esW",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"esU",
-            value:-1,
-            type:"permin",
-            inf:0
+            source:"libido",
+            value:1,
+            type:"noless",
+            ing:500
         },{
             source:"surrend",
-            value:-1,
-            type:"permin",
-            inf:0
+            value:1,
+            type:"noless",
+            ing:2
+        }],
+        checkSource:{
+            //持续检测
+            'ecstacy':{
+                type:">",
+                value:3
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['ecstacy'][0]>=4
+    })
+
+    CharaTag.new("快感Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"快感Lv2",
+        dot:[{          //效果描述
+            source:"lust",
+            value:2,
+            type:"noless",
+            inf:6 //对于如noless之类的type，此处inf用于辅助信息，判断等级
         },{
-            source:"fear",
+            source:"san",
             value:-1,
-            type:"permin",
-            inf:0
+            type:"nolarger",
+            ing:600
         },{
-            source:"mortify",
-            value:-1,
-            type:"permin",
-            inf:0
+            source:"stamina",
+            value:-0.5,
+            type:"nolarger",
+            ing:200
         },{
-            source:"humiliate",
-            value:-1,
-            type:"permin",
-            inf:0
+            source:"libido",
+            value:2,
+            type:"noless",
+            ing:800
         },{
-            source:"pain",
-            value:-1,
-            type:"permin",
-            inf:0
+            source:"surrend",
+            value:2,
+            type:"noless",
+            ing:4
         },{
-            source:"depress",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
+            source:"awareness",
+            value:-5,
+            type:"nolarger",
+            ing:4
+        }],
+        checkSource:{
+            //持续检测
+            'ecstacy':{
+                type:">",
+                value:5
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['ecstacy'][0]>=6
+    })
+
+    CharaTag.new("好意Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"好意Lv1",
+        dot:[{          //效果描述
+            source:"resist",
+            value:-2,
+            type:"nolarger",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'favo':{
+                type:">",
+                value:3
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['favo'][0]>=4
+    })
+
+    CharaTag.new("好意Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"好意Lv2",
+        dot:[{          //效果描述
+            source:"resist",
+            value:-5,
+            type:"nolarger",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'favo':{
+                type:">",
+                value:5
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['favo'][0]>=6
+    })
+
+    CharaTag.new("恐惧Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"恐惧Lv1",
+        dot:[{          //效果描述
             source:"resist",
             value:-1,
+            type:"nolarger",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{ 
+            source:"surrend",
+            value:1,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{ 
+            source:"depress",
+            value:1,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'fear':{
+                type:">",
+                value:3
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['fear'][0]>=4
+    })
+
+    CharaTag.new("恐惧Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"恐惧Lv2",
+        dot:[{          //效果描述
+            source:"resist",
+            value:-5,
+            type:"nolarger",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{ 
+            source:"surrend",
+            value:5,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{ 
+            source:"depress",
+            value:3,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'fear':{
+                type:">",
+                value:5
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['fear'][0]>=6
+    })
+
+    CharaTag.new("屈辱Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"屈辱Lv1",
+        dot:[{          //效果描述
+            source:"resist",
+            value:2,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"superior",
+            value:-2,
             type:"permin",
-            inf:0
-        },{
-            source:"favo",
-            value:-1,
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"surrend",
+            value:3,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'humiliate':{
+                type:">",
+                value:3
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['humiliate'][0]>=4
+    })
+
+    CharaTag.new("屈辱Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"屈辱Lv2",
+        dot:[{          //效果描述
+            source:"resist",
+            value:5,
+            type:"noless",
+            inf:6 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"superior",
+            value:-4,
             type:"permin",
-            inf:0
-        },{
-            source:"deference",
-            value:-1,
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"surrend",
+            value:6,
+            type:"noless",
+            inf:5 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"stress",
+            value:1,
             type:"permin",
-            inf:0
-        },{
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"depress",
+            value:1,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'humiliate':{
+                type:">",
+                value:5
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['humiliate'][0]>=6
+    })
+
+    CharaTag.new("情欲Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"情欲Lv1",
+        dot:[{          //效果描述
+            source:"libido",
+            value:2,
+            type:"noless",
+            inf:600 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
             source:"satisfy",
             value:-1,
             type:"permin",
-            inf:0
-        },{
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        }],
+        checkSource:{
+            //持续检测
+            'lust':{
+                type:">",
+                value:3
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['lust'][0]>=4
+    })
+
+    CharaTag.new("情欲Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"情欲Lv2",
+        dot:[{          //效果描述
+            source:"libido",
+            value:4,
+            type:"noless",
+            inf:800 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"satisfy",
+            value:-2,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        }],
+        checkSource:{
+            //持续检测
+            'lust':{
+                type:">",
+                value:5
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['lust'][0]>=6
+    })
+
+    CharaTag.new("羞耻Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"羞耻Lv1",
+        dot:[{          //效果描述
+            source:"surrend",
+            value:2,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"resist",
+            value:2,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        }],
+        checkSource:{
+            //持续检测
+            'mortify':{
+                type:">",
+                value:3
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['mortify'][0]>=4
+    })
+
+    CharaTag.new("羞耻Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"羞耻Lv2",
+        dot:[{          //效果描述
+            source:"surrend",
+            value:4,
+            type:"noless",
+            inf:6 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"resist",
+            value:4,
+            type:"noless",
+            inf:6 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        }],
+        checkSource:{
+            //持续检测
+            'mortify':{
+                type:">",
+                value:5
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['mortify'][0]>=6
+    })
+
+    CharaTag.new("苦痛Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"苦痛Lv1",
+        dot:[{          //效果描述
+            source:"surrend",
+            value:3,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"resist",
+            value:2,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"depress",
+            value:2,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"fear",
+            value:4,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"san",
+            value:-0.5,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"stamina",
+            value:-1,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        }],
+        checkSource:{
+            //持续检测
+            'pain':{
+                type:">",
+                value:3
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['pain'][0]>=4
+    })
+
+    CharaTag.new("苦痛Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"苦痛Lv2",
+        dot:[{          //效果描述
+            source:"surrend",
+            value:6,
+            type:"noless",
+            inf:6 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"resist",
+            value:4,
+            type:"noless",
+            inf:6 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"depress",
+            value:4,
+            type:"noless",
+            inf:6 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"fear",
+            value:8,
+            type:"noless",
+            inf:6 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"san",
+            value:-1,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"stamina",
+            value:-2,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        }],
+        checkSource:{
+            //持续检测
+            'pain':{
+                type:">",
+                value:5
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['pain'][0]>=6
+    })
+
+    CharaTag.new("反感Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"反感Lv1",
+        dot:[{          //效果描述
+            source:"favo",
+            value:-2,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"surrend",
+            value:-2,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'resist':{
+                type:">",
+                value:3
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['resist'][0]>=4
+    })
+
+    CharaTag.new("反感Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"反感Lv2",
+        dot:[{          //效果描述
+            source:"favo",
+            value:-5,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"surrend",
+            value:-5,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'resist':{
+                type:">",
+                value:5
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['resist'][0]>=6
+    })
+
+    CharaTag.new("恭顺Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"恭顺Lv1",
+        dot:[{          //效果描述
+            source:"resist",
+            value:-1,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'deference':{
+                type:">",
+                value:3
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['deference'][0]>=4
+    })
+
+    CharaTag.new("恭顺Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"恭顺Lv2",
+        dot:[{          //效果描述
+            source:"resist",
+            value:-2,
+            type:"permin",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'deference':{
+                type:">",
+                value:5
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.palam['deference'][0]>=6
+    })
+    console.log('成功加载palamTag')
+}
+
+/**
+ * MARK
+ * scstacy，提高order，当lust低于某值时持续增长lust
+    fear，提高order，当fear低于某值时持续增长fear
+    humiliate,提高order，当superior高于某值时持续降低superior
+    hypno，当hypno低于某值时持续增长hypno
+    mortify, 提高order，降低superior最大值
+    pain, 提高order，
+    resist,降低order，当resist低于某值时持续增长resist
+    surrend，提高order，当surrend低于某值时持续增长surrend
+ */
+let loadTags_mark = function(){
+    CharaTag.new("快感刻印Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"快感刻印Lv1",
+        dot:[{          //效果描述
+            source:"lust",
+            value:0.5,
+            type:"noless",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['ecstacy'].lv>=1
+    })
+
+    CharaTag.new("快感刻印Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"快感刻印Lv2",
+        dot:[{          //效果描述
+            source:"lust",
+            value:1,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['ecstacy'].lv>=2
+    })
+
+    CharaTag.new("快感刻印Lv3",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"快感刻印Lv3",
+        dot:[{          //效果描述
+            source:"lust",
+            value:2,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['ecstacy'].lv>=3
+    })
+
+    CharaTag.new("恐惧刻印Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"恐惧刻印Lv1",
+        dot:[{          //效果描述
+            source:"fear",
+            value:0.5,
+            type:"noless",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['fear'].lv>=1
+    })
+
+    CharaTag.new("恐惧刻印Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"恐惧刻印Lv2",
+        dot:[{          //效果描述
+            source:"fear",
+            value:1,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['fear'].lv>=2
+    })
+
+    CharaTag.new("恐惧刻印Lv3",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"恐惧刻印Lv3",
+        dot:[{          //效果描述
+            source:"fear",
+            value:2,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['fear'].lv>=3
+    })
+
+    CharaTag.new("受辱刻印Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"受辱刻印Lv1",
+        dot:[{          //效果描述
+            source:"superior",
+            value:-0.5,
+            type:"nohigher",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['humiliate'].lv>=1
+    })
+
+    CharaTag.new("受辱刻印Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"受辱刻印Lv2",
+        dot:[{          //效果描述
             source:"superior",
             value:-1,
-            type:"permin",
-            inf:0
-        },{
+            type:"nohigher",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['humiliate'].lv>=2
+    })
+
+    CharaTag.new("受辱刻印Lv3",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"受辱刻印Lv3",
+        dot:[{          //效果描述
+            source:"superior",
+            value:-2,
+            type:"nohigher",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['humiliate'].lv>=3
+    })
+
+    CharaTag.new("催眠刻印Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"催眠刻印Lv1",
+        dot:[{          //效果描述
             source:"hypno",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"paM",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"paB",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"paC",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"paU",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"paV",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"paA",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"paW",
-            value:-1,
-            type:"permin",
-            inf:0
-        },{
-            source:"stamina",
+            value:0.5,
+            type:"noless",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['hypno'].lv>=1
+    })
+
+    CharaTag.new("催眠刻印Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"催眠刻印Lv2",
+        dot:[{          //效果描述
+            source:"hypno",
             value:1,
-            type:"permin",
-            inf:0
-        }
-    ],
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['hypno'].lv>=2
+    })
+
+    CharaTag.new("催眠刻印Lv3",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"催眠刻印Lv3",
+        dot:[{          //效果描述
+            source:"hypno",
+            value:2,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['hypno'].lv>=3
+    })
+
+    CharaTag.new("羞耻刻印Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"羞耻刻印Lv1",
+        dot:[],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['mortify'].lv>=1
+    })
+
+    CharaTag.new("羞耻刻印Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"羞耻刻印Lv2",
+        dot:[],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['mortify'].lv>=2
+    })
+
+    CharaTag.new("羞耻刻印Lv3",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"羞耻刻印Lv3",
+        dot:[],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['mortify'].lv>=3
+    })
+
+    CharaTag.new("苦痛刻印Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"苦痛刻印Lv1",
+        dot:[],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['pain'].lv>=1
+    })
+
+    CharaTag.new("苦痛刻印Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"苦痛刻印Lv2",
+        dot:[],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['pain'].lv>=2
+    })
+
+    CharaTag.new("苦痛刻印Lv3",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"苦痛刻印Lv3",
+        dot:[],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['pain'].lv>=3
+    })
+
+    CharaTag.new("反发刻印Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"反发刻印Lv1",
+        dot:[{          //效果描述
+            source:"resist",
+            value:0.5,
+            type:"noless",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['resist'].lv>=1
+    })
+
+    CharaTag.new("反发刻印Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"反发刻印Lv2",
+        dot:[{          //效果描述
+            source:"resist",
+            value:1,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['resist'].lv>=2
+    })
+
+    CharaTag.new("反发刻印Lv3",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"反发刻印Lv3",
+        dot:[{          //效果描述
+            source:"resist",
+            value:2,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['resist'].lv>=3
+    })
+
+    CharaTag.new("屈服刻印Lv1",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"屈服刻印Lv1",
+        dot:[{          //效果描述
+            source:"surrend",
+            value:0.5,
+            type:"noless",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['surrend'].lv>=1
+    })
+
+    CharaTag.new("屈服刻印Lv2",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"屈服刻印Lv2",
+        dot:[{          //效果描述
+            source:"surrend",
+            value:1,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['surrend'].lv>=2
+    })
+
+    CharaTag.new("屈服刻印Lv3",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"屈服刻印Lv3",
+        dot:[{          //效果描述
+            source:"surrend",
+            value:2,
+            type:"noless",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.mark['surrend'].lv>=3
+    })
+    console.log('成功加载markTag')
+}
+
+/**
+ * 状态派生
+ * 如低意识导致的昏迷
+ */
+let loadTags_palam_state = function(){
+    CharaTag.new("昏迷",{
+        inf:{}, //额外信息
+        type:['palam'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"",
+        dot:[{          //效果描述
+            source:"awareness",
+            value:10,
+            type:"noless",
+            inf:300 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'awareness':{
+                type:"<",
+                value:300
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.base['awareness'][0]<100
+    })
+
+    CharaTag.new("虚弱",{
+        inf:{}, //额外信息
+        type:['palam'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"",
+        dot:[{          //效果描述
+            source:"stamina",
+            value:-10,
+            type:"nohigher",
+            inf:500 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"stamina",
+            value:-1,
+            type:"nohigher",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'health':{
+                type:"<",
+                value:300
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.base['health'][0]<200
+    })
+
+    CharaTag.new("发情",{
+        inf:{}, //额外信息
+        type:['palam'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"",
+        dot:[{          //效果描述
+            source:"lust",
+            value:10,
+            type:"noless",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'libido':{
+                type:">",
+                value:300
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.base['libido'][0]>600
+    })
+
+    CharaTag.new("心智破碎",{
+        inf:{}, //额外信息
+        type:['palam'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"",
+        dot:[{          //效果描述
+            source:"fear",
+            value:-10,
+            type:"nohigher",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"favo",
+            value:-10,
+            type:"nohigher",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"humiliate",
+            value:-10,
+            type:"nohigher",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"depress",
+            value:-10,
+            type:"nohigher",
+            inf:5 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"deference",
+            value:-5,
+            type:"nohigher",
+            inf:4 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"humiliate",
+            value:-10,
+            type:"nohigher",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"mortify",
+            value:-10,
+            type:"nohigher",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"resist",
+            value:-10,
+            type:"nohigher",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"superior",
+            value:-10,
+            type:"nohigher",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"surrend",
+            value:-10,
+            type:"nohigher",
+            inf:3 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'sanity':{
+                type:"<",
+                value:400
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.base['sanity'][0]<100
+    })
+
+    CharaTag.new("力竭",{
+        inf:{}, //额外信息
+        type:['palam'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"",
+        dot:[{          //效果描述
+            source:"health",
+            value:-0.1,
+            type:"nohigher",
+            inf:500 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"awareness",
+            value:-0.1,
+            type:"nohigher",
+            inf:300 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'stamina':{
+                type:"<",
+                value:100
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.base['stamina'][0]<50
+    })
+
+    CharaTag.new("紧张",{
+        inf:{}, //额外信息
+        type:['palam'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"",
+        dot:[{          //效果描述
+            source:"sanity",
+            value:-0.05,
+            type:"nohigher",
+            inf:300 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"sanity",
+            value:-0.05,
+            type:"nohigher",
+            inf:100 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+            //持续检测
+            'stress':{
+                type:">",
+                value:400
+            }
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+        //自动触发判定
+        return chara.base['stress'][0]>600
+    })
+    console.log('成功加载palam状态派生tag')
+}
+
+loadTags_basic()
+loadTags_palam()
+loadTags_mark()
+loadTags_palam_state()
+/* twine-user-script #35: "药物液体相关.js" */
+/**
+ * 记录体内液体注入排出相关，药物效果，存储状态相关
+*/
+
+/**
+ * 注入和排出标记，仅记录此动作是否发生，具体液体业务由其他函数完成
+ */
+CharaTag.new("射精",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
 }).setTrigger((chara)=>{
-    return true
+
 })
-/* twine-user-script #31: "mapSystem.js" */
+CharaTag.new("排泄",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+}).setTrigger((chara)=>{
+
+})
+CharaTag.new("喷乳",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+}).setTrigger((chara)=>{
+
+})
+CharaTag.new("肠内灌注",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+}).setTrigger((chara)=>{
+
+})
+CharaTag.new("血液注射",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+}).setTrigger((chara)=>{
+
+})
+CharaTag.new("口腔灌注",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+}).setTrigger((chara)=>{
+
+})
+CharaTag.new("腔内灌注",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+}).setTrigger((chara)=>{
+
+})
+CharaTag.new("部位注射",{
+    inf:{}, //额外信息
+    type:['keep'], //持续检测类型
+    visiable: false, //是否显示
+    describe:"",
+    dot:[],
+    checkSource:{
+    },
+    derive:[],
+}).setTrigger((chara)=>{
+
+})
+
+/**
+ * 药物效果，提供dot，由其他函数触发
+ */
+
+
+/**
+ * 储存液体带来的一些异常状态，如储液满足、过胀等
+ */
+
+
+/**
+ * 成瘾相关条目，提供dot
+ */
+/* twine-user-script #36: "调教相关.js" */
+/**
+ * 存放由调教指令及调教装备引起的一些状态
+ * 
+ */
+
+/**
+ * （被）插入类状态，记录是否有插入，inf记录插入物来源
+ */
+let LoadTags_insert = function(){
+    CharaTag.new("V被插入",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+    
+    })
+    CharaTag.new("A被插入",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+    
+    })
+    CharaTag.new("M被插入",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+    
+    })
+    CharaTag.new("B被插入",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+    
+    })
+    CharaTag.new("U被插入",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+    
+    })
+    CharaTag.new("W被插入",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+    
+    })
+    CharaTag.new("P插入",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+    
+    })
+    CharaTag.new("触手插入",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+    
+    })
+    console.log('成功加载插入tag')
+}
+
+/**
+ * 占用相关，记录部位是否有占用，inf记录占用的指令
+ */
+let LoadTags_occupy = function(){
+    CharaTag.new("手占用",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("口占用",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("胸占用",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("V占用",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("A占用",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("脚占用",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("C占用",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    console.log('成功加载占用tag')
+}
+/**
+ * 装具相关，记录装备的使用情况，同时提供dot
+ */
+
+/**
+ * 异常状态，露出、妊娠、拘束、锁定、快去了
+ */
+
+/**
+ * 高潮相关
+ */
+let LoadTags_orgasm = function(){
+    CharaTag.new("V绝顶",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("A绝顶",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("M绝顶",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("B绝顶",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("C绝顶",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("W绝顶",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("U绝顶",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+
+    CharaTag.new("绝顶",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: false, //是否显示
+        describe:"",
+        dot:[],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    console.log('成功加载绝顶tag')
+}
+
+/**
+ * 指令效果，对于持续性指令效果，仅提供dot
+ */
+let LoadTags_comdot = function(){
+    CharaTag.new("插入测试",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"指令【插入测试】的dot测试",
+        dot:[{          //效果描述
+            source:"resist",
+            value:100,
+            type:"noless",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"V",
+            value:1,
+            type:"",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+    CharaTag.new("插入测试(主)",{
+        inf:{}, //额外信息
+        type:['keep'], //持续检测类型
+        visiable: true, //是否显示
+        describe:"指令【插入测试】的dot测试",
+        dot:[{          //效果描述
+            source:"resist",
+            value:100,
+            type:"noless",
+            inf:2 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },{          //效果描述
+            source:"P",
+            value:1,
+            type:"",
+            inf:0 //对于如noless之类的type，此处inf用于辅助信息，判断等级
+        },],
+        checkSource:{
+        },
+        derive:[],
+    }).setTrigger((chara)=>{
+
+    })
+
+    console.log('成功加载指令tag')
+}
+
+/**
+ * 魔法、淫纹相关
+ */
+
+
+
+LoadTags_insert()
+LoadTags_occupy()
+LoadTags_orgasm()
+LoadTags_comdot()
+/* twine-user-script #37: "mapSystem.js" */
 F.summonChara = function(){
     F.updateLocationChara()
     Com.updateScene()
@@ -11094,7 +13670,6 @@ F.updateLocationChara = function(){
     V.location.chara = [];
     for (const cid in C){
         const chara = C[cid]
-        console.log(chara)
         if(chara.location.mapId == V.location.mapId 
             && chara.location.coord[0] == V.location.coord[0]
             && chara.location.coord[1] == V.location.coord[1])
@@ -11117,13 +13692,14 @@ F.changeLocation = function(mapId,x,y){
     return ""
 }
 DefineMacros("changeLoc", F.changeLocation)
-/* twine-user-script #32: "sourceTrack.js" */
+/* twine-user-script #38: "sourceTrack.js" */
 F.sourceCheck = function (chara, cid) {
 	//source的处理。根据条件对source的获得值进行加减。
 
 	//根据特定条件进行数值处理
 
 	//根据素质进行数值处理. 数值buff最后处理
+	console.log('F.sourceCheck()', cid)
 	F.tagBuff(chara,cid);
 	F.traitSource(chara, cid);
 };
@@ -11166,9 +13742,15 @@ F.traitSource = function (chara, cid) {
 };
 
 F.tagBuff = function (chara,cid){
+	console.log('cal tag dot')
 	let Ctags = chara.tags;
 	const Csource = chara.source;
 	const Cbase = chara.basesource;
+	const Cexp = chara.exp;
+	let CbuffGet = {};
+	let CbuffLose = {};
+	for (let i in D.palam) {CbuffGet[i] = 1; CbuffLose[i] = 1;}
+	for (let i in D.basekey) {CbuffGet[i] = 1; CbuffLose[i] = 1;}
 	for (let index in Ctags.data){
 		let tag = Ctags.data[index];
 		let dots = tag.dot;
@@ -11185,8 +13767,11 @@ F.tagBuff = function (chara,cid){
 							Csource[dot.source] =Csource[dot.source]*dot.value;
 						}
 						break;
-					case "buff":
-						Csource[dot.source] =Csource[dot.source]*dot.value;
+					case "buffget":
+						CbuffGet[dot.source] =CbuffGet[dot.source]*dot.value;
+						break;
+					case "bufflose":
+						CbuffLose[dot.source] =CbuffLose[dot.source]*dot.value;
 						break;
 				
 					default:
@@ -11205,20 +13790,41 @@ F.tagBuff = function (chara,cid){
 							Cbase[dot.source] =Cbase[dot.source]*dot.value;
 						}
 						break;
-					case "buff":
-						Cbase[dot.source] =Cbase[dot.source]*dot.value;
+					case "buffget":
+						CbuffGet[dot.source] =CbuffGet[dot.source]*dot.value;
+						break;
+					case "bufflose":
+						CbuffLose[dot.source] =CbuffLose[dot.source]*dot.value;
 						break;
 				
 					default:
 						break;
 				}
 			}
+			else if (dot.source in D.exp){
+				console.log('dot',dot)
+				Cexp[dot.source].aware = Cexp[dot.source].aware+dot.value;
+				Cexp[dot.source].total = Cexp[dot.source].total+dot.value;
+			}
 		})
+	}
+
+	for (let source in Object.keys(CbuffGet)){
+		if (source in D.palam) {
+			if (Csource[source]>0) Csource[source] = Csource[source]*CbuffGet[source];
+			else  Csource[source] = Csource[source]*CbuffLose[source];
+		}
+		if (D.basekey.includes(source)) {
+			if (Cbase[source]>0) Cbase[source] = Cbase[source]*CbuffGet[source];
+			else  Cbase[source] = Cbase[source]*CbuffLose[source];
+		}
+
 	}
 }
 
 F.sourceUp = function (chara) {
 	//根据处理结果进行反馈。并输出结果文字到 S.sourceResult下。当启用显示结果数值时，会显示在COM after之后。
+	console.log('F.sourceUp')
 	let base = Object.values(D.basekey);
 	let palam = Object.keys(D.palam);
 
@@ -11231,7 +13837,7 @@ F.sourceUp = function (chara) {
 			const lv = chara.palam[i][0] + 1;
 			// TODO
 			// 此处如果选用每分钟计时的话，可能会大量显示
-			msg = `>> ${lan(D.palam[i])}${v > 0 ? " + " : " - "}${v} = ${chara.palam[i][1] + v} / ${S.palamLv[lv]}`;
+			//msg = `>> ${lan(D.palam[i])}${v > 0 ? " + " : " - "}${v} = ${chara.palam[i][1] + v} / ${S.palamLv[lv]}`;
 		}
 		if (palam.includes(i) && chara.source[i]) {
 			let lv = chara.palam[i][0] + 1;
@@ -11261,7 +13867,7 @@ F.sourceUp = function (chara) {
 	console.log(chara.basesource)
 	for (let i in chara.basesource){
 		if (base.includes(i) && chara.basesource[i]) {
-			chara.base[i][0] = Math.clamp(chara.base[i][0] + chara.basesource[i], -100, chara.base[i][1] * 1.5);
+			chara.base[i][0] = Math.clamp(chara.base[i][0] + chara.basesource[i], 0, chara.base[i][1]);
 		}
 		chara.basesource[i] = 0;
 	}
@@ -11280,6 +13886,7 @@ F.trackCheck = function (chara, cid, time=1) {
       }
 
    */
+  console.log('F.trackCheck()',cid)
   chara.tags.update(chara)
   F.gatherTagDot(chara,time)
 };
@@ -11293,6 +13900,7 @@ F.gatherTagDot = function(chara, passTime){
 	for (let index in Ctags.data){
 		let tag = Ctags.data[index];
 		let dots = tag.dot;
+		console.log('F.gatherTagDot()', tag, dots)
 		Object.values(dots).forEach((dot)=>{
 			if (dot.source in D.palam){
 				switch (dot.type) {
@@ -11311,7 +13919,7 @@ F.gatherTagDot = function(chara, passTime){
 						}
 						break;
 					
-					case "nohigher":
+					case "nolarger":
 						if (Csource[dot.source][0]+1>dot.inf){
 							dotSum[dot.source]+=dot.value*passTime;
 						}
@@ -11347,7 +13955,7 @@ F.gatherTagDot = function(chara, passTime){
 						}
 						break;
 					
-					case "nohigher":
+					case "nolarger":
 						if (CBase[dot.source][0]+1>dot.inf){
 							baseDotSum[dot.source]+=dot.value*passTime;
 						}
@@ -11393,8 +14001,9 @@ F.blankBaseDotSum = function(){
 	}
 	return dotSum
 }
-/* twine-user-script #33: "timeSystem.js" */
+/* twine-user-script #39: "timeSystem.js" */
 F.timeProcess = function (t) {
+	console.log('F.timeProcess')
 	const date = V.date;
 
 	date.time += t;
@@ -11436,6 +14045,7 @@ DefineMacros("passtime", F.passtime);
 
 
 F.timeEffects = function (t) {
+	console.log('F.timeEffect()')
 	const { pc, date, flag, time } = V;
 
 	if (date.time + t >= 1380) flag.daychange = true; //先不加到现在时间，瞅瞅过23点没。
@@ -11445,6 +14055,7 @@ F.timeEffects = function (t) {
     let charas = C;
 	V.timeEventList.update(t);
 	Object.keys(charas).forEach((cid) => {
+		console.log('在场角色推算', cid)
 		const chara = C[cid];
         for (let Vt =1; Vt<=t;Vt++){
             //角色自主行动
@@ -11463,7 +14074,7 @@ F.timeEffects = function (t) {
 
 
 
-/* twine-user-script #34: "CharaInf.js" */
+/* twine-user-script #40: "CharaInf.js" */
 F.showIpadCharalist = function(){
     T.printText = [];
     console.log(C)
@@ -11493,8 +14104,8 @@ F.showIpadCharalist = function(){
         T.printText.push(temptext);
     })
 }
-/* twine-user-script #35: "FacilityInf.js" */
-/* twine-user-script #36: "Ipad.js" */
+/* twine-user-script #41: "FacilityInf.js" */
+/* twine-user-script #42: "Ipad.js" */
 function closeOverlay() {
 	$("#customOverlay").addClass("hidden").parent().addClass("hidden");
 }
@@ -11520,7 +14131,7 @@ function updateOptions() {
 	}
 }
 F.updateOptions = updateOptions;
-/* twine-user-script #37: "Mapwidget.js" */
+/* twine-user-script #43: "Mapwidget.js" */
 F.Get_Msg_Map_neighbor = function(){
     if (V.location.spotid !== "road") return ""; //仅在道路上显示周边建筑
 
@@ -11561,8 +14172,8 @@ F.Get_Msg_Map_neighbor = function(){
     }
     
 }
-/* twine-user-script #38: "condition.js" */
-/* twine-user-script #39: "hover.js" */
+/* twine-user-script #44: "condition.js" */
+/* twine-user-script #45: "hover.js" */
 /* HoverTxt - Start */
 var HTIntervalID = 0;
 $(document).on(":passagerender", function (ev) {
@@ -11613,9 +14224,9 @@ function UpdateHoverTxt(Container) {
 	}
 }
 /* HoverTxt - End */
-/* twine-user-script #40: "loading-bar.min.js" */
+/* twine-user-script #46: "loading-bar.min.js" */
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){var presets,simpleStr,wrap,slice$=[].slice,toString$={}.toString;presets=require("./presets").presets;simpleStr=function(arr){return arr.join("")};wrap=function(content){return"data:image/svg+xml;base64,"+btoa(content)};(function(){var make,handler,ldBar;make={head:function(viewBox){return'<?xml version="1.0" encoding="utf-8"?>\n        <svg xmlns="http://www.w3.org/2000/svg" viewBox="'+viewBox+'">'},gradient:function(dir,dur){var colors,ret,len,gx,gy,x,y,i$,i,idx;dir==null&&(dir=45);dur==null&&(dur=1);colors=slice$.call(arguments,2);ret=[this.head("0 0 100 100")];len=colors.length*4+1;dir=dir*Math.PI/180;gx=Math.pow(Math.cos(dir),2);gy=Math.sqrt(gx-Math.pow(gx,2));if(dir>Math.PI*.25){gy=Math.pow(Math.sin(dir),2);gx=Math.sqrt(gy-Math.pow(gy,2))}x=gx*100;y=gy*100;ret.push('<defs><linearGradient id="gradient" x1="0" x2="'+gx+'" y1="0" y2="'+gy+'">');for(i$=0;i$<len;++i$){i=i$;idx=i*100/(len-1);ret.push('<stop offset="'+idx+'%" stop-color="'+colors[i%colors.length]+'"/>')}ret.push('</linearGradient></defs>\n<rect x="0" y="0" width="400" height="400" fill="url(#gradient)">\n<animateTransform attributeName="transform" type="translate" from="-'+x+",-"+y+'"\nto="0,0" dur="'+dur+'s" repeatCount="indefinite"/></rect></svg>');return wrap(ret.join(""))},stripe:function(c1,c2,dur){var ret,i;c1==null&&(c1="#b4b4b4");c2==null&&(c2="#e6e6e6");dur==null&&(dur=1);ret=[this.head("0 0 100 100")];ret=ret.concat(['<rect fill="'+c2+'" width="100" height="100"/>',"<g><g>",function(){var i$,results$=[];for(i$=0;i$<13;++i$){i=i$;results$.push('<polygon fill="'+c1+'" '+('points="'+(-90+i*20)+",100 "+(-100+i*20)+",")+("100 "+(-60+i*20)+",0 "+(-50+i*20)+',0 "/>'))}return results$}().join(""),'</g><animateTransform attributeName="transform" type="translate" ','from="0,0" to="20,0" dur="'+dur+'s" repeatCount="indefinite"/></g></svg>'].join(""));return wrap(ret)},bubble:function(c1,c2,count,dur,size,sw){var ret,i$,i,idx,x,r,d;c1==null&&(c1="#39d");c2==null&&(c2="#9cf");count==null&&(count=15);dur==null&&(dur=1);size==null&&(size=6);sw==null&&(sw=1);ret=[this.head("0 0 200 200"),'<rect x="0" y="0" width="200" height="200" fill="'+c1+'"/>'];for(i$=0;i$<count;++i$){i=i$;idx=-(i/count)*dur;x=Math.random()*184+8;r=(Math.random()*.7+.3)*size;d=dur*(1+Math.random()*.5);ret.push(['<circle cx="'+x+'" cy="0" r="'+r+'" fill="none" stroke="'+c2+'" stroke-width="'+sw+'">','<animate attributeName="cy" values="190;-10" times="0;1" ','dur="'+d+'s" begin="'+idx+'s" repeatCount="indefinite"/>',"</circle>",'<circle cx="'+x+'" cy="0" r="'+r+'" fill="none" stroke="'+c2+'" stroke-width="'+sw+'">','<animate attributeName="cy" values="390;190" times="0;1" ','dur="'+d+'s" begin="'+idx+'s" repeatCount="indefinite"/>',"</circle>"].join(""))}return wrap(ret.join("")+"</svg>")}};handler={queue:{},running:false,main:function(timestamp){var keepon,removed,k,ref$,func,ret,this$=this;keepon=false;removed=[];for(k in ref$=this.queue){func=ref$[k];ret=func(timestamp);if(!ret){removed.push(func)}keepon=keepon||ret}for(k in ref$=this.queue){func=ref$[k];if(removed.indexOf(func)>=0){delete this.queue[k]}}if(keepon){return requestAnimationFrame(function(it){return this$.main(it)})}else{return this.running=false}},add:function(key,f){var this$=this;if(!this.queue[key]){this.queue[key]=f}if(!this.running){this.running=true;return requestAnimationFrame(function(it){return this$.main(it)})}}};window.ldBar=ldBar=function(selector,option){var xmlns,root,cls,idPrefix,id,domTree,newNode,x$,config,attr,that,isStroke,parseRes,dom,svg,text,group,length,path0,path1,patimg,img,ret,size,this$=this;option==null&&(option={});xmlns={xlink:"http://www.w3.org/1999/xlink"};root=toString$.call(selector).slice(8,-1)==="String"?document.querySelector(selector):selector;if(!root.ldBar){root.ldBar=this}else{return root.ldBar}cls=root.getAttribute("class")||"";if(!~cls.indexOf("ldBar")){root.setAttribute("class",cls+" ldBar")}idPrefix="ldBar-"+Math.random().toString(16).substring(2);id={key:idPrefix,clip:idPrefix+"-clip",filter:idPrefix+"-filter",pattern:idPrefix+"-pattern",mask:idPrefix+"-mask",maskPath:idPrefix+"-mask-path"};domTree=function(n,o){var k,v;n=newNode(n);for(k in o){v=o[k];if(k!=="attr"){n.appendChild(domTree(k,v||{}))}}n.attrs(o.attr||{});return n};newNode=function(n){return document.createElementNS("http://www.w3.org/2000/svg",n)};x$=document.body.__proto__.__proto__.__proto__;x$.text=function(t){return this.appendChild(document.createTextNode(t))};x$.attrs=function(o){var k,v,ret,results$=[];for(k in o){v=o[k];ret=/([^:]+):([^:]+)/.exec(k);if(!ret||!xmlns[ret[1]]){results$.push(this.setAttribute(k,v))}else{results$.push(this.setAttributeNS(xmlns[ret[1]],k,v))}}return results$};x$.styles=function(o){var k,v,results$=[];for(k in o){v=o[k];results$.push(this.style[k]=v)}return results$};x$.append=function(n){var r;return this.appendChild(r=document.createElementNS("http://www.w3.og/2000/svg",n))};x$.attr=function(n,v){if(v!=null){return this.setAttribute(n,v)}else{return this.getAttribute(n)}};config={type:"stroke",img:"",path:"M10 10L90 10M90 8M90 12","fill-dir":"btt",fill:"#25b","fill-background":"#ddd","fill-background-extrude":3,"pattern-size":null,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,duration:1,easing:"linear",value:0,"img-size":null,bbox:null,"set-dim":true,"aspect-ratio":"xMidYMid","transition-in":false,min:0,max:100,precision:0,padding:undefined};config["preset"]=root.attr("data-preset")||option["preset"];if(config.preset!=null){import$(config,presets[config.preset])}for(attr in config){if(that=that=root.attr("data-"+attr)){config[attr]=that}}import$(config,option);if(config.img){config.path=null}isStroke=config.type==="stroke";parseRes=function(v){var parser,ret;parser=/data:ldbar\/res,([^()]+)\(([^)]+)\)/;ret=parser.exec(v);if(!ret){return v}return ret=make[ret[1]].apply(make,ret[2].split(","))};config.fill=parseRes(config.fill);config.stroke=parseRes(config.stroke);if(config["set-dim"]==="false"){config["set-dim"]=false}dom={attr:{"xmlns:xlink":"http://www.w3.org/1999/xlink",preserveAspectRatio:config["aspect-ratio"],width:"100%",height:"100%"},defs:{filter:{attr:{id:id.filter,x:-1,y:-1,width:3,height:3},feMorphology:{attr:{operator:+config["fill-background-extrude"]>=0?"dilate":"erode",radius:Math.abs(+config["fill-background-extrude"])}},feColorMatrix:{attr:{values:"0 0 0 0 1    0 0 0 0 1    0 0 0 0 1    0 0 0 1 0",result:"cm"}}},mask:{attr:{id:id.mask},image:{attr:{"xlink:href":config.img,filter:"url(#"+id.filter+")",x:0,y:0,width:100,height:100,preserveAspectRatio:config["aspect-ratio"]}}},g:{mask:{attr:{id:id.maskPath},path:{attr:{d:config.path||"",fill:"#fff",stroke:"#fff",filter:"url(#"+id.filter+")"}}}},clipPath:{attr:{id:id.clip},rect:{attr:{class:"mask",fill:"#000"}}},pattern:{attr:{id:id.pattern,patternUnits:"userSpaceOnUse",x:0,y:0,width:300,height:300},image:{attr:{x:0,y:0,width:300,height:300}}}}};svg=domTree("svg",dom);text=document.createElement("div");text.setAttribute("class","ldBar-label");root.appendChild(svg);root.appendChild(text);group=[0,0];length=0;this.fit=function(){var that,box,d,rect;if(that=config["bbox"]){box=that.split(" ").map(function(it){return+it.trim()});box={x:box[0],y:box[1],width:box[2],height:box[3]}}else{box=group[1].getBBox()}if(!box||box.width===0||box.height===0){box={x:0,y:0,width:100,height:100}}d=Math.max.apply(null,["stroke-width","stroke-trail-width","fill-background-extrude"].map(function(it){return config[it]}))*1.5;if(config["padding"]!=null){d=+config["padding"]}svg.attrs({viewBox:[box.x-d,box.y-d,box.width+d*2,box.height+d*2].join(" ")});if(config["set-dim"]){["width","height"].map(function(it){if(!root.style[it]||this$.fit[it]){root.style[it]=box[it]+d*2+"px";return this$.fit[it]=true}})}rect=group[0].querySelector("rect");if(rect){return rect.attrs({x:box.x-d,y:box.y-d,width:box.width+d*2,height:box.height+d*2})}};if(config.path){if(isStroke){group[0]=domTree("g",{path:{attr:{d:config.path,fill:"none",class:"baseline"}}})}else{group[0]=domTree("g",{rect:{attr:{x:0,y:0,width:100,height:100,mask:"url(#"+id.maskPath+")",fill:config["fill-background"],class:"frame"}}})}svg.appendChild(group[0]);group[1]=domTree("g",{path:{attr:{d:config.path,class:isStroke?"mainline":"solid","clip-path":config.type==="fill"?"url(#"+id.clip+")":""}}});svg.appendChild(group[1]);path0=group[0].querySelector(isStroke?"path":"rect");path1=group[1].querySelector("path");if(isStroke){path1.attrs({fill:"none"})}patimg=svg.querySelector("pattern image");img=new Image;img.addEventListener("load",function(){var box,that;box=(that=config["pattern-size"])?{width:+that,height:+that}:img.width&&img.height?{width:img.width,height:img.height}:{width:300,height:300};svg.querySelector("pattern").attrs({width:box.width,height:box.height});return patimg.attrs({width:box.width,height:box.height})});if(/.+\..+|^data:/.exec(!isStroke?config.fill:config.stroke)){img.src=!isStroke?config.fill:config.stroke;patimg.attrs({"xlink:href":img.src})}if(isStroke){path0.attrs({stroke:config["stroke-trail"],"stroke-width":config["stroke-trail-width"]});path1.attrs({"stroke-width":config["stroke-width"],stroke:/.+\..+|^data:/.exec(config.stroke)?"url(#"+id.pattern+")":config.stroke})}if(config.fill&&!isStroke){path1.attrs({fill:/.+\..+|^data:/.exec(config.fill)?"url(#"+id.pattern+")":config.fill})}length=path1.getTotalLength();this.fit();this.inited=true}else if(config.img){if(config["img-size"]){ret=config["img-size"].split(",");size={width:+ret[0],height:+ret[1]}}else{size={width:100,height:100}}group[0]=domTree("g",{rect:{attr:{x:0,y:0,width:100,height:100,mask:"url(#"+id.mask+")",fill:config["fill-background"]}}});svg.querySelector("mask image").attrs({width:size.width,height:size.height});group[1]=domTree("g",{image:{attr:{width:size.width,height:size.height,x:0,y:0,preserveAspectRatio:config["aspect-ratio"],"clip-path":config.type==="fill"?"url(#"+id.clip+")":"","xlink:href":config.img,class:"solid"}}});img=new Image;img.addEventListener("load",function(){var ret,size,v;if(config["img-size"]){ret=config["img-size"].split(",");size={width:+ret[0],height:+ret[1]}}else if(img.width&&img.height){size={width:img.width,height:img.height}}else{size={width:100,height:100}}svg.querySelector("mask image").attrs({width:size.width,height:size.height});group[1].querySelector("image").attrs({width:size.width,height:size.height});this$.fit();v=this$.value;this$.value=undefined;this$.set(v,true);return this$.inited=true});img.src=config.img;svg.appendChild(group[0]);svg.appendChild(group[1])}svg.attrs({width:"100%",height:"100%"});this.transition={value:{src:0,des:0},time:{},ease:function(t,b,c,d){t=t/(d*.5);if(t<1){return c*.5*t*t+b}t=t-1;return-c*.5*(t*(t-2)-1)+b},handler:function(time,doTransition){var ref$,min,max,prec,dv,dt,dur,v,p,node,style,box,dir;doTransition==null&&(doTransition=true);if(this.time.src==null){this.time.src=time}ref$=[config["min"],config["max"],1/config["precision"]],min=ref$[0],max=ref$[1],prec=ref$[2];ref$=[this.value.des-this.value.src,(time-this.time.src)*.001,+config["duration"]||1],dv=ref$[0],dt=ref$[1],dur=ref$[2];v=doTransition?this.ease(dt,this.value.src,dv,dur):this.value.des;if(config.precision){v=Math.round(v*prec)/prec}else if(doTransition){v=Math.round(v)}v>=min||(v=min);v<=max||(v=max);text.textContent=v;p=100*(v-min)/(max-min);if(isStroke){node=path1;style={"stroke-dasharray":config["stroke-dir"]==="reverse"?"0 "+length*(100-p)*.01+" "+length*p*.01+" 0":p*.01*length+" "+((100-p)*.01*length+1)}}else{box=group[1].getBBox();dir=config["fill-dir"];style=dir==="btt"||!dir?{y:box.y+box.height*(100-p)*.01,height:box.height*p*.01,x:box.x,width:box.width}:dir==="ttb"?{y:box.y,height:box.height*p*.01,x:box.x,width:box.width}:dir==="ltr"?{y:box.y,height:box.height,x:box.x,width:box.width*p*.01}:dir==="rtl"?{y:box.y,height:box.height,x:box.x+box.width*(100-p)*.01,width:box.width*p*.01}:void 8;node=svg.querySelector("rect")}node.attrs(style);if(dt>=dur){delete this.time.src;return false}return true},start:function(src,des,doTransition){var ref$,this$=this;ref$=this.value;ref$.src=src;ref$.des=des;!!(root.offsetWidth||root.offsetHeight||root.getClientRects().length);if(!doTransition||!(root.offsetWidth||root.offsetHeight||root.getClientRects().length)){this.time.src=0;this.handler(1e3,false);return}return handler.add(id.key,function(time){return this$.handler(time)})}};this.set=function(v,doTransition){var src,des;doTransition==null&&(doTransition=true);src=this.value||0;if(v!=null){this.value=v}else{v=this.value}des=this.value;return this.transition.start(src,des,doTransition)};this.set(+config.value||0,config["transition-in"])||false;return this};return window.addEventListener("load",function(){var i$,ref$,len$,node,results$=[];for(i$=0,len$=(ref$=document.querySelectorAll(".ldBar")).length;i$<len$;++i$){node=ref$[i$];if(!node.ldBar){results$.push(node.ldBar=new ldBar(node))}}return results$},false)})();module.exports=ldBar;function import$(obj,src){var own={}.hasOwnProperty;for(var key in src)if(own.call(src,key))obj[key]=src[key];return obj}},{"./presets":2}],2:[function(require,module,exports){var presets,out$=typeof exports!="undefined"&&exports||this;out$.presets=presets={rainbow:{type:"stroke",path:"M10 10L90 10",stroke:"data:ldbar/res,gradient(0,1,#a551df,#fd51ad,#ff7f82,#ffb874,#ffeb90)",bbox:"10 10 80 10"},energy:{type:"fill",path:"M15 5L85 5A5 5 0 0 1 85 15L15 15A5 5 0 0 1 15 5",stroke:"#f00",fill:"data:ldbar/res,gradient(45,2,#4e9,#8fb,#4e9)","fill-dir":"ltr","fill-background":"#444","fill-background-extrude":1,bbox:"10 5 80 10"},stripe:{type:"fill",path:"M15 5L85 5A5 5 0 0 1 85 15L15 15A5 5 0 0 1 15 5",stroke:"#f00",fill:"data:ldbar/res,stripe(#25b,#58e,1)","fill-dir":"ltr","fill-background":"#ddd","fill-background-extrude":1,bbox:"10 5 80 10"},text:{type:"fill",img:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="70" height="20" viewBox="0 0 70 20"><text x="35" y="10" text-anchor="middle" dominant-baseline="central" font-family="arial">LOADING</text></svg>',"fill-background-extrude":1.3,"pattern-size":100,"fill-dir":"ltr","img-size":"70,20",bbox:"0 0 70 20"},line:{type:"stroke",path:"M10 10L90 10",stroke:"#25b","stroke-width":3,"stroke-trail":"#ddd","stroke-trail-width":1,bbox:"10 10 80 10"},fan:{type:"stroke",path:"M10 90A40 40 0 0 1 90 90","fill-dir":"btt",fill:"#25b","fill-background":"#ddd","fill-background-extrude":3,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,bbox:"10 50 80 40"},circle:{type:"stroke",path:"M50 10A40 40 0 0 1 50 90A40 40 0 0 1 50 10","fill-dir":"btt",fill:"#25b","fill-background":"#ddd","fill-background-extrude":3,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,bbox:"10 10 80 80"},bubble:{type:"fill",path:"M50 10A40 40 0 0 1 50 90A40 40 0 0 1 50 10","fill-dir":"btt",fill:"data:ldbar/res,bubble(#39d,#cef)","pattern-size":"150","fill-background":"#ddd","fill-background-extrude":2,"stroke-dir":"normal",stroke:"#25b","stroke-width":"3","stroke-trail":"#ddd","stroke-trail-width":.5,bbox:"10 10 80 80"}}},{}]},{},[1]);
-/* twine-user-script #41: "mapeditor.js" */
+/* twine-user-script #47: "mapeditor.js" */
 F.confirmNewmap = function () {
 	T.mapsizeX = parseInt(T.mapsizeX);
 	T.mapsizeY = parseInt(T.mapsizeY);
@@ -11797,7 +14408,7 @@ F.showPathMap = function () {
 		}, i * 150);
 	});
 };
-/* twine-user-script #42: "load.js" */
+/* twine-user-script #48: "load.js" */
 Save.onLoad.add(function(save) {
     const history = save.state.history
     for (let stage of history){
@@ -11852,7 +14463,7 @@ Save.onLoad.add(function(save) {
         stage.variables.timeEventList = timeEventList;
     }
 })
-/* twine-user-script #43: "save.js" */
+/* twine-user-script #49: "save.js" */
 F.getSave= function() {
     console.log(Save.get())
 
@@ -11869,7 +14480,7 @@ Save.onSave.add(function (save) {
         //stage.variables.chara = [1,23,4];
     }
 });
-/* twine-user-script #44: "showChara.js" */
+/* twine-user-script #50: "showChara.js" */
 F.initSCTrait = function(){
     const TransTrait = [];
     for (let i in V.showChara.traits){
@@ -12167,7 +14778,7 @@ F.initSCMark = function(){
         `)
     }
 }
-/* twine-user-script #45: "sidebarWidget.js" */
+/* twine-user-script #51: "sidebarWidget.js" */
 const { threadId } = require("worker_threads");
 
 F.sidebarMap = function() {
@@ -12330,12 +14941,13 @@ F.refrashSideBarMap=function(){
 }
 
 F.refrashSideBar = function(){
+    console.log('F.refrashSideBar')
     F.refrashSideBarChara();
     F.refrashSideBarTime();
     F.refrashSideBarMoney();
     F.refrashSideBarMap();
 }
-/* twine-user-script #46: "sourceWidget.js" */
+/* twine-user-script #52: "sourceWidget.js" */
 F.sourceGet = function(cid,palam,value){
 	C[cid].source[palam] += value;
 	F.sourceCheck(C[cid],cid);
@@ -12344,7 +14956,7 @@ F.sourceGet = function(cid,palam,value){
 	return "";
 }
 DefineMacros("sourceGet", F.sourceGet)
-/* twine-user-script #47: "inputTool.js" */
+/* twine-user-script #53: "inputTool.js" */
 F.Textbox = function(args){
     const { id, minlen, maxlen, size, on, value, inp } = args
     const txt = `type='text' `
@@ -12405,7 +15017,7 @@ F.Range = function(args){
 
     return `<<print "${txt}" >>`
 }
-/* twine-user-script #48: "others.js" */
+/* twine-user-script #54: "others.js" */
 F.RGBdec2hex = function(red,bule,green){
     let text = "#";
     const RGB = [red,bule,green]
@@ -12443,7 +15055,7 @@ F.Progressbar = function(args){
     
     return `<<print "${text}" >>`
 }
-/* twine-user-script #49: "createplayer.js" */
+/* twine-user-script #55: "createplayer.js" */
 
 F.DPset = function(key,value){
     V.playerdesign[key] = value;
@@ -12567,14 +15179,14 @@ F.CPdetermine = function(){
     Flag.firstVisitYourRoom = true;
     Flag.firstVisitOffice = true;
 }
-/* twine-user-script #50: "move.js" */
-/* twine-user-script #51: "office.js" */
+/* twine-user-script #56: "move.js" */
+/* twine-user-script #57: "office.js" */
 F.creatHeadMaster = function(){
     let csv = scEra.csv.get("CharaSheet_Alisa")
     console.log("try creat chara",csv)
     MyChara.new("Alisa", csv);
 }
-/* twine-user-script #52: "Selection.js" */
+/* twine-user-script #58: "Selection.js" */
 //------------------------------------------------------------
 //
 //  add selection macro
@@ -12714,7 +15326,7 @@ Ui.removelink = function () {
 	$("#contentMsg a").remove();
 };
 DefineMacros("removelink", Ui.removelink);
-/* twine-user-script #53: "startconfig.js" */
+/* twine-user-script #59: "startconfig.js" */
 game.version = "0.0.1";
 l10nStrings.errorTitle = game.version + " Error";
 console.log("Game Version:", game.version);
@@ -12858,9 +15470,9 @@ virginity.vaginasex, 不明, 不明, 在一次酒吧派对上、醉酒后与伙�
         &lt;&lt;select &#39;老实等着&#39;&gt;&gt;
     &lt;&lt;/selection&gt;&gt;
     &lt;fr&gt;
-    &lt;&lt;changeLoc &quot;dorm&quot; 4 4&gt;&gt;</tw-passagedata><tw-passagedata pid="5" name="Kojo_Main" tags="system" position="600,100" size="100,100">大概会在这里执行一些前置操作，比如初始化一些变量。
+    &lt;&lt;changeLoc &quot;dorm&quot; 4 4&gt;&gt;</tw-passagedata><tw-passagedata pid="5" name="Kojo_Alisa_Com_chat:Before" tags="" position="600,100" size="100,100"></tw-passagedata><tw-passagedata pid="6" name="Kojo_Alisa_Com_chat" tags="" position="725,100" size="100,100">阿丽萨简单地敷衍了你几句</tw-passagedata><tw-passagedata pid="7" name="Kojo_Main" tags="system" position="850,100" size="100,100">大概会在这里执行一些前置操作，比如初始化一些变量。
 一些通用的执行处理。
-以这里为入口再分配到各个角色的入口。</tw-passagedata><tw-passagedata pid="6" name="ActionList" tags="table" position="725,100" size="100,100">/* general action */
+以这里为入口再分配到各个角色的入口。</tw-passagedata><tw-passagedata pid="8" name="ActionList" tags="table" position="975,100" size="100,100">/* general action */
 @General
 #id         ,name          ,time ,tags          ,placement       ,setting,
 Relax       ,放松          ,15   ,休息区         ,沙发|椅子        ,canTrain,;
@@ -13010,7 +15622,7 @@ sleep       ,睡觉       ,Sleep
 resetAct    ,清除动作
 resetAll    ,全部
 stopTouch   ,住手
-resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags="table" position="850,100" size="100,100"></tw-passagedata><tw-passagedata pid="8" name="Species_Deamon" tags="xml" position="975,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
+resetMode   ,走开</tw-passagedata><tw-passagedata pid="9" name="ComList" tags="table" position="1100,100" size="100,100"></tw-passagedata><tw-passagedata pid="10" name="Species_Deamon" tags="xml" position="1225,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
 &lt;race type=&#39;chara&#39; id=&#39;deamon&#39;&gt;
 &lt;name lan=&#39;CN&#39;&gt;魔人&lt;/name&gt;
 &lt;name lan=&#39;EN&#39;&gt;Half Deamon&lt;/name&gt;
@@ -13145,7 +15757,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
    &lt;eyecolor&gt;blue||silver||amber||purple||lightpurple||black||red&lt;/eyecolor&gt;
 	&lt;defaulthaircolor&gt;white&lt;/defaulthaircolor&gt;
 &lt;/avatar&gt;
-&lt;/race&gt;</tw-passagedata><tw-passagedata pid="9" name="Species_Elvin" tags="xml" position="1100,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
+&lt;/race&gt;</tw-passagedata><tw-passagedata pid="11" name="Species_Elvin" tags="xml" position="100,225" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
 &lt;race type=&#39;chara&#39; id=&#39;elvin&#39;&gt;
 &lt;name lan=&#39;CN&#39;&gt;精灵&lt;/name&gt;
 &lt;name lan=&#39;EN&#39;&gt;Elvin&lt;/name&gt;
@@ -13316,7 +15928,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
    &lt;eyecolor&gt;blue||green||limegreen||skyblue||silver&lt;/eyecolor&gt;
 	&lt;defaulthaircolor&gt;blond&lt;/defaulthaircolor&gt;
 &lt;/avatar&gt;
-&lt;/race&gt;</tw-passagedata><tw-passagedata pid="10" name="Species_Human" tags="xml" position="1225,100" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
+&lt;/race&gt;</tw-passagedata><tw-passagedata pid="12" name="Species_Human" tags="xml" position="225,225" size="100,100">&lt;?xml version=&#39;1.0&#39; encoding=&#39;utf-8&#39;?&gt;
 &lt;race type=&#39;chara&#39; id=&#39;human&#39;&gt;
 &lt;name lan=&#39;EN&#39;&gt;Human&lt;/name&gt;
 &lt;name lan=&#39;CN&#39;&gt;人类&lt;/name&gt;
@@ -13460,10 +16072,10 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
 	&lt;skincolor&gt;pale||white||health||black||chocolate||copper||sunset&lt;/skincolor&gt;
 	&lt;defaulthaircolor&gt;brown&lt;/defaulthaircolor&gt;
 &lt;/avatar&gt;
-&lt;/race&gt;</tw-passagedata><tw-passagedata pid="11" name="CharaInf" tags="widget" position="100,225" size="100,100">&lt;&lt;widget &quot;IpadCharalist&quot;&gt;&gt;
+&lt;/race&gt;</tw-passagedata><tw-passagedata pid="13" name="CharaInf" tags="widget" position="350,225" size="100,100">&lt;&lt;widget &quot;IpadCharalist&quot;&gt;&gt;
     &lt;&lt;run F.showIpadCharalist()&gt;&gt;
     &lt;&lt;print T.printText.join(&quot;&lt;br&gt;&lt;&lt;dashline&gt;&gt;&quot;)&gt;&gt;
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="12" name="FacilityInf" tags="widget" position="225,225" size="100,100">&lt;&lt;widget &quot;FacilityInf&quot;&gt;&gt;
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="14" name="FacilityInf" tags="widget" position="475,225" size="100,100">&lt;&lt;widget &quot;FacilityInf&quot;&gt;&gt;
     $facilityName 目前的知名程度是: $facilityLevel。&lt;br&gt;
     目前的资源有&lt;&lt;IpadShowMoney&gt;&gt;。&lt;br&gt;
     当前的代办事项是:&lt;&lt;IpadTaskTarget&gt;&gt;&lt;br&gt;
@@ -13506,19 +16118,19 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
         T.printText.push(`&lt;/div&gt;&lt;/div&gt;`);
     &gt;&gt;
     &lt;&lt;print T.printText.join(&quot;&quot;)&gt;&gt;
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="13" name="sideBarShowMoney" tags="widget" position="350,225" size="100,100">&lt;&lt;widget &quot;sideBarShowMoney&quot;&gt;&gt;
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="15" name="sideBarShowMoney" tags="widget" position="600,225" size="100,100">&lt;&lt;widget &quot;sideBarShowMoney&quot;&gt;&gt;
     &lt;div id=&quot;sideBarShowMoney&quot;&gt;
         &lt;&lt;if C[$pc]&gt;&gt;
             资金:&lt;&lt;= C[$pc].wallet&gt;&gt;G
         &lt;&lt;/if&gt;&gt;
     &lt;/div&gt;
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="14" name="sideBarShowTime" tags="widget" position="475,225" size="100,100">&lt;&lt;widget &quot;sideBarShowTime&quot;&gt;&gt;
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="16" name="sideBarShowTime" tags="widget" position="725,225" size="100,100">&lt;&lt;widget &quot;sideBarShowTime&quot;&gt;&gt;
     &lt;div id =&quot;sideBarShowTime&quot;&gt;
         时间:$date.year年$date.month月$date.day日 &lt;&lt;= Math.floor($date.time/60)&gt;&gt;：&lt;&lt;= $date.time%60&gt;&gt;
     &lt;/div&gt;
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="15" name="SideBarIpad" tags="widget" position="600,225" size="100,100">&lt;&lt;widget &quot;SideBarIpad&quot;&gt;&gt;
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="17" name="SideBarIpad" tags="widget" position="850,225" size="100,100">&lt;&lt;widget &quot;SideBarIpad&quot;&gt;&gt;
         &lt;&lt;button &quot;查看信息&quot;&gt;&gt;&lt;&lt;Ipad &quot;testIpad&quot;&gt;&gt;&lt;&lt;/button&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="16" name="Ipad" tags="widget" position="725,225" size="100,100">&lt;&lt;widget &quot;Ipad&quot;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="18" name="Ipad" tags="widget" position="975,225" size="100,100">&lt;&lt;widget &quot;Ipad&quot;&gt;&gt;
         &lt;&lt;set _key to _args[0]&gt;&gt;
         &lt;&lt;script&gt;&gt;
             $(&quot;#customOverlay&quot;).removeClass(&quot;hidden&quot;).parent().removeClass(&quot;hidden&quot;);
@@ -13559,13 +16171,13 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
 
     &lt;&lt;widget &quot;closeButton&quot;&gt;&gt;
         &lt;div class=&quot;customOverlayClose&quot; onclick=&quot;F.closeOverlay()&quot;&gt;&lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="17" name="overlayReplace" tags="widget" position="850,225" size="100,100">&lt;&lt;widget &quot;setupTabs&quot;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="19" name="overlayReplace" tags="widget" position="1100,225" size="100,100">&lt;&lt;widget &quot;setupTabs&quot;&gt;&gt;
         &lt;&lt;script&gt;&gt;
            
         &lt;&lt;/script&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="18" name="Get_Msg_Map_neighbor" tags="widget" position="975,225" size="100,100">&lt;&lt;widget &#39;Get_Msg_Map_neighbor&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="20" name="Get_Msg_Map_neighbor" tags="widget" position="1225,225" size="100,100">&lt;&lt;widget &#39;Get_Msg_Map_neighbor&#39;&gt;&gt;
         &lt;&lt;run F.Get_Msg_Map_neighbor()&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="19" name="testshowChara:Before" tags="" position="1100,225" size="100,100"></tw-passagedata><tw-passagedata pid="20" name="testshowChara" tags="" position="1225,225" size="100,100">&lt;&lt;showChara&gt;&gt;</tw-passagedata><tw-passagedata pid="21" name="showChara" tags="widget" position="100,350" size="100,100">&lt;&lt;widget &#39;showChara&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="21" name="testshowChara:Before" tags="" position="100,350" size="100,100"></tw-passagedata><tw-passagedata pid="22" name="testshowChara" tags="" position="225,350" size="100,100">&lt;&lt;showChara&gt;&gt;</tw-passagedata><tw-passagedata pid="23" name="showChara" tags="widget" position="350,350" size="100,100">&lt;&lt;widget &#39;showChara&#39;&gt;&gt;
         &lt;&lt;ShowCharaDiv&gt;&gt;
         &lt;div id=&quot;SCbox1&quot;  class=&quot;SCgridConter&quot;&gt;
             &lt;&lt;showCharaBase&gt;&gt;
@@ -13587,7 +16199,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
             &lt;&lt;ShowCharaMark&gt;&gt;
             &lt;&lt;ShowCharaPalam&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="22" name="showCharaBase" tags="widget" position="225,350" size="100,100">&lt;&lt;widget &#39;showCharaBase&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="24" name="showCharaBase" tags="widget" position="475,350" size="100,100">&lt;&lt;widget &#39;showCharaBase&#39;&gt;&gt;
     &lt;div id=&#39;SCbaseBox&#39; class=&quot;SCBaseConter&quot;&gt;
         &lt;div id=&quot;SCname&quot;&gt;
             $showChara.name
@@ -13604,16 +16216,16 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
             &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
         &lt;/div&gt;
     &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="23" name="ShowCharaPhoto" tags="widget" position="350,350" size="100,100">&lt;&lt;widget &#39;ShowCharaPhoto&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="25" name="ShowCharaPhoto" tags="widget" position="600,350" size="100,100">&lt;&lt;widget &#39;ShowCharaPhoto&#39;&gt;&gt;
         &lt;div class=&quot;SCphoto&quot;&gt;
             
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="24" name="ShowCharaTrait" tags="widget" position="475,350" size="100,100">&lt;&lt;widget &#39;ShowCharaTrait&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="26" name="ShowCharaTrait" tags="widget" position="725,350" size="100,100">&lt;&lt;widget &#39;ShowCharaTrait&#39;&gt;&gt;
         &lt;div class=&#39;SCTrait&#39;&gt;
             &lt;&lt;run F.initSCTrait()&gt;&gt;
             &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="25" name="ShowCharaBody" tags="widget" position="600,350" size="100,100">&lt;&lt;widget &#39;ShowCharaBody&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="27" name="ShowCharaBody" tags="widget" position="850,350" size="100,100">&lt;&lt;widget &#39;ShowCharaBody&#39;&gt;&gt;
         &lt;&lt;if (V.showChara.flag.showBody || V.showChara.cid == &quot;player&quot;)&gt;&gt;
             &lt;div class=&#39;SCBody&#39;&gt;
                 &lt;&lt;run F.initSCBody()&gt;&gt;
@@ -13626,7 +16238,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
             //////////&lt;br&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="26" name="ShowCharaVirginity" tags="widget" position="725,350" size="100,100">&lt;&lt;widget &#39;ShowCharaVirginity&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="28" name="ShowCharaVirginity" tags="widget" position="975,350" size="100,100">&lt;&lt;widget &#39;ShowCharaVirginity&#39;&gt;&gt;
         &lt;div class=&#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
         &lt;&lt;run F.initSCVirginity()&gt;&gt;
         &lt;&lt;if (V.showChara.flag.showVirginity || V.showChara.cid == &quot;player&quot;)&gt;&gt;
@@ -13636,7 +16248,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
         &lt;&lt;else&gt;&gt;
             未知初次经验情况
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="27" name="ShowCharaExp" tags="widget" position="850,350" size="100,100">&lt;&lt;widget &#39;ShowCharaExp&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="29" name="ShowCharaExp" tags="widget" position="1100,350" size="100,100">&lt;&lt;widget &#39;ShowCharaExp&#39;&gt;&gt;
         &lt;div class = &#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
         &lt;&lt;run F.initSCExp()&gt;&gt;
         &lt;&lt;if !V.showChara.flag.showExp and $showChara.cid !== &quot;player&quot;&gt;&gt;
@@ -13648,13 +16260,13 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
                 &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="28" name="ShowCharaSbl" tags="widget" position="975,350" size="100,100">&lt;&lt;widget &#39;ShowCharaSbl&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="30" name="ShowCharaSbl" tags="widget" position="1225,350" size="100,100">&lt;&lt;widget &#39;ShowCharaSbl&#39;&gt;&gt;
         &lt;div class = &#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
         &lt;&lt;run F.initSCSbl()&gt;&gt;
         &lt;div class=&#39;SCSbl&#39;&gt;
             &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="29" name="ShowCharaApp" tags="widget" position="1100,350" size="100,100">&lt;&lt;widget &#39;ShowCharaApp&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="31" name="ShowCharaApp" tags="widget" position="100,475" size="100,100">&lt;&lt;widget &#39;ShowCharaApp&#39;&gt;&gt;
         &lt;div class=&#39;SCAppBox&#39;&gt;
             &lt;div&gt;身高 &lt;&lt;=$showChara.appearance.height/10&gt;&gt;cm &lt;/div&gt;
             &lt;div&gt;体重 &lt;&lt;=$showChara.appearance.weight&gt;&gt;kg &lt;/div&gt;
@@ -13667,7 +16279,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
             &lt;div&gt;发色: &lt;&lt;=$showChara.appearance.haircolor&gt;&gt; &lt;/div&gt;
             &lt;div&gt;发型: &lt;&lt;=$showChara.appearance.hairstyle&gt;&gt; &lt;/div&gt;
         &lt;/div&gt;    
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="30" name="ShowCharaEquip" tags="widget" position="1225,350" size="100,100">&lt;&lt;widget &#39;ShowCharaEquip&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="32" name="ShowCharaEquip" tags="widget" position="225,475" size="100,100">&lt;&lt;widget &#39;ShowCharaEquip&#39;&gt;&gt;
         &lt;&lt;if (V.showChara.flag.showEquip || V.showChara.cid == &quot;player&quot;)&gt;&gt;
             &lt;div class=&#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
             &lt;&lt;run F.initSCEquip()&gt;&gt;
@@ -13685,7 +16297,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
             暴露值:&lt;&lt;=V.showChara.reveals.reveal&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="31" name="ShowCharaPalam" tags="widget" position="100,475" size="100,100">&lt;&lt;widget &#39;ShowCharaPalam&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="33" name="ShowCharaPalam" tags="widget" position="350,475" size="100,100">&lt;&lt;widget &#39;ShowCharaPalam&#39;&gt;&gt;
         &lt;div class=&#39;SCDashline&#39;&gt;&lt;&lt;dashline&gt;&gt;&lt;/div&gt;
         &lt;div class=&quot;SCPalamBox&quot;&gt;
             &lt;div class=&quot;SCPalamtype&quot;&gt;[心理]&lt;/div&gt;
@@ -13711,7 +16323,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
                 &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;&lt;/if&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="32" name="ShowCharaLocation" tags="widget" position="225,475" size="100,100">&lt;&lt;widget &#39;ShowCharaLocation&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="34" name="ShowCharaLocation" tags="widget" position="475,475" size="100,100">&lt;&lt;widget &#39;ShowCharaLocation&#39;&gt;&gt;
         &lt;&lt;if (Config.debug || V.showChara.cid !== &quot;player&quot;)&gt;&gt;
         &lt;div&gt;
         当前位置:&lt;&lt;=worldMap[V.showChara.location.mapId].name[0]&gt;&gt;
@@ -13720,10 +16332,10 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
         &lt;&lt;= worldMap[V.showChara.location.mapId][T.spotid].name&gt;&gt;
         &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="33" name="ShowCharaWork" tags="widget" position="350,475" size="100,100">&lt;&lt;widget &#39;ShowCharaWork&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="35" name="ShowCharaWork" tags="widget" position="600,475" size="100,100">&lt;&lt;widget &#39;ShowCharaWork&#39;&gt;&gt;
         
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="34" name="ShowCharaBodyLiquid" tags="widget" position="475,475" size="100,100">&lt;&lt;widget &#39;ShowCharaBodyLiquid&#39;&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="35" name="ShowCharaOthers" tags="widget" position="600,475" size="100,100"></tw-passagedata><tw-passagedata pid="36" name="ShowCharaDiv" tags="widget" position="725,475" size="100,100">&lt;&lt;widget &#39;ShowCharaDiv&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="36" name="ShowCharaBodyLiquid" tags="widget" position="725,475" size="100,100">&lt;&lt;widget &#39;ShowCharaBodyLiquid&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="37" name="ShowCharaOthers" tags="widget" position="850,475" size="100,100"></tw-passagedata><tw-passagedata pid="38" name="ShowCharaDiv" tags="widget" position="975,475" size="100,100">&lt;&lt;widget &#39;ShowCharaDiv&#39;&gt;&gt;
         &lt;&lt;script&gt;&gt;
             const allpages = [&#39;SCbox1&#39;,&#39;SCbox2&#39;,&#39;SCbox3&#39;];
             function SCchangeDiv(pagename){
@@ -13741,19 +16353,19 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
             &lt;button id=&quot;Divbutton3&quot;  onclick=&quot;F.SCchangeDiv(&#39;3&#39;)&quot;&gt;肉体信息&lt;/button&gt;
             &lt;button id=&quot;Divbutton4&quot;  onclick=&quot;F.SCchangeDiv(&#39;4&#39;)&quot;&gt;心理状态&lt;/button&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="37" name="ShowCharaMark" tags="widget" position="850,475" size="100,100">&lt;&lt;widget ShowCharaMark&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="39" name="ShowCharaMark" tags="widget" position="1100,475" size="100,100">&lt;&lt;widget ShowCharaMark&gt;&gt;
         &lt;&lt;run F.initSCMark()&gt;&gt;
         &lt;div class=&quot;SCMarkBox&quot;&gt;
             &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
         &lt;/div&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="38" name="sidebarMap" tags="widget" position="975,475" size="100,100">&lt;&lt;widget &#39;sidebarMap&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="40" name="sidebarMap" tags="widget" position="1225,475" size="100,100">&lt;&lt;widget &#39;sidebarMap&#39;&gt;&gt;
         &lt;&lt;if $system.showSideBarMap&gt;&gt;
             &lt;div id=&quot;sidebarMap&quot;&gt;
                 &lt;&lt;run F.sidebarMap()&gt;&gt;
                 &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="39" name="sidebarBaseBar" tags="widget" position="1100,475" size="100,100">&lt;&lt;widget &#39;sidebarBaseBar&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="41" name="sidebarBaseBar" tags="widget" position="100,600" size="100,100">&lt;&lt;widget &#39;sidebarBaseBar&#39;&gt;&gt;
         &lt;&lt;if $system.showSideBarBaseBar&gt;&gt;
             &lt;&lt;set $showChara = C[&#39;player&#39;]&gt;&gt;
             &lt;&lt;run F.sidebarBaseBar()&gt;&gt;
@@ -13761,25 +16373,25 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
                 &lt;&lt;print T.printText.join(&#39;&#39;)&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="40" name="sidebarBaseDescribe" tags="widget" position="1225,475" size="100,100">&lt;&lt;widget &#39;sidebarBaseDescribe&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="42" name="sidebarBaseDescribe" tags="widget" position="225,600" size="100,100">&lt;&lt;widget &#39;sidebarBaseDescribe&#39;&gt;&gt;
     &lt;&lt;run
         let level = 0;
         let rate = V.showChara.base[_args[0]][0]/V.showChara.base[_args[0]][1];
         while(rate&lt;D.basicDescribe[_args[0]][level][0])
             level += 1;
-        T.discribe = D.basicDescribe[_args[0]][0][1];
+        T.discribe = D.basicDescribe[_args[0]][level][1];
     &gt;&gt;
         _discribe
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="41" name="sidebarEquipDescribe" tags="widget" position="100,600" size="100,100">&lt;&lt;widget &#39;sidebarEquipDescribe&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="43" name="sidebarEquipDescribe" tags="widget" position="350,600" size="100,100">&lt;&lt;widget &#39;sidebarEquipDescribe&#39;&gt;&gt;
         &lt;&lt;run F.sideBarEquipDescribe()&gt;&gt;
         &lt;&lt;print T.tags.join(&quot;&quot;)&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="42" name="sidebarLiquidDescribe" tags="widget" position="225,600" size="100,100">&lt;&lt;widget &#39;sidebarLiquidDescribe&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="44" name="sidebarLiquidDescribe" tags="widget" position="475,600" size="100,100">&lt;&lt;widget &#39;sidebarLiquidDescribe&#39;&gt;&gt;
         &lt;&lt;run F.sidebarLiquidDescribe()&gt;&gt;
         &lt;&lt;print T.printText.join(&quot;&quot;)&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="43" name="sidebarTag" tags="widget" position="350,600" size="100,100">&lt;&lt;widget &#39;sidebarTag&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="45" name="sidebarTag" tags="widget" position="600,600" size="100,100">&lt;&lt;widget &#39;sidebarTag&#39;&gt;&gt;
         &lt;&lt;run F.sidebarTag()&gt;&gt;
         &lt;&lt;print T.printText.join(&quot;&quot;)&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="44" name="sidebarShowChara" tags="widget" position="475,600" size="100,100">&lt;&lt;widget &#39;sidebarShowChara&#39;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="46" name="sidebarShowChara" tags="widget" position="725,600" size="100,100">&lt;&lt;widget &#39;sidebarShowChara&#39;&gt;&gt;
         &lt;&lt;if $system.showSideBarshowChara&gt;&gt;
             &lt;div id = &quot;sidebarShowChara&quot;&gt;
                 &lt;&lt;if $tc==&quot;&quot;&gt;&gt;
@@ -13797,12 +16409,12 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
                 &lt;&lt;sidebarTag&gt;&gt;
             &lt;/div&gt;
         &lt;&lt;/if&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="45" name="Welcome" tags="" position="600,600" size="100,100">&lt;&lt;set _seeBegin = true&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="47" name="Welcome" tags="" position="850,600" size="100,100">&lt;&lt;set _seeBegin = true&gt;&gt;
 &lt;div id=&#39;select_see_or_not&#39;&gt;
 想看序章吗？&lt;br&gt;
 &lt;&lt;choice [[是|playForeword]]&gt;&gt;&lt;br&gt;
 &lt;&lt;choice [[否|DesignPlayer]]&gt;&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="46" name="Foreword_Foreword" tags="" position="725,600" size="100,100">由于以cat-PTG为首的人工智能浪潮出现,许多行业纷纷加入成本更为低廉的&quot;机器换人&quot;大军。&lt;br&gt;
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="48" name="Foreword_Foreword" tags="" position="975,600" size="100,100">由于以cat-PTG为首的人工智能浪潮出现,许多行业纷纷加入成本更为低廉的&quot;机器换人&quot;大军。&lt;br&gt;
 社会在过去几年中就已经陷入了大量人力岗位完全被替代的困境。&lt;br&gt;
 大量人口失业，与之而来的消费力下行、生活信心低迷等等因素更是加剧了生育率快速下滑。&lt;br&gt;
 养老金危机、少子化危机、医保空虚……接踵而至&lt;br&gt;
@@ -13816,7 +16428,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
 尽管觉得可能是某种恶作剧，但考虑到你快要交不起的房租，你决定--
 [[填写表格|DesignPlayer]]
 [[填写表格|DesignPlayer]]
-[[我莫得选择|DesignPlayer]]</tw-passagedata><tw-passagedata pid="47" name="playForeword" tags="" position="850,600" size="100,100">&lt;&lt;run Dialogs.set({tp:&#39;Foreword&#39;,nm:&#39;Foreword&#39;, exit:&#39;DesignPlayer&#39;})&gt;&gt;</tw-passagedata><tw-passagedata pid="48" name="DesignPlayer:Before" tags="" position="975,600" size="100,100">&lt;&lt;set $playerdesign={
+[[我莫得选择|DesignPlayer]]</tw-passagedata><tw-passagedata pid="49" name="playForeword" tags="" position="1100,600" size="100,100">&lt;&lt;run Dialogs.set({tp:&#39;Foreword&#39;,nm:&#39;Foreword&#39;, exit:&#39;DesignPlayer&#39;})&gt;&gt;</tw-passagedata><tw-passagedata pid="50" name="DesignPlayer:Before" tags="" position="1225,600" size="100,100">&lt;&lt;set $playerdesign={
     name:&quot;你&quot;,
     gender:&quot;male&quot;,
     species:&quot;human&quot;,
@@ -13825,7 +16437,7 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
     SexExp:&quot;no&quot;, 
     bodysize:random(2,3), 
     appearance:{haircolor:&quot;黑色&quot;,eyecolor:&quot;黑色&quot;,hairstyle:&quot;短发&quot;,skincolor:&quot;健康色&quot;}}&gt;&gt;
-&lt;&lt;run F.InitNewGame()&gt;&gt;</tw-passagedata><tw-passagedata pid="49" name="DesignPlayer" tags="" position="1100,600" size="100,100">称呼:&lt;&lt;textbox &quot;$playerdesign.name&quot; &quot;你&quot; &gt;&gt;&lt;br&gt;
+&lt;&lt;run F.InitNewGame()&gt;&gt;</tw-passagedata><tw-passagedata pid="51" name="DesignPlayer" tags="" position="100,725" size="100,100">称呼:&lt;&lt;textbox &quot;$playerdesign.name&quot; &quot;你&quot; &gt;&gt;&lt;br&gt;
 性别:&lt;&lt;radiobutton &quot;$playerdesign.gender&quot; &quot;male&quot; autocheck&gt;&gt;男性 &lt;&lt;radiobutton &quot;$playerdesign.gender&quot; &quot;female&quot; autocheck&gt;&gt;女性&lt;br&gt;
 生日:
 &lt;&lt;=F.Listbox({id:&quot;BirthdayM&quot;,opt:Array.from(Array(12).keys(),n=&gt;n+1), def:9, on:&#39;F.DPset(this.id,parseInt(this.value))&#39;})&gt;&gt;月
@@ -13843,30 +16455,30 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
 说明:
 &lt;&lt;=D.StartBouns[$playerdesign.Bouns]&gt;&gt;
 &lt;/div&gt;&lt;br&gt;
-[[决定|DesignPlayerShow]]</tw-passagedata><tw-passagedata pid="50" name="DesignPlayerShow:Before" tags="" position="1225,600" size="100,100">&lt;&lt;run F.CPRandomPlayer()&gt;&gt;
-&lt;&lt;run V.showChara = C[&#39;player&#39;]&gt;&gt;</tw-passagedata><tw-passagedata pid="51" name="DesignPlayerShow" tags="" position="100,725" size="100,100">&lt;&lt;showChara&gt;&gt;
+[[决定|DesignPlayerShow]]</tw-passagedata><tw-passagedata pid="52" name="DesignPlayerShow:Before" tags="" position="225,725" size="100,100">&lt;&lt;run F.CPRandomPlayer()&gt;&gt;
+&lt;&lt;run V.showChara = C[&#39;player&#39;]&gt;&gt;</tw-passagedata><tw-passagedata pid="53" name="DesignPlayerShow" tags="" position="350,725" size="100,100">&lt;&lt;showChara&gt;&gt;
 &lt;&lt;dashline&gt;&gt;
 [[返回|DesignPlayer]]
 [[重摇|DesignPlayerShow]]
-&lt;&lt;link [[决定|MainLoop]]&gt;&gt;&lt;&lt;run F.CPdetermine()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="52" name="DesignPlayerDetermine" tags="" position="225,725" size="100,100"></tw-passagedata><tw-passagedata pid="53" name="mapmove" tags="" position="350,725" size="100,100">&lt;&lt;return &quot;返回&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="54" name="Msg_Spots_academyLevel_animalHouse" tags="" position="475,725" size="100,100">你位于动物小屋内</tw-passagedata><tw-passagedata pid="55" name="Msg_Spots_academyLevel_auditorium" tags="" position="600,725" size="100,100">你位于学院礼堂</tw-passagedata><tw-passagedata pid="56" name="Msg_Spots_academyLevel_broadcastRoom" tags="" position="725,725" size="100,100">你位于广播室内</tw-passagedata><tw-passagedata pid="57" name="Msg_Spots_academyLevel_canteen" tags="" position="850,725" size="100,100">你正位于食堂</tw-passagedata><tw-passagedata pid="58" name="Msg_Spots_academyLevel_changingRoom" tags="" position="975,725" size="100,100">你正位于更衣室内</tw-passagedata><tw-passagedata pid="59" name="Msg_Spots_academyLevel_classroomBuilding" tags="" position="1100,725" size="100,100">你位于教学楼</tw-passagedata><tw-passagedata pid="60" name="Msg_Spots_academyLevel_dormitory" tags="" position="1225,725" size="100,100">你正站在学院层宿舍门口
+&lt;&lt;link [[决定|MainLoop]]&gt;&gt;&lt;&lt;run F.CPdetermine()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="54" name="DesignPlayerDetermine" tags="" position="475,725" size="100,100"></tw-passagedata><tw-passagedata pid="55" name="mapmove" tags="" position="600,725" size="100,100">&lt;&lt;return &quot;返回&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="56" name="Msg_Spots_academyLevel_animalHouse" tags="" position="725,725" size="100,100">你位于动物小屋内</tw-passagedata><tw-passagedata pid="57" name="Msg_Spots_academyLevel_auditorium" tags="" position="850,725" size="100,100">你位于学院礼堂</tw-passagedata><tw-passagedata pid="58" name="Msg_Spots_academyLevel_broadcastRoom" tags="" position="975,725" size="100,100">你位于广播室内</tw-passagedata><tw-passagedata pid="59" name="Msg_Spots_academyLevel_canteen" tags="" position="1100,725" size="100,100">你正位于食堂</tw-passagedata><tw-passagedata pid="60" name="Msg_Spots_academyLevel_changingRoom" tags="" position="1225,725" size="100,100">你正位于更衣室内</tw-passagedata><tw-passagedata pid="61" name="Msg_Spots_academyLevel_classroomBuilding" tags="" position="100,850" size="100,100">你位于教学楼</tw-passagedata><tw-passagedata pid="62" name="Msg_Spots_academyLevel_dormitory" tags="" position="225,850" size="100,100">你正站在学院层宿舍门口
     &lt;&lt;link &quot;进入&quot;&gt;&gt;
         &lt;&lt;set T.jumpMove = {mapId:&quot;dorm&quot;,coord:[6,3], allowjump:true}&gt;&gt;
         &lt;&lt;run Com.Check(&quot;0-move-jump&quot;);&gt;&gt;
-    &lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="61" name="Msg_Spots_academyLevel_gym" tags="" position="100,850" size="100,100">你位于学院体育馆内</tw-passagedata><tw-passagedata pid="62" name="Msg_Spots_academyLevel_library" tags="" position="225,850" size="100,100">你正位于图书馆内</tw-passagedata><tw-passagedata pid="63" name="Msg_Spots_academyLevel_medicalRoom" tags="" position="350,850" size="100,100">你位于校医室</tw-passagedata><tw-passagedata pid="64" name="Msg_Spots_academyLevel_office" tags="" position="475,850" size="100,100">&lt;&lt;office_normalVisit&gt;&gt;</tw-passagedata><tw-passagedata pid="65" name="Msg_Spots_academyLevel_office_normalVisit" tags="widget" position="600,850" size="100,100">&lt;&lt;widget &quot;office_normalVisit&quot;&gt;&gt;
+    &lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="63" name="Msg_Spots_academyLevel_gym" tags="" position="350,850" size="100,100">你位于学院体育馆内</tw-passagedata><tw-passagedata pid="64" name="Msg_Spots_academyLevel_library" tags="" position="475,850" size="100,100">你正位于图书馆内</tw-passagedata><tw-passagedata pid="65" name="Msg_Spots_academyLevel_medicalRoom" tags="" position="600,850" size="100,100">你位于校医室</tw-passagedata><tw-passagedata pid="66" name="Msg_Spots_academyLevel_office" tags="" position="725,850" size="100,100">&lt;&lt;office_normalVisit&gt;&gt;</tw-passagedata><tw-passagedata pid="67" name="Msg_Spots_academyLevel_office_normalVisit" tags="widget" position="850,850" size="100,100">&lt;&lt;widget &quot;office_normalVisit&quot;&gt;&gt;
         你位于学院层的学园长办公区域
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="66" name="Msg_Spots_academyLevel_road" tags="" position="725,850" size="100,100">你站在学院层的走道上。&lt;&lt;Get_Msg_Map_neighbor&gt;&gt;</tw-passagedata><tw-passagedata pid="67" name="Msg_Spots_academyLevel_shop" tags="" position="850,850" size="100,100">你位于学院层的小商店内。</tw-passagedata><tw-passagedata pid="68" name="Msg_Spots_academyLevel_square" tags="" position="975,850" size="100,100">你正位于学院广场上</tw-passagedata><tw-passagedata pid="69" name="Msg_Spots_academyLevel_swimmingPool" tags="" position="1100,850" size="100,100">你位于学院泳池内</tw-passagedata><tw-passagedata pid="70" name="Msg_Spots_academyLevel_videoHall" tags="" position="1225,850" size="100,100">你正位于放映厅内</tw-passagedata><tw-passagedata pid="71" name="Msg_Spots_dorm_domRoom" tags="" position="100,975" size="100,100">你来到一间普通的房间</tw-passagedata><tw-passagedata pid="72" name="Msg_Spots_dorm_domRoom_preview" tags="" position="225,975" size="100,100">&lt;&lt;= T.neighbordir.delete(T.neighbordir[0])&gt;&gt;边是&lt;&lt;= T.neighborCoor.delete(T.neighborCoor[0])&gt;&gt;的房间。(待做房间归属和访问许可)</tw-passagedata><tw-passagedata pid="73" name="Msg_Spots_dorm_road" tags="" position="350,975" size="100,100">你站在宿舍的走廊上。&lt;&lt;Get_Msg_Map_neighbor&gt;&gt;</tw-passagedata><tw-passagedata pid="74" name="Msg_Spots_dorm_gate" tags="" position="475,975" size="100,100">你正位于宿舍的大门处。
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="68" name="Msg_Spots_academyLevel_road" tags="" position="975,850" size="100,100">你站在学院层的走道上。&lt;&lt;Get_Msg_Map_neighbor&gt;&gt;</tw-passagedata><tw-passagedata pid="69" name="Msg_Spots_academyLevel_shop" tags="" position="1100,850" size="100,100">你位于学院层的小商店内。</tw-passagedata><tw-passagedata pid="70" name="Msg_Spots_academyLevel_square" tags="" position="1225,850" size="100,100">你正位于学院广场上</tw-passagedata><tw-passagedata pid="71" name="Msg_Spots_academyLevel_swimmingPool" tags="" position="100,975" size="100,100">你位于学院泳池内</tw-passagedata><tw-passagedata pid="72" name="Msg_Spots_academyLevel_videoHall" tags="" position="225,975" size="100,100">你正位于放映厅内</tw-passagedata><tw-passagedata pid="73" name="Msg_Spots_dorm_domRoom" tags="" position="350,975" size="100,100">你来到一间普通的房间</tw-passagedata><tw-passagedata pid="74" name="Msg_Spots_dorm_domRoom_preview" tags="" position="475,975" size="100,100">&lt;&lt;= T.neighbordir.delete(T.neighbordir[0])&gt;&gt;边是&lt;&lt;= T.neighborCoor.delete(T.neighborCoor[0])&gt;&gt;的房间。(待做房间归属和访问许可)</tw-passagedata><tw-passagedata pid="75" name="Msg_Spots_dorm_road" tags="" position="600,975" size="100,100">你站在宿舍的走廊上。&lt;&lt;Get_Msg_Map_neighbor&gt;&gt;</tw-passagedata><tw-passagedata pid="76" name="Msg_Spots_dorm_gate" tags="" position="725,975" size="100,100">你正位于宿舍的大门处。
     &lt;&lt;link &quot;出门&quot;&gt;&gt;
         &lt;&lt;set T.jumpMove = {mapId:&quot;academyLevel&quot;,coord:[4,4], allowjump:true}&gt;&gt;
         &lt;&lt;run Com.Check(&quot;0-move-jump&quot;);&gt;&gt;
-    &lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="75" name="Msg_Spots_dorm_yourRoom" tags="" position="600,975" size="100,100">&lt;&lt;if Flag.firstVisitYourRoom == true&gt;&gt;
+    &lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="77" name="Msg_Spots_dorm_yourRoom" tags="" position="850,975" size="100,100">&lt;&lt;if Flag.firstVisitYourRoom == true&gt;&gt;
         &lt;&lt;run Dialogs.set({tp:&#39;Welcome&#39;,nm:&#39;FirstWake&#39;})&gt;&gt;
     &lt;&lt;else&gt;&gt;
         &lt;&lt;yourRoom_normalVisit&gt;&gt;
-    &lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="76" name="Msg_Spots_dorm_yourRoom_first_visit" tags="widget" position="725,975" size="100,100">&lt;&lt;widget &quot;yourRoom_firstVisit&quot;&gt;&gt;
+    &lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="78" name="Msg_Spots_dorm_yourRoom_first_visit" tags="widget" position="975,975" size="100,100">&lt;&lt;widget &quot;yourRoom_firstVisit&quot;&gt;&gt;
     &lt;&lt;stop&gt;&gt;
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="77" name="Msg_Spots_dorm_yourRoom_normal_visit" tags="widget" position="850,975" size="100,100">&lt;&lt;widget &quot;yourRoom_normalVisit&quot;&gt;&gt;
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="79" name="Msg_Spots_dorm_yourRoom_normal_visit" tags="widget" position="1100,975" size="100,100">&lt;&lt;widget &quot;yourRoom_normalVisit&quot;&gt;&gt;
         &lt;&lt;you&gt;&gt;正位于自己的房间里。
-    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="78" name="Welcome_FirstWake" tags="" position="975,975" size="100,100">&quot;陌生的天花板&quot;,&lt;&lt;you&gt;&gt;从床上坐起来，揉了揉自己的后脑勺。
+    &lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="80" name="Welcome_FirstWake" tags="" position="1225,975" size="100,100">&quot;陌生的天花板&quot;,&lt;&lt;you&gt;&gt;从床上坐起来，揉了揉自己的后脑勺。
 昨天写下最后一个字后，&lt;&lt;you&gt;&gt;正打算将信封重新封好，却突然感到眼前一黑，醒来时便已经在这了。
 &lt;&lt;you&gt;&gt;现在位于的房间宽敞而明亮，茶几椅子电脑桌一应俱全，还有一个不小的独卫，全然不似&lt;&lt;you&gt;&gt;之前逼仄的出租公寓隔间。
 从单人床上起来洗漱完成，&lt;&lt;you&gt;&gt;听到开着的电视机里传来晨间新闻：
@@ -13885,14 +16497,14 @@ resetMode   ,走开</tw-passagedata><tw-passagedata pid="7" name="ComList" tags=
 &lt;&lt;set V.location.coord = [8,4]&gt;&gt;
 &lt;&lt;run V.location.spotid = &quot;office&quot;&gt;&gt;
 &lt;&lt;run V.location.printname = &quot;学园长办公区域&quot;&gt;&gt;
-&lt;&lt;= Kojo.put(&quot;Alisa&quot;,{type:&quot;event&quot;,id:&quot;firstMeet&quot;})&gt;&gt;</tw-passagedata><tw-passagedata pid="79" name="SystemOption" tags="system" position="1100,975" size="100,100">&lt;&lt;link &#39;Back&#39; &#39;Start&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="80" name="StoryDisplayTitle" tags="" position="1225,975" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
+&lt;&lt;= Kojo.put(&quot;Alisa&quot;,{type:&quot;event&quot;,id:&quot;firstMeet&quot;})&gt;&gt;</tw-passagedata><tw-passagedata pid="81" name="SystemOption" tags="system" position="100,1100" size="100,100">&lt;&lt;link &#39;Back&#39; &#39;Start&#39;&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="82" name="StoryDisplayTitle" tags="" position="225,1100" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
    EraFacility
-&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="81" name="StoryInit" tags="" position="100,1100" size="100,100">&lt;&lt;run
+&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="83" name="StoryInit" tags="" position="350,1100" size="100,100">&lt;&lt;run
    game.InitStory()
 
    console.log(&#39;scEra version: &#39; + scEra.version)
    slog(&#39;log&#39;,&#39;This is the end of StoryInit...&#39;)
-&gt;&gt;</tw-passagedata><tw-passagedata pid="82" name="Start" tags="nosave" position="225,1100" size="100,100">&lt;&lt;run
+&gt;&gt;</tw-passagedata><tw-passagedata pid="84" name="Start" tags="nosave" position="475,1100" size="100,100">&lt;&lt;run
    slog(&#39;log&#39;,&#39;Loading Titlescreen...&#39;);
 &gt;&gt;
 
@@ -13916,7 +16528,7 @@ EraFacility
 &lt;&lt;link &#39;开发者模式&#39;&gt;&gt;&lt;&lt;run Config.debug = true;  DebugBar.init(); DebugBar.start() &gt;&gt;&lt;&lt;/link&gt;&gt;
 　
 &lt;&lt;link &#39;快速重启&#39;&gt;&gt;&lt;&lt;run Engine.restart()&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="83" name="MapEditor" tags="nobar" position="350,1100" size="100,100">&lt;&lt;set _mapsizeX = 12&gt;&gt;
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="85" name="MapEditor" tags="nobar" position="600,1100" size="100,100">&lt;&lt;set _mapsizeX = 12&gt;&gt;
 &lt;&lt;set _mapsizeY = 32&gt;&gt;
 &lt;&lt;set _placemode = 0&gt;&gt;
 &lt;&lt;set _destroymode = 0&gt;&gt;
@@ -14052,7 +16664,7 @@ $(&#39;#checkbox--placemode&#39;).on(&#39;change&#39;,()=&gt;{
 
 
 &lt;&lt;/script&gt;&gt;
-&lt;&lt;/done&gt;&gt;</tw-passagedata><tw-passagedata pid="84" name="PassageHeader" tags="" position="475,1100" size="100,100">&lt;&lt;run
+&lt;&lt;/done&gt;&gt;</tw-passagedata><tw-passagedata pid="86" name="PassageHeader" tags="" position="725,1100" size="100,100">&lt;&lt;run
     $passage = passage(); $tags = tags($passage);
     if($tags.has(&#39;title&#39;,&#39;nobar&#39;)){
         UIBar.stow();
@@ -14069,7 +16681,7 @@ $(&#39;#checkbox--placemode&#39;).on(&#39;change&#39;,()=&gt;{
        $(&#39;#story-header&#39;).removeClass(&#39;hidden&#39;) 
     }
 &gt;&gt;
-/*这里是header. 每个页面都会运行。&lt;br&gt;*/</tw-passagedata><tw-passagedata pid="85" name="StoryCaption" tags="" position="600,1100" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
+/*这里是header. 每个页面都会运行。&lt;br&gt;*/</tw-passagedata><tw-passagedata pid="87" name="StoryCaption" tags="" position="850,1100" size="100,100">&lt;&lt;if $system.showSideBarTitle&gt;&gt;
 EraFacility beta 0.0.1&lt;br&gt;
 &lt;a url=&#39;https://github.com/emicoto/_scEra&#39;&gt;github&lt;/a&gt;&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
@@ -14087,21 +16699,21 @@ EraFacility beta 0.0.1&lt;br&gt;
 &lt;div id=&#39;random_tips&#39;&gt;
 &lt;/div&gt;
 &lt;div id=&#39;update_note&#39;&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="86" name="PassageFooter" tags="" position="725,1100" size="100,100">/*这里是footer。每个页面都会运行。&lt;br&gt;*/
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="88" name="PassageFooter" tags="" position="975,1100" size="100,100">/*这里是footer。每个页面都会运行。&lt;br&gt;*/
 &lt;div id=&quot;customOverlayContainer&quot; class=&quot;customOverlayContainer no-numberify hidden&quot; onclick=&quot;F.closeOverlay()&quot;&gt;
 	&lt;div id=&quot;customOverlay&quot; class=&quot;customOverlay hidden&quot; onclick=&quot;event.stopPropagation()&quot;&gt;
 		&lt;div id=&quot;customOverlayTitle&quot;&gt;&lt;/div&gt;
 		&lt;div id=&quot;customOverlayContent&quot;&gt;&lt;/div&gt;
 	&lt;/div&gt;
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="87" name="PassageReady" tags="" position="850,1100" size="100,100">&lt;&lt;run
+&lt;/div&gt;</tw-passagedata><tw-passagedata pid="89" name="PassageReady" tags="" position="1100,1100" size="100,100">&lt;&lt;run
     _passageready = true;
     if($lastsession !== $passage)
       $lastsession = $passage;
 &gt;&gt;
 这里会在读取文本前执行。
-因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="88" name="PassageDone" tags="" position="975,1100" size="100,100">这里是会在渲染结束时执行。
-因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="89" name="StoryHeader" tags="" position="1100,1100" size="100,100">/*顶部的标题栏。&lt;br&gt;
-&lt;&lt;test2&gt;&gt;*/</tw-passagedata><tw-passagedata pid="90" name="StoryFooter" tags="" position="1225,1100" size="100,100">/*底部的菜单栏。*/</tw-passagedata><tw-passagedata pid="91" name="DialogTest" tags="" position="100,1225" size="100,100">&lt;&lt;set _count to 0&gt;&gt;
+因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="90" name="PassageDone" tags="" position="1225,1100" size="100,100">这里是会在渲染结束时执行。
+因为是纯代码区，这里的文字并不会显示在页面上。</tw-passagedata><tw-passagedata pid="91" name="StoryHeader" tags="" position="100,1225" size="100,100">/*顶部的标题栏。&lt;br&gt;
+&lt;&lt;test2&gt;&gt;*/</tw-passagedata><tw-passagedata pid="92" name="StoryFooter" tags="" position="225,1225" size="100,100">/*底部的菜单栏。*/</tw-passagedata><tw-passagedata pid="93" name="DialogTest" tags="" position="350,1225" size="100,100">&lt;&lt;set _count to 0&gt;&gt;
 ready to dialog.
 &lt;span id=&#39;counter&#39;&gt;_count&lt;/span&gt;
 
@@ -14112,7 +16724,7 @@ ready to dialog.
       &lt;&lt;run Dialogs.set({tp:&#39;Test&#39;,nm:&#39;Chapter&#39;})&gt;&gt;
       &lt;&lt;stop&gt;&gt;
    &lt;&lt;/if&gt;&gt;
-&lt;&lt;/repeat&gt;&gt;</tw-passagedata><tw-passagedata pid="92" name="TestStart" tags="" position="225,1225" size="100,100">&lt;div id=&#39;test&#39;&gt;&lt;/div&gt;
+&lt;&lt;/repeat&gt;&gt;</tw-passagedata><tw-passagedata pid="94" name="TestStart" tags="" position="475,1225" size="100,100">&lt;div id=&#39;test&#39;&gt;&lt;/div&gt;
 &lt;&lt;if $mode is &#39;normal&#39;&gt;&gt;
 多了些什么东西吗？&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
@@ -14144,7 +16756,7 @@ ready to dialog.
 &lt;&lt;link &#39;测试段落&#39; &#39;Test&#39;&gt;&gt;
 &lt;&lt;/link&gt;&gt;&lt;br&gt;
 
-[[next|MainLoop]]</tw-passagedata><tw-passagedata pid="93" name="Test" tags="" position="350,1225" size="100,100">一个测试用段落。&lt;br&gt;
+[[next|MainLoop]]</tw-passagedata><tw-passagedata pid="95" name="Test" tags="" position="600,1225" size="100,100">一个测试用段落。&lt;br&gt;
 看看能不能正常显示。&lt;br&gt;
 
 &lt;&lt;if $mode is &quot;event&quot;&gt;&gt;
@@ -14156,7 +16768,7 @@ ready to dialog.
 &lt;&lt;link &#39;back&#39; &#39;Start&#39;&gt;&gt;
 &lt;&lt;/link&gt;&gt;
 &lt;&lt;link &#39;switch&#39; $passage&gt;&gt;
-&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="94" name="Test:EN" tags="" position="475,1225" size="100,100">a test passage.&lt;br&gt;
+&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="96" name="Test:EN" tags="" position="725,1225" size="100,100">a test passage.&lt;br&gt;
 see if it can be displayed normally.&lt;br&gt;
 
 &lt;&lt;if $mode is &quot;event&quot;&gt;&gt;
@@ -14166,11 +16778,11 @@ see if it can be displayed normally.&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
 
 &lt;&lt;link &#39;back&#39; &#39;Start&#39;&gt;&gt;
-&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="95" name="Test:Before" tags="" position="600,1225" size="100,100">&lt;&lt;run 
+&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="97" name="Test:Before" tags="" position="850,1225" size="100,100">&lt;&lt;run 
    console.log(&#39;Test:Before is running.&#39;)
 &gt;&gt;
 &lt;&lt;=lan(&#39;测试前置&#39;,&#39;test before&#39;)&gt;&gt;&lt;br&gt;
-&lt;&lt;test &gt;&gt;</tw-passagedata><tw-passagedata pid="96" name="Widget" tags="widget" position="725,1225" size="100,100">&lt;&lt;widget &quot;test&quot;&gt;&gt;
+&lt;&lt;test &gt;&gt;</tw-passagedata><tw-passagedata pid="98" name="Widget" tags="widget" position="975,1225" size="100,100">&lt;&lt;widget &quot;test&quot;&gt;&gt;
    &lt;&lt;if $mode is &quot;event&quot;&gt;&gt;
       &lt;&lt;set $test to &quot;event&quot;&gt;&gt;
       &lt;&lt;script&gt;&gt;slog(&#39;log&#39;, &#39;test in event&#39;, V.test, T.runningTitle)&lt;&lt;/script&gt;&gt;
@@ -14183,18 +16795,18 @@ see if it can be displayed normally.&lt;br&gt;
 &lt;&lt;widget &quot;test2&quot;&gt;&gt;
    a general widget.&lt;br&gt;
    ???
-&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="97" name="A CSV" tags="csv" position="850,1225" size="100,100">No., Name, Age, Job, Salary
+&lt;&lt;/widget&gt;&gt;</tw-passagedata><tw-passagedata pid="99" name="A CSV" tags="csv" position="1100,1225" size="100,100">No., Name, Age, Job, Salary
 1, John, 24, Engineer, 10000
 2, Mary, 23, Designer, 15000
 3, Bob, 25, Engineer, 20000
 4, Alice, 26, Engineer, 25000
-5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="98" name="A Table" tags="table" position="975,1225" size="100,100">@Salary
+5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="100" name="A Table" tags="table" position="1225,1225" size="100,100">@Salary
 #No., Name, Age, Job, Salary
 1, John, 24, Engineer, 10000
 2, Mary, 23, Designer, 15000
 3, Bob, 25, Engineer, 20000
 4, Alice, 26, Engineer, 25000
-5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="99" name="A Xml" tags="xml" position="1100,1225" size="100,100">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+5, Jack, 27, Designer, 30000</tw-passagedata><tw-passagedata pid="101" name="A Xml" tags="xml" position="100,1350" size="100,100">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
 &lt;bookstore&gt;
    &lt;book&gt;
       &lt;title lang=&quot;en&quot;&gt;Harry Potter&lt;/title&gt;
@@ -14204,10 +16816,10 @@ see if it can be displayed normally.&lt;br&gt;
       &lt;title lang=&quot;en&quot;&gt;Learning XML&lt;/title&gt;
       &lt;price&gt;39.95&lt;/price&gt;
    &lt;/book&gt;
-&lt;/bookstore&gt;</tw-passagedata><tw-passagedata pid="100" name="testpage::Before" tags="" position="1225,1225" size="100,100">&lt;&lt;run console.log(1)&gt;&gt;</tw-passagedata><tw-passagedata pid="101" name="testpage" tags="" position="100,1350" size="100,100">passage
-[[back|testpage]]</tw-passagedata><tw-passagedata pid="102" name="testpage::After" tags="" position="225,1350" size="100,100">&lt;&lt;run console.log(2)&gt;&gt;</tw-passagedata><tw-passagedata pid="103" name="Test_Chapter::Before" tags="" position="350,1350" size="100,100">&lt;&lt;set $event.exit to &#39;Start&#39;&gt;&gt;
+&lt;/bookstore&gt;</tw-passagedata><tw-passagedata pid="102" name="testpage::Before" tags="" position="225,1350" size="100,100">&lt;&lt;run console.log(1)&gt;&gt;</tw-passagedata><tw-passagedata pid="103" name="testpage" tags="" position="350,1350" size="100,100">passage
+[[back|testpage]]</tw-passagedata><tw-passagedata pid="104" name="testpage::After" tags="" position="475,1350" size="100,100">&lt;&lt;run console.log(2)&gt;&gt;</tw-passagedata><tw-passagedata pid="105" name="Test_Chapter::Before" tags="" position="600,1350" size="100,100">&lt;&lt;set $event.exit to &#39;Start&#39;&gt;&gt;
 &lt;&lt;set $test to &#39;abc&#39;&gt;&gt;
-&lt;&lt;run console.log(&#39;a test before:&#39;, $event, $test)&gt;&gt;</tw-passagedata><tw-passagedata pid="104" name="Test_Chapter" tags="" position="475,1350" size="100,100">下课后，科林被教导主任叫到会客室。
+&lt;&lt;run console.log(&#39;a test before:&#39;, $event, $test)&gt;&gt;</tw-passagedata><tw-passagedata pid="106" name="Test_Chapter" tags="" position="725,1350" size="100,100">下课后，科林被教导主任叫到会客室。
 然后一进去就看到里面坐着的是父亲威尔·埃德瑞，以及埃里克的父亲洛伦斯·霍尔森，
 本区教会的巢司长与礼司长、唯一的主母供仪与圣女队的领头供仪，
 世界银行的银行长，以及格伦特一等学院的院长，大学部的校长。
@@ -14234,7 +16846,7 @@ see if it can be displayed normally.&lt;br&gt;
 
 银行长望向了教会，教会巢司长便说：“教会愿意帮你们抵消5亿债务，但科林，你必须成为供仪为教会与信众们服务，至少12年。”
 “而我花了一亿买下了你的监管权，”霍尔森公爵说道，“以后我就是你的教夫，亦是你的直属债权人，你身上依然有一亿的债务。哦，对了，我的儿子埃里克也共有这份权利。”
-#:{ &quot;type&quot;:&quot;endPhase&quot;}</tw-passagedata><tw-passagedata pid="105" name="Test_Chapter_ep1" tags="" position="600,1350" size="100,100">这是一个新的章节。
+#:{ &quot;type&quot;:&quot;endPhase&quot;}</tw-passagedata><tw-passagedata pid="107" name="Test_Chapter_ep1" tags="" position="850,1350" size="100,100">这是一个新的章节。
 看看内容。
 做点选项看看。
 
@@ -14243,10 +16855,10 @@ see if it can be displayed normally.&lt;br&gt;
 &lt;&lt;select &#39;B Choice&#39;&gt;&gt;
 &lt;&lt;/selection&gt;&gt;
 
-#:{ &quot;type&quot;:&quot;selectEnd&quot;}</tw-passagedata><tw-passagedata pid="106" name="Test_Chapter_ep1:sp1" tags="" position="725,1350" size="100,100">选择了A， 准备返回上一个选择节点。
-#:{ &quot;type&quot;:&quot;return&quot;}</tw-passagedata><tw-passagedata pid="107" name="Test_Chapter_ep1:sp2" tags="" position="850,1350" size="100,100">选择了B，准备跳转到另一个地方。
+#:{ &quot;type&quot;:&quot;selectEnd&quot;}</tw-passagedata><tw-passagedata pid="108" name="Test_Chapter_ep1:sp1" tags="" position="975,1350" size="100,100">选择了A， 准备返回上一个选择节点。
+#:{ &quot;type&quot;:&quot;return&quot;}</tw-passagedata><tw-passagedata pid="109" name="Test_Chapter_ep1:sp2" tags="" position="1100,1350" size="100,100">选择了B，准备跳转到另一个地方。
 #:{ &quot;type&quot;:&quot;jump&quot;, &quot;target&quot;:&quot;Test_Chapter&quot;, &quot;phase&quot;:1}
-1</tw-passagedata><tw-passagedata pid="108" name="Test_Chapter:sp1" tags="" position="975,1350" size="100,100">&lt;&lt;run Dialogs.clear(2)&gt;&gt;
+1</tw-passagedata><tw-passagedata pid="110" name="Test_Chapter:sp1" tags="" position="1225,1350" size="100,100">&lt;&lt;run Dialogs.clear(2)&gt;&gt;
 &lt;fr&gt;
 这是一个途中跳转过来的新分支。
 将会清除最后两个step的内容。

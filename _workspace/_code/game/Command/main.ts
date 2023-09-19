@@ -129,6 +129,7 @@ Com.updateMenu = function () {
 Com.resetScene = function () {
 	V.target = C[V.tc];
 	V.player = C[V.pc];
+	F.refrashSideBar();
 	Com.updateScene();
 	Com.listUp();
 	Com.updateMenu();
@@ -145,6 +146,7 @@ Com.resetScene = function () {
 Com.next = function () {
 	//用于刷新content_message区域的文本。
 	//update the text in <div id='content_message'></div>
+	console.log('next',T.msg)
 	if (T.msgId < T.msg.length && T.msg[T.msgId].has("<<selection", "<<linkreplace") && !T.selectwait) {
 		T.msg[T.msgId] += "<<unset _selectwait>><<set _onselect to 1>>";
 		T.selectwait = 1;
@@ -164,12 +166,13 @@ Com.next = function () {
 Com.Check = function (id) {
 	const com: Com = Com.data[id];
 	console.log('try check com', com)
-	T.comorder = 0;
+	T.comorder = 0; //似乎是个固定值，使得只要ordergoal小于0就可以执行
 	T.reason = T.reason?T.reason:"";
 	T.order = "";
 	T.orderGoal = Com.globalOrder(id) + com.order();
 	T.comAble = Com.globalCheck(id) && com.check();
 	console.log("reason",T.reason)
+	if (!T.msg) T.msg = [];
 	T.msgId = 0;
 
 	//如果对方无反抗之力，目标值强行变零。
@@ -190,7 +193,7 @@ Com.Check = function (id) {
 	Com.shownext();
 
 	if (V.system.showOrder && T.order) {
-		P.msg(`配合度检测：${T.order}＝${T.comorder}/${T.orderGoal}<br><<dashline>>`);
+		P.msg(`配合度检测：${T.order}＝${T.orderGoal}<br><<dashline>>`);
 	}
 	//执行before事件。这些都是纯文本。只能有选项相关操作。
 	//先执行通用的 before事件。基本用在场景变化中。
@@ -244,6 +247,7 @@ Com.Check = function (id) {
 
 //执行事件
 Com.Event = function (id, next) {
+	console.log('Com.Event()', id, T.orderGoal)
 	const com = Com.data[id];
 	const resetHtml = `<<run Com.reset()>>`;
 	let txt = "",
@@ -270,7 +274,7 @@ Com.Event = function (id, next) {
 	else if (T.comAble) {
 		//确认对象愿意配合执行
 		if (
-			T.orderGoal === 0 ||
+			T.orderGoal <= 0 ||
 			V.system.debug ||
 			(T.orderGoal > 0 && T.comorder >= T.orderGoal) ||
 			(com?.forceAble && T.comorder + S.ignoreOrder >= T.orderGoal)
@@ -279,7 +283,7 @@ Com.Event = function (id, next) {
 			//强迫执行
 			if (T.comorder < T.orderGoal && !V.system.debug) {
 				T.msg.push(
-					`配合度不足：${T.order}＝${T.comorder}/${T.orderGoal}<br>${
+					`配合度不足：${T.order}＝${T.orderGoal}<br>${
 						com?.forceAble ? "<<run Com.next()>>" : ""
 					}<br>`
 				);
@@ -303,7 +307,9 @@ Com.Event = function (id, next) {
 			if (txt.includes("Kojo.put")) txt = F.convertKojo(txt);
 
 			P.msg(txt);
-			P.msg(`<<run Com.data['${id}'].source(); F.passtime(T.passtime); Com.After()>>`, 1);
+			P.msg(`<<run Com.data['${id}'].source();>>`,1)
+			P.msg(`<<run F.passtime(T.passtime);>>`,1)
+			P.msg(`<<run Com.After()>>`, 1);
 
 			//确认After事件。如果有就添加到 Msg中。
 			if (Kojo.has(V.pc, { type, id, dif: "After", check: 1 })) {
@@ -319,7 +325,7 @@ Com.Event = function (id, next) {
 			//最后加ComEnd()
 			P.msg("<<run Com.endEvent()>>", 1);
 		} else {
-			P.msg(`配合度不足：${T.order}＝${T.comorder}/${T.orderGoal}<br><<run F.passtime(1); >>`);
+			P.msg(`配合度不足：${T.order}＝${T.orderGoal}<br><<run F.passtime(1); >>`);
 			P.msg(resetHtml, 1);
 		}
 	}

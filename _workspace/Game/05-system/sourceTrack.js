@@ -4,6 +4,7 @@ F.sourceCheck = function (chara, cid) {
 	//根据特定条件进行数值处理
 
 	//根据素质进行数值处理. 数值buff最后处理
+	console.log('F.sourceCheck()', cid)
 	F.tagBuff(chara,cid);
 	F.traitSource(chara, cid);
 };
@@ -46,9 +47,15 @@ F.traitSource = function (chara, cid) {
 };
 
 F.tagBuff = function (chara,cid){
+	console.log('cal tag dot')
 	let Ctags = chara.tags;
 	const Csource = chara.source;
 	const Cbase = chara.basesource;
+	const Cexp = chara.exp;
+	let CbuffGet = {};
+	let CbuffLose = {};
+	for (let i in D.palam) {CbuffGet[i] = 1; CbuffLose[i] = 1;}
+	for (let i in D.basekey) {CbuffGet[i] = 1; CbuffLose[i] = 1;}
 	for (let index in Ctags.data){
 		let tag = Ctags.data[index];
 		let dots = tag.dot;
@@ -65,8 +72,11 @@ F.tagBuff = function (chara,cid){
 							Csource[dot.source] =Csource[dot.source]*dot.value;
 						}
 						break;
-					case "buff":
-						Csource[dot.source] =Csource[dot.source]*dot.value;
+					case "buffget":
+						CbuffGet[dot.source] =CbuffGet[dot.source]*dot.value;
+						break;
+					case "bufflose":
+						CbuffLose[dot.source] =CbuffLose[dot.source]*dot.value;
 						break;
 				
 					default:
@@ -85,20 +95,41 @@ F.tagBuff = function (chara,cid){
 							Cbase[dot.source] =Cbase[dot.source]*dot.value;
 						}
 						break;
-					case "buff":
-						Cbase[dot.source] =Cbase[dot.source]*dot.value;
+					case "buffget":
+						CbuffGet[dot.source] =CbuffGet[dot.source]*dot.value;
+						break;
+					case "bufflose":
+						CbuffLose[dot.source] =CbuffLose[dot.source]*dot.value;
 						break;
 				
 					default:
 						break;
 				}
 			}
+			else if (dot.source in D.exp){
+				console.log('dot',dot)
+				Cexp[dot.source].aware = Cexp[dot.source].aware+dot.value;
+				Cexp[dot.source].total = Cexp[dot.source].total+dot.value;
+			}
 		})
+	}
+
+	for (let source in Object.keys(CbuffGet)){
+		if (source in D.palam) {
+			if (Csource[source]>0) Csource[source] = Csource[source]*CbuffGet[source];
+			else  Csource[source] = Csource[source]*CbuffLose[source];
+		}
+		if (D.basekey.includes(source)) {
+			if (Cbase[source]>0) Cbase[source] = Cbase[source]*CbuffGet[source];
+			else  Cbase[source] = Cbase[source]*CbuffLose[source];
+		}
+
 	}
 }
 
 F.sourceUp = function (chara) {
 	//根据处理结果进行反馈。并输出结果文字到 S.sourceResult下。当启用显示结果数值时，会显示在COM after之后。
+	console.log('F.sourceUp')
 	let base = Object.values(D.basekey);
 	let palam = Object.keys(D.palam);
 
@@ -111,7 +142,7 @@ F.sourceUp = function (chara) {
 			const lv = chara.palam[i][0] + 1;
 			// TODO
 			// 此处如果选用每分钟计时的话，可能会大量显示
-			msg = `>> ${lan(D.palam[i])}${v > 0 ? " + " : " - "}${v} = ${chara.palam[i][1] + v} / ${S.palamLv[lv]}`;
+			//msg = `>> ${lan(D.palam[i])}${v > 0 ? " + " : " - "}${v} = ${chara.palam[i][1] + v} / ${S.palamLv[lv]}`;
 		}
 		if (palam.includes(i) && chara.source[i]) {
 			let lv = chara.palam[i][0] + 1;
@@ -141,7 +172,7 @@ F.sourceUp = function (chara) {
 	console.log(chara.basesource)
 	for (let i in chara.basesource){
 		if (base.includes(i) && chara.basesource[i]) {
-			chara.base[i][0] = Math.clamp(chara.base[i][0] + chara.basesource[i], -100, chara.base[i][1] * 1.5);
+			chara.base[i][0] = Math.clamp(chara.base[i][0] + chara.basesource[i], 0, chara.base[i][1]);
 		}
 		chara.basesource[i] = 0;
 	}
@@ -160,6 +191,7 @@ F.trackCheck = function (chara, cid, time=1) {
       }
 
    */
+  console.log('F.trackCheck()',cid)
   chara.tags.update(chara)
   F.gatherTagDot(chara,time)
 };
@@ -173,6 +205,7 @@ F.gatherTagDot = function(chara, passTime){
 	for (let index in Ctags.data){
 		let tag = Ctags.data[index];
 		let dots = tag.dot;
+		console.log('F.gatherTagDot()', tag, dots)
 		Object.values(dots).forEach((dot)=>{
 			if (dot.source in D.palam){
 				switch (dot.type) {
@@ -191,7 +224,7 @@ F.gatherTagDot = function(chara, passTime){
 						}
 						break;
 					
-					case "nohigher":
+					case "nolarger":
 						if (Csource[dot.source][0]+1>dot.inf){
 							dotSum[dot.source]+=dot.value*passTime;
 						}
@@ -227,7 +260,7 @@ F.gatherTagDot = function(chara, passTime){
 						}
 						break;
 					
-					case "nohigher":
+					case "nolarger":
 						if (CBase[dot.source][0]+1>dot.inf){
 							baseDotSum[dot.source]+=dot.value*passTime;
 						}

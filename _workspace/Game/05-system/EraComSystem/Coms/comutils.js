@@ -4,7 +4,7 @@ function createMoveComs(){
         let newCom = Com.new("system",{
             id:"0-move-"+dir,
             name:`向${cn_dict[dir]}移动`,
-            tags:[],
+            tags:['Alone'],
             time:5,
         });
         newCom.Set(
@@ -16,8 +16,7 @@ function createMoveComs(){
             return moveComCheck(newCom.dir);
         }).Filter(()=>{
             if (V.moveable == false) return false
-            if (V.currentFilter == "常规" || V.currentFilter == "all") return true;
-            return false
+            return !!(V.currentFilter == "常规" || V.currentFilter == "all");
         })
     }
     
@@ -57,6 +56,7 @@ function moveComEffect(dir){
         case("W"):V.location.coord[1] = V.location.coord[1]-1;break;
     }
     updateLocation();
+    NPCFollowMove(V.location.mapId,V.location.coord)
     Com.updateMovement();
 }
 
@@ -68,11 +68,7 @@ function updateLocation(){
     F.refrashSideBar();
 }
 
-// function refrashSideBarMap(){
-//     if (document.getElementById("sidebarMap"))
-//         new Wikifier(null, `<<replace #sidebarMap>> <<sidebarMap>><</replace>>`);
-//     //$("#siderbarMap").remove();
-// }
+
 
 
 function createJumpMoveComs(){
@@ -88,6 +84,7 @@ function createJumpMoveComs(){
         V.location.coord = T.jumpMove.coord;
         T.jumpMove.allowjump = false;
         updateLocation();
+        NPCFollowMove(V.location.mapId,V.location.coord)
         Com.updateMovement();
     }).Check(()=>{
         console.log(T.jumpMove);
@@ -98,3 +95,36 @@ function createJumpMoveComs(){
     })
     
 }
+
+function NPCFollowMove(mapid, coor){
+    Object.keys(V.chara).forEach((cid)=>{
+        let chara = V.chara[cid];
+        if (chara.tags.has('跟随') && cid !== "player"){
+            chara.location.mapId = mapid;
+            Object.assign(chara.location.coord,coor)
+            F.NPC2NewPalace(chara,mapid,coor);
+        }
+    })
+
+}
+
+
+///插入系指令快速函数
+function addVInsertTags(target, player, comid){
+    let t = target;
+    let p = player;
+    t.tags.add('V占用', t, {'inf':{'source':p.cid, 'com':comid}});
+    p.tags.add('C占用', p, {'inf':{'source':t.cid, 'com':comid}});
+    p.tags.add('P插入', p, {'inf':{'source':t.cid, 'com':comid}});
+    t.tags.add('V被插入', t, {'inf':{'source':p.cid, 'com':comid}});
+}
+
+function addAInsertTags(target, player, comid){
+    let t = target;
+    let p = player;
+    t.tags.add('A占用', t, {'inf':{'source':p.cid, 'com':comid}});
+    p.tags.add('C占用', p, {'inf':{'source':t.cid, 'com':comid}});
+    p.tags.add('P插入', p, {'inf':{'source':t.cid, 'com':comid}});
+    t.tags.add('A被插入', t, {'inf':{'source':p.cid, 'com':comid}});
+}
+
